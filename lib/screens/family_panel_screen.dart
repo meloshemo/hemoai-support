@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/preferences_service.dart';
+import '../services/database_helper.dart';
 
 class FamilyPanelScreen extends StatefulWidget {
   const FamilyPanelScreen({Key? key}) : super(key: key);
@@ -7,1473 +9,870 @@ class FamilyPanelScreen extends StatefulWidget {
   State<FamilyPanelScreen> createState() => _FamilyPanelScreenState();
 }
 
-class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProviderStateMixin {
-  late TabController _tabController;
+class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
+  PreferencesService? _prefsService;
+  final DatabaseHelper _dbHelper = DatabaseHelper.instance;
+  List<Map<String, dynamic>> familyMembers = [];
+  bool _isLoading = true;
+  int? currentUserId;
+
+  List<Map<String, dynamic>> pendingInvitations = [];
   
-  // Örnek aile üyeleri verisi
-  final List<Map<String, dynamic>> familyMembers = [
-    {
-      'id': '1',
-      'name': 'Ahmet Yılmaz',
-      'relation': 'Baba',
-      'age': 45,
-      'gender': 'Erkek',
-      'avatar': '👨',
-      'lastTest': '2024-09-15',
-      'riskLevel': 'Orta',
-      'riskColor': Colors.orange,
-      'hemogram': {
-        'Hemoglobin (g/dL)': 13.2,
-        'Demir (mcg/dL)': 85.0,
-        'Lökosit (K/uL)': 9.2,
-        'Trombosit (K/uL)': 280.0,
-        'Hematokrit (%)': 42.0,
-      },
-      'trends': {
-        'Hemoglobin (g/dL)': [12.8, 13.0, 13.2], // Son 3 ay
-        'Demir (mcg/dL)': [75.0, 80.0, 85.0],
-      },
-      'testHistory': [
-        {
-          'date': '2024-09-15',
-          'hemogram': {
-            'Hemoglobin (g/dL)': 13.2,
-            'Demir (mcg/dL)': 85.0,
-            'Lökosit (K/uL)': 9.2,
-            'Trombosit (K/uL)': 280.0,
-            'Hematokrit (%)': 42.0,
-          },
-          'riskLevel': 'Orta',
-          'doctorNotes': 'Genel sağlık durumu iyi, demir seviyesi takip edilmeli.',
-        },
-        {
-          'date': '2024-06-15',
-          'hemogram': {
-            'Hemoglobin (g/dL)': 13.0,
-            'Demir (mcg/dL)': 80.0,
-            'Lökosit (K/uL)': 8.8,
-            'Trombosit (K/uL)': 270.0,
-            'Hematokrit (%)': 41.0,
-          },
-          'riskLevel': 'Düşük',
-          'doctorNotes': 'İyileşme var, diyet programına devam.',
-        },
-        {
-          'date': '2024-03-15',
-          'hemogram': {
-            'Hemoglobin (g/dL)': 12.8,
-            'Demir (mcg/dL)': 75.0,
-            'Lökosit (K/uL)': 8.5,
-            'Trombosit (K/uL)': 260.0,
-            'Hematokrit (%)': 40.0,
-          },
-          'riskLevel': 'Orta',
-          'doctorNotes': 'Demir eksikliği başlangıcı, beslenme düzenlenmeli.',
-        },
-      ]
-    },
-    {
-      'id': '2',
-      'name': 'Ayşe Yılmaz',
-      'relation': 'Anne',
-      'age': 42,
-      'gender': 'Kadın',
-      'avatar': '👩',
-      'lastTest': '2024-09-10',
-      'riskLevel': 'Yüksek',
-      'riskColor': Colors.red,
-      'hemogram': {
-        'Hemoglobin (g/dL)': 10.8,
-        'Demir (mcg/dL)': 45.0,
-        'Lökosit (K/uL)': 7.5,
-        'Trombosit (K/uL)': 180.0,
-        'Hematokrit (%)': 35.0,
-      },
-      'trends': {
-        'Hemoglobin (g/dL)': [11.2, 11.0, 10.8],
-        'Demir (mcg/dL)': [50.0, 47.0, 45.0],
-      },
-      'testHistory': [
-        {
-          'date': '2024-09-10',
-          'hemogram': {
-            'Hemoglobin (g/dL)': 10.8,
-            'Demir (mcg/dL)': 45.0,
-            'Lökosit (K/uL)': 7.5,
-            'Trombosit (K/uL)': 180.0,
-            'Hematokrit (%)': 35.0,
-          },
-          'riskLevel': 'Yüksek',
-          'doctorNotes': 'Şiddetli demir eksikliği anemisi, acil müdahale gerekli.',
-        },
-        {
-          'date': '2024-06-10',
-          'hemogram': {
-            'Hemoglobin (g/dL)': 11.0,
-            'Demir (mcg/dL)': 47.0,
-            'Lökosit (K/uL)': 7.2,
-            'Trombosit (K/uL)': 175.0,
-            'Hematokrit (%)': 36.0,
-          },
-          'riskLevel': 'Yüksek',
-          'doctorNotes': 'Anemi devam ediyor, tedavi planı revize edilmeli.',
-        },
-        {
-          'date': '2024-03-10',
-          'hemogram': {
-            'Hemoglobin (g/dL)': 11.2,
-            'Demir (mcg/dL)': 50.0,
-            'Lökosit (K/uL)': 7.0,
-            'Trombosit (K/uL)': 170.0,
-            'Hematokrit (%)': 37.0,
-          },
-          'riskLevel': 'Orta',
-          'doctorNotes': 'Hafif anemi tespit edildi, beslenme düzeni önemli.',
-        },
-      ]
-    },
-    {
-      'id': '3',
-      'name': 'Zeynep Yılmaz',
-      'relation': 'Kız',
-      'age': 16,
-      'gender': 'Kadın',
-      'avatar': '👧',
-      'lastTest': '2024-09-20',
-      'riskLevel': 'Düşük',
-      'riskColor': Colors.green,
-      'hemogram': {
-        'Hemoglobin (g/dL)': 12.5,
-        'Demir (mcg/dL)': 95.0,
-        'Lökosit (K/uL)': 6.8,
-        'Trombosit (K/uL)': 250.0,
-        'Hematokrit (%)': 38.0,
-      },
-      'trends': {
-        'Hemoglobin (g/dL)': [12.2, 12.3, 12.5],
-        'Demir (mcg/dL)': [88.0, 92.0, 95.0],
-      },
-      'testHistory': [
-        {
-          'date': '2024-09-20',
-          'hemogram': {
-            'Hemoglobin (g/dL)': 12.5,
-            'Demir (mcg/dL)': 95.0,
-            'Lökosit (K/uL)': 6.8,
-            'Trombosit (K/uL)': 250.0,
-            'Hematokrit (%)': 38.0,
-          },
-          'riskLevel': 'Düşük',
-          'doctorNotes': 'Mükemmel sağlık durumu, yaşına uygun değerler.',
-        },
-        {
-          'date': '2024-06-20',
-          'hemogram': {
-            'Hemoglobin (g/dL)': 12.3,
-            'Demir (mcg/dL)': 92.0,
-            'Lökosit (K/uL)': 6.5,
-            'Trombosit (K/uL)': 240.0,
-            'Hematokrit (%)': 37.5,
-          },
-          'riskLevel': 'Düşük',
-          'doctorNotes': 'Sağlıklı gelişim süreci, değerlerde iyileşme var.',
-        },
-        {
-          'date': '2024-03-20',
-          'hemogram': {
-            'Hemoglobin (g/dL)': 12.2,
-            'Demir (mcg/dL)': 88.0,
-            'Lökosit (K/uL)': 6.2,
-            'Trombosit (K/uL)': 230.0,
-            'Hematokrit (%)': 37.0,
-          },
-          'riskLevel': 'Düşük',
-          'doctorNotes': 'Yaşına uygun normal değerler, dengeli beslenme sürdürülmeli.',
-        },
-      ]
-    },
-  ];
-
-  final Map<String, List<double>> referenceRanges = {
-    'Hemoglobin (g/dL)': [12.0, 17.0],
-    'Demir (mcg/dL)': [60.0, 170.0],
-    'Lökosit (K/uL)': [4.0, 10.0],
-    'Trombosit (K/uL)': [150.0, 400.0],
-    'Hematokrit (%)': [38.0, 50.0],
-  };
-
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _initServices();
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
+  Future<void> _initServices() async {
+    try {
+      _prefsService = await PreferencesService.getInstance();
+      currentUserId = _prefsService?.getCurrentUserId();
+      print('Family Panel - Current User ID: $currentUserId');
+      await _loadFamilyMembers();
+    } catch (e) {
+      print('Family Panel - Error in _initServices: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
-  Widget _buildMemberCard(Map<String, dynamic> member) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: member['riskColor'], width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Üst kısım - Profil bilgileri
-          Row(
-            children: [
-              // Avatar
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: member['riskColor'].withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: member['riskColor'], width: 2),
-                ),
-                child: Center(
-                  child: Text(
-                    member['avatar'],
-                    style: const TextStyle(fontSize: 30),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              
-              // Bilgiler
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      member['name'],
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFE53E3E),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${member['relation']} • ${member['age']} yaş',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Son tahlil: ${member['lastTest']}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              // Risk seviyesi
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: member['riskColor'],
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  member['riskLevel'],
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Alt kısım - Hemogram özeti
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              children: [
-                const Text(
-                  'Son Hemogram Değerleri',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFFE53E3E),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: member['hemogram'].entries.take(3).map<Widget>((entry) {
-                    double value = entry.value;
-                    List<double> range = referenceRanges[entry.key] ?? [0, 0];
-                    Color statusColor = _getStatusColor(value, range[0], range[1]);
-                    
-                    return Column(
-                      children: [
-                        Text(
-                          entry.key.split(' ')[0],
-                          style: const TextStyle(fontSize: 10, color: Colors.grey),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          value.toStringAsFixed(1),
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: statusColor,
-                          ),
-                        ),
-                      ],
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 12),
-          
-          // Aksiyonlar
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _showMemberDetails(member),
-                  icon: const Icon(Icons.visibility, size: 16),
-                  label: const Text('Detaylar', style: TextStyle(fontSize: 12)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE53E3E),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _showTrends(member),
-                  icon: const Icon(Icons.trending_up, size: 16),
-                  label: const Text('Trend', style: TextStyle(fontSize: 12)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: const Color(0xFFE53E3E),
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: const BorderSide(color: Color(0xFFE53E3E)),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+  Future<void> _loadFamilyMembers() async {
+    try {
+      if (currentUserId != null) {
+        print('Family Panel - Loading family members for user: $currentUserId');
+        List<Map<String, dynamic>> members = await _dbHelper.getFamilyMembers(currentUserId!);
+        List<Map<String, dynamic>> invitations = await _dbHelper.getPendingInvitations(currentUserId!);
+        print('Family Panel - Found ${members.length} family members and ${invitations.length} pending invitations');
+        setState(() {
+          familyMembers = members;
+          pendingInvitations = invitations;
+          _isLoading = false;
+        });
+      } else {
+        print('Family Panel - No current user ID found');
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Family Panel - Error loading family members: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
-  Color _getStatusColor(double value, double min, double max) {
-    if (value < min || value > max) return Colors.red;
-    if (value < min + (max - min) * 0.2 || value > max - (max - min) * 0.2) return Colors.orange;
-    return Colors.green;
-  }
-
-  void _showMemberDetails(Map<String, dynamic> member) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 700, maxHeight: 800),
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              // Başlık
-              Row(
-                children: [
-                  Text(
-                    member['avatar'],
-                    style: const TextStyle(fontSize: 32),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${member['name']} - Sağlık Geçmişi',
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFFE53E3E),
-                          ),
-                        ),
-                        Text(
-                          '${member['relation']} • ${member['age']} yaş',
-                          style: const TextStyle(color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-              const Divider(),
-              const SizedBox(height: 16),
-              
-              Expanded(
-                child: DefaultTabController(
-                  length: 3,
-                  child: Column(
-                    children: [
-                      const TabBar(
-                        labelColor: Color(0xFFE53E3E),
-                        unselectedLabelColor: Colors.grey,
-                        indicatorColor: Color(0xFFE53E3E),
-                        tabs: [
-                          Tab(icon: Icon(Icons.analytics), text: 'Son Durum'),
-                          Tab(icon: Icon(Icons.history), text: 'Geçmiş'),
-                          Tab(icon: Icon(Icons.compare_arrows), text: 'Karşılaştır'),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      Expanded(
-                        child: TabBarView(
-                          children: [
-                            // Son Durum Sekmesi
-                            _buildCurrentStatus(member),
-                            
-                            // Geçmiş Sekmesi
-                            _buildTestHistory(member),
-                            
-                            // Karşılaştırma Sekmesi
-                            _buildComparison(member),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              
-              // Alt butonlar
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        Navigator.pushNamed(context, '/diet_program');
-                      },
-                      icon: const Icon(Icons.restaurant_menu),
-                      label: const Text('Kişisel Diyet'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE53E3E),
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        Navigator.pushNamed(context, '/notifications');
-                      },
-                      icon: const Icon(Icons.notifications),
-                      label: const Text('Hatırlatıcı'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFFE53E3E),
-                        side: const BorderSide(color: Color(0xFFE53E3E)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showTrends(Map<String, dynamic> member) {
-    showDialog(
+  Future<void> _addFamilyMember() async {
+    // İki seçenek sun: Manuel ekleme veya Gerçek kullanıcı davet etme
+    final choice = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('${member['name']} - Trend Analizi'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: member['trends'].entries.map<Widget>((entry) {
-              List<double> values = entry.value;
-              String trend = values.last > values.first ? '📈 Yükselişte' : 
-                            values.last < values.first ? '📉 Düşüşte' : '➡️ Stabil';
-              
-              return Container(
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      entry.key,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFE53E3E),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Son 3 ay: ${values.join(' → ')}'),
-                        Text(
-                          trend,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
-        ),
+        title: const Text('Aile Üyesi Ekle'),
+        content: const Text('Hangi yöntemi kullanmak istiyorsuniz?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Kapat'),
+            onPressed: () => Navigator.pop(context, 'manual'),
+            child: const Text('Manuel Bilgi Girişi'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, 'invite'),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE53E3E)),
+            child: const Text('Gerçek Kullanıcı Davet Et', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
+
+    if (choice == 'manual') {
+      await _addManualFamilyMember();
+    } else if (choice == 'invite') {
+      await _inviteRealUser();
+    }
   }
 
-  Widget _buildFamilyStats() {
-    int totalMembers = familyMembers.length;
-    int highRisk = familyMembers.where((m) => m['riskLevel'] == 'Yüksek').length;
-    int mediumRisk = familyMembers.where((m) => m['riskLevel'] == 'Orta').length;
-    int lowRisk = familyMembers.where((m) => m['riskLevel'] == 'Düşük').length;
+  Future<void> _addManualFamilyMember() async {
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => _AddFamilyMemberDialog(),
+    );
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFE53E3E), Color(0xFFFF6B6B)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    if (result != null && currentUserId != null) {
+      result['user_id'] = currentUserId;
+      result['is_real_user'] = false;
+      await _dbHelper.insertFamilyMember(result);
+      await _loadFamilyMembers();
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${result['name']} aile paneline eklendi'),
+          backgroundColor: Colors.green,
         ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.family_restroom, color: Colors.white, size: 24),
-              SizedBox(width: 8),
-              Text(
-                'Aile Sağlık Durumu',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildStatItem('Toplam', totalMembers.toString(), Colors.white),
-              _buildStatItem('Yüksek Risk', highRisk.toString(), Colors.red[100]!),
-              _buildStatItem('Orta Risk', mediumRisk.toString(), Colors.orange[100]!),
-              _buildStatItem('Düşük Risk', lowRisk.toString(), Colors.green[100]!),
-            ],
-          ),
-        ],
-      ),
-    );
+      );
+    }
   }
 
-  Widget _buildStatItem(String label, String value, Color bgColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFFE53E3E),
-            ),
-          ),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFFE53E3E),
-            ),
-          ),
-        ],
-      ),
+  Future<void> _inviteRealUser() async {
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => _InviteUserDialog(),
     );
-  }
 
-  Widget _buildComparisonTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          const Text(
-            'Aile Hemogram Karşılaştırması',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFFE53E3E),
-            ),
-          ),
-          const SizedBox(height: 24),
+    if (result != null && currentUserId != null) {
+      // Kullanıcıyı telefon numarası ile ara
+      String phone = result['phone'];
+      String relation = result['relation'];
+      
+      try {
+        Map<String, dynamic>? targetUser = await _dbHelper.findUserByPhone(phone);
+        
+        if (targetUser != null) {
+          // Davet gönder
+          await _dbHelper.sendFamilyInvitation({
+            'from_user_id': currentUserId,
+            'to_user_id': targetUser['id'],
+            'relation': relation,
+            'message': result['message'],
+          });
           
-          ...referenceRanges.keys.map((parameter) => Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[300]!),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
-                  spreadRadius: 1,
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${targetUser['name']} kişisine davet gönderildi!'),
+              backgroundColor: Colors.green,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  parameter,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFFE53E3E),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                ...familyMembers.map((member) {
-                  double value = member['hemogram'][parameter] ?? 0.0;
-                  List<double> range = referenceRanges[parameter]!;
-                  Color statusColor = _getStatusColor(value, range[0], range[1]);
-                  
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      children: [
-                        Text(member['avatar'], style: const TextStyle(fontSize: 16)),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            member['name'].split(' ')[0],
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: statusColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: statusColor),
-                          ),
-                          child: Text(
-                            value.toStringAsFixed(1),
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: statusColor,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ],
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Bu telefon numarası ile kayıtlı kullanıcı bulunamadı'),
+              backgroundColor: Colors.orange,
             ),
-          )).toList(),
-        ],
-      ),
-    );
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Davet gönderilirken hata: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text('Aile Sağlık Paneli'),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFFE53E3E),
+        backgroundColor: const Color(0xFFE53E3E),
+        foregroundColor: Colors.white,
         elevation: 0,
         actions: [
           IconButton(
-            onPressed: () => _showAddMemberDialog(),
             icon: const Icon(Icons.person_add),
-            tooltip: 'Aile Üyesi Ekle',
+            onPressed: _addFamilyMember,
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: const Color(0xFFE53E3E),
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: const Color(0xFFE53E3E),
-          tabs: const [
-            Tab(icon: Icon(Icons.dashboard), text: 'Genel'),
-            Tab(icon: Icon(Icons.people), text: 'Üyeler'),
-            Tab(icon: Icon(Icons.compare), text: 'Karşılaştır'),
-            Tab(icon: Icon(Icons.notifications), text: 'Hatırlatıcı'),
-          ],
-        ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: _isLoading 
+        ? const Center(child: CircularProgressIndicator(color: Color(0xFFE53E3E)))
+        : familyMembers.isEmpty 
+          ? _buildEmptyState()
+          : _buildFamilyList(),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Genel Tab
-          SingleChildScrollView(
+          Icon(
+            Icons.family_restroom,
+            size: 80,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Henüz aile üyesi eklenmemiş',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Aile üyelerinizi ekleyerek sağlık durumlarını\ntakip edebilirsiniz',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.grey[500],
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 32),
+          ElevatedButton.icon(
+            onPressed: _addFamilyMember,
+            icon: const Icon(Icons.person_add),
+            label: const Text('İlk Aile Üyesini Ekle'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE53E3E),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFamilyList() {
+    return RefreshIndicator(
+      onRefresh: _loadFamilyMembers,
+      color: const Color(0xFFE53E3E),
+      child: CustomScrollView(
+        slivers: [
+          // Bekleyen davetler
+          if (pendingInvitations.isNotEmpty) 
+            SliverToBoxAdapter(child: _buildPendingInvitations()),
+          
+          // Aile üyeleri listesi
+          SliverPadding(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _buildFamilyStats(),
-                const SizedBox(height: 24),
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Son Tahlil Sonuçları',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFE53E3E),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final member = familyMembers[index];
+                  return _buildFamilyMemberCard(member);
+                },
+                childCount: familyMembers.length,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPendingInvitations() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.orange[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.orange[100],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.notifications_active, color: Colors.orange[700], size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Bekleyen Davetler (${pendingInvitations.length})',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange[700],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          ...pendingInvitations.map((invitation) => Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange[300]!),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: Colors.orange[100],
+                          child: Icon(Icons.person, color: Colors.orange[700]),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                invitation['from_user_name'] ?? 'Bilinmeyen Kullanıcı',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                '${invitation['relation'] ?? 'Aile Üyesi'} olarak davet etti',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              if (invitation['message'] != null)
+                                Text(
+                                  invitation['message'],
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[500],
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton.icon(
+                          onPressed: () => _respondToInvitation(invitation['id'], 'rejected'),
+                          icon: const Icon(Icons.close, size: 16),
+                          label: const Text('Reddet'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.red,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          onPressed: () => _respondToInvitation(invitation['id'], 'accepted'),
+                          icon: const Icon(Icons.check, size: 16),
+                          label: const Text('Kabul Et'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                ...familyMembers.take(2).map((member) => _buildMemberCard(member)).toList(),
-              ],
-            ),
+              )).toList(),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _respondToInvitation(int invitationId, String response) async {
+    try {
+      await _dbHelper.respondToInvitation(invitationId, response);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            response == 'accepted' ? 'Davet kabul edildi!' : 'Davet reddedildi.',
           ),
-          
-          // Üyeler Tab
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
+          backgroundColor: response == 'accepted' ? Colors.green : Colors.orange,
+        ),
+      );
+      
+      await _loadFamilyMembers(); // Listeyi yenile
+      
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Yanıt gönderilirken hata: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Widget _buildFamilyMemberCard(Map<String, dynamic> member) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                const Text(
-                  'Aile Üyeleri',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFFE53E3E),
+                CircleAvatar(
+                  radius: 30,
+                  backgroundColor: const Color(0xFFE53E3E).withOpacity(0.1),
+                  child: Text(
+                    member['gender'] == 'Kadın' ? '👩' : '👨',
+                    style: const TextStyle(fontSize: 24),
                   ),
                 ),
-                const SizedBox(height: 16),
-                ...familyMembers.map((member) => _buildMemberCard(member)).toList(),
-              ],
-            ),
-          ),
-          
-          // Karşılaştırma Tab
-          _buildComparisonTab(),
-          
-          // Hatırlatıcı Tab
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                const Text(
-                  'Tahlil Hatırlatıcıları',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFFE53E3E),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: const Column(
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.schedule, size: 40, color: Color(0xFFE53E3E)),
-                      SizedBox(height: 16),
                       Text(
-                        'Tahlil Hatırlatıcıları',
-                        style: TextStyle(
+                        member['name'] ?? 'İsimsiz',
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFFE53E3E),
                         ),
                       ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Aile üyelerinizin düzenli tahlil hatırlatıcılarını burada yönetebileceksiniz.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.family_restroom, size: 16, color: Colors.grey[600]),
+                          const SizedBox(width: 4),
+                          Text(
+                            member['relation'] ?? 'Bilinmiyor',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Icon(Icons.cake, size: 16, color: Colors.grey[600]),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${member['age'] ?? 0} yaş',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showAddMemberDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Yeni Aile Üyesi Ekle'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              decoration: InputDecoration(
-                labelText: 'Ad Soyad',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            SizedBox(height: 16),
-            TextField(
-              decoration: InputDecoration(
-                labelText: 'Yakınlık Derecesi',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            SizedBox(height: 16),
-            TextField(
-              decoration: InputDecoration(
-                labelText: 'Yaş',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.number,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('İptal'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Aile üyesi başarıyla eklendi!'),
-                  backgroundColor: Color(0xFFE53E3E),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE53E3E)),
-            child: const Text('Ekle', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCurrentStatus(Map<String, dynamic> member) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          // Risk durumu kartı
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: member['riskColor'].withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: member['riskColor']),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: member['riskColor'],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        member['riskLevel'] == 'Yüksek' ? Icons.warning :
-                        member['riskLevel'] == 'Orta' ? Icons.info : Icons.check_circle,
-                        color: Colors.white,
-                        size: 20,
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'edit') {
+                      _editFamilyMember(member);
+                    } else if (value == 'delete') {
+                      _deleteFamilyMember(member);
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit, size: 18),
+                          SizedBox(width: 8),
+                          Text('Düzenle'),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
                         children: [
-                          Text(
-                            'Risk Seviyesi: ${member['riskLevel']}',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: member['riskColor'],
-                            ),
-                          ),
-                          Text(
-                            'Son tahlil: ${member['lastTest']}',
-                            style: const TextStyle(color: Colors.grey),
-                          ),
+                          Icon(Icons.delete, size: 18, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text('Sil', style: TextStyle(color: Colors.red)),
                         ],
                       ),
                     ),
                   ],
                 ),
-                if (member['testHistory'] != null && member['testHistory'].isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    member['testHistory'][0]['doctorNotes'] ?? '',
-                    style: const TextStyle(fontStyle: FontStyle.italic),
-                  ),
-                ],
               ],
             ),
-          ),
-          
-          const SizedBox(height: 20),
-          
-          // Güncel değerler
-          const Text(
-            'Güncel Hemogram Değerleri',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFFE53E3E),
-            ),
-          ),
-          const SizedBox(height: 16),
-          
-          ...member['hemogram'].entries.map<Widget>((entry) {
-            double value = entry.value;
-            List<double> range = referenceRanges[entry.key] ?? [0, 0];
-            Color statusColor = _getStatusColor(value, range[0], range[1]);
-            
-            return Container(
-              margin: const EdgeInsets.only(bottom: 8),
+            const SizedBox(height: 16),
+            Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Colors.blue[50],
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
+                border: Border.all(color: Colors.blue[200]!),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      entry.key,
-                      style: const TextStyle(fontSize: 14),
+                      'Hemogram testleri henüz eklenmemiş. Test sonuçları eklemek için üyeye tıklayın.',
+                      style: TextStyle(
+                        color: Colors.blue[700],
+                        fontSize: 12,
+                      ),
                     ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        value.toStringAsFixed(1),
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: statusColor,
-                        ),
-                      ),
-                      Text(
-                        '(${range[0].toStringAsFixed(1)}-${range[1].toStringAsFixed(1)})',
-                        style: const TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                    ],
                   ),
                 ],
               ),
-            );
-          }).toList(),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildTestHistory(Map<String, dynamic> member) {
-    List<dynamic> history = member['testHistory'] ?? [];
-    
-    if (history.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.history, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text('Henüz geçmiş test sonucu yok', style: TextStyle(color: Colors.grey)),
-          ],
+  Future<void> _editFamilyMember(Map<String, dynamic> member) async {
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => _AddFamilyMemberDialog(member: member),
+    );
+
+    if (result != null) {
+      await _dbHelper.updateFamilyMember(member['id'], result);
+      await _loadFamilyMembers();
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Aile üyesi güncellendi'),
+          backgroundColor: Colors.green,
         ),
       );
     }
-    
-    return ListView.builder(
-      itemCount: history.length,
-      itemBuilder: (context, index) {
-        Map<String, dynamic> test = history[index];
-        Color riskColor = test['riskLevel'] == 'Yüksek' ? Colors.red :
-                         test['riskLevel'] == 'Orta' ? Colors.orange : Colors.green;
-        
-        return Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: riskColor.withOpacity(0.3)),
+  }
+
+  Future<void> _deleteFamilyMember(Map<String, dynamic> member) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Aile Üyesini Sil'),
+        content: Text('${member['name']} adlı aile üyesini silmek istediğinizden emin misiniz?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('İptal'),
           ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Sil', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _dbHelper.deleteFamilyMember(member['id']);
+      await _loadFamilyMembers();
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${member['name']} silindi'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+}
+
+class _AddFamilyMemberDialog extends StatefulWidget {
+  final Map<String, dynamic>? member;
+
+  const _AddFamilyMemberDialog({this.member});
+
+  @override
+  State<_AddFamilyMemberDialog> createState() => _AddFamilyMemberDialogState();
+}
+
+class _AddFamilyMemberDialogState extends State<_AddFamilyMemberDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _nameController;
+  late TextEditingController _ageController;
+  String _gender = 'Erkek';
+  String _relation = 'Eş';
+
+  final List<String> _relations = [
+    'Eş', 'Çocuk', 'Baba', 'Anne', 'Kardeş', 'Büyükanne', 'Büyükbaba', 'Diğer'
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.member?['name'] ?? '');
+    _ageController = TextEditingController(text: widget.member?['age']?.toString() ?? '');
+    _gender = widget.member?['gender'] ?? 'Erkek';
+    _relation = widget.member?['relation'] ?? 'Eş';
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _ageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.member == null ? 'Aile Üyesi Ekle' : 'Aile Üyesini Düzenle'),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // Test başlığı
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: riskColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(Icons.bloodtype, color: riskColor, size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          test['date'],
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: riskColor,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            test['riskLevel'],
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Ad Soyad',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Ad soyad gerekli';
+                  }
+                  return null;
+                },
               ),
-              
-              const SizedBox(height: 12),
-              
-              // Doktor notları
-              if (test['doctorNotes'] != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.medical_services, color: Colors.blue, size: 16),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          test['doctorNotes'],
-                          style: const TextStyle(
-                            fontStyle: FontStyle.italic,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _ageController,
+                decoration: const InputDecoration(
+                  labelText: 'Yaş',
+                  border: OutlineInputBorder(),
                 ),
-                const SizedBox(height: 12),
-              ],
-              
-              // Özet değerler
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: riskColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Yaş gerekli';
+                  }
+                  if (int.tryParse(value) == null) {
+                    return 'Geçerli bir yaş girin';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _gender,
+                decoration: const InputDecoration(
+                  labelText: 'Cinsiyet',
+                  border: OutlineInputBorder(),
                 ),
-                child: Column(
-                  children: [
-                    const Text(
-                      'Hemogram Özeti',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: test['hemogram'].entries.take(3).map<Widget>((entry) {
-                        return Column(
-                          children: [
-                            Text(
-                              entry.key.split(' ')[0],
-                              style: const TextStyle(fontSize: 10, color: Colors.grey),
-                            ),
-                            Text(
-                              entry.value.toStringAsFixed(1),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        );
-                      }).toList(),
-                    ),
-                  ],
+                items: ['Erkek', 'Kadın'].map((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _gender = value!;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _relation,
+                decoration: const InputDecoration(
+                  labelText: 'Yakınlık Derecesi',
+                  border: OutlineInputBorder(),
                 ),
+                items: _relations.map((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _relation = value!;
+                  });
+                },
               ),
             ],
           ),
-        );
-      },
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('İptal'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            if (_formKey.currentState!.validate()) {
+              Navigator.pop(context, {
+                'name': _nameController.text,
+                'age': int.parse(_ageController.text),
+                'gender': _gender,
+                'relation': _relation,
+              });
+            }
+          },
+          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE53E3E)),
+          child: Text(
+            widget.member == null ? 'Ekle' : 'Güncelle',
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+      ],
     );
   }
+}
 
-  Widget _buildComparison(Map<String, dynamic> member) {
-    List<dynamic> history = member['testHistory'] ?? [];
-    
-    if (history.length < 2) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.compare_arrows, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              'Karşılaştırma için en az 2 test sonucu gerekli',
-              style: TextStyle(color: Colors.grey),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      );
-    }
-    
-    Map<String, dynamic> latest = history[0];
-    Map<String, dynamic> previous = history[1];
-    
-    return SingleChildScrollView(
-      child: Column(
+class _InviteUserDialog extends StatefulWidget {
+  @override
+  State<_InviteUserDialog> createState() => _InviteUserDialogState();
+}
+
+class _InviteUserDialogState extends State<_InviteUserDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _phoneController;
+  late TextEditingController _messageController;
+  String _relation = 'Eş';
+
+  final List<String> _relations = [
+    'Eş', 'Çocuk', 'Baba', 'Anne', 'Kardeş', 'Büyükanne', 'Büyükbaba', 'Diğer'
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _phoneController = TextEditingController();
+    _messageController = TextEditingController(text: 'Sizi aile sağlık panelime eklemek istiyorum.');
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Row(
         children: [
-          // Karşılaştırma başlığı
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFE53E3E), Color(0xFFFF6B6B)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.compare_arrows, color: Colors.white, size: 24),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Test Karşılaştırması',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        '${previous['date']} → ${latest['date']}',
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
-                      ),
-                    ],
-                  ),
+          Icon(Icons.person_add, color: const Color(0xFFE53E3E)),
+          const SizedBox(width: 8),
+          const Text('Gerçek Kullanıcı Davet Et'),
+        ],
+      ),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue[200]!),
                 ),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 20),
-          
-          // Parametre karşılaştırmaları
-          ...latest['hemogram'].entries.map<Widget>((entry) {
-            String param = entry.key;
-            double latestValue = entry.value;
-            double previousValue = previous['hemogram'][param] ?? 0.0;
-            double change = latestValue - previousValue;
-            double changePercent = previousValue != 0 ? (change / previousValue) * 100 : 0;
-            
-            List<double> range = referenceRanges[param] ?? [0, 0];
-            Color latestColor = _getStatusColor(latestValue, range[0], range[1]);
-            Color previousColor = _getStatusColor(previousValue, range[0], range[1]);
-            
-            IconData trendIcon;
-            Color trendColor;
-            if (change > 0) {
-              trendIcon = Icons.trending_up;
-              trendColor = Colors.green;
-            } else if (change < 0) {
-              trendIcon = Icons.trending_down;
-              trendColor = Colors.red;
-            } else {
-              trendIcon = Icons.trending_flat;
-              trendColor = Colors.grey;
-            }
-            
-            return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Parametre adı
-                  Text(
-                    param,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFE53E3E),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  
-                  // Değer karşılaştırması
-                  Row(
-                    children: [
-                      // Önceki değer
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: previousColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Column(
-                            children: [
-                              Text(
-                                previous['date'],
-                                style: const TextStyle(fontSize: 12, color: Colors.grey),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                previousValue.toStringAsFixed(1),
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: previousColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      
-                      // Trend göstergesi
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Column(
-                          children: [
-                            Icon(trendIcon, color: trendColor, size: 30),
-                            Text(
-                              '${change >= 0 ? '+' : ''}${change.toStringAsFixed(1)}',
-                              style: TextStyle(
-                                color: trendColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                            Text(
-                              '(${changePercent >= 0 ? '+' : ''}${changePercent.toStringAsFixed(1)}%)',
-                              style: TextStyle(
-                                color: trendColor,
-                                fontSize: 10,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      
-                      // Güncel değer
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: latestColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Column(
-                            children: [
-                              Text(
-                                latest['date'],
-                                style: const TextStyle(fontSize: 12, color: Colors.grey),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                latestValue.toStringAsFixed(1),
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: latestColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 8),
-                  
-                  // Normal aralık
-                  Text(
-                    'Normal: ${range[0].toStringAsFixed(1)}-${range[1].toStringAsFixed(1)}',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
-          
-          // Genel değerlendirme
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[300]!),
-            ),
-            child: Column(
-              children: [
-                const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.analytics, color: Color(0xFFE53E3E), size: 20),
-                    SizedBox(width: 8),
-                    Text(
-                      'Genel Değerlendirme',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFE53E3E),
+                    Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Bu kişi HemoAI uygulamasını kullanıyor olmalıdır. Davet gönderilecek ve onaylaması beklenecek.',
+                        style: TextStyle(
+                          color: Colors.blue[700],
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  _getComparisonSummary(latest, previous),
-                  style: const TextStyle(fontSize: 14, height: 1.4),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _phoneController,
+                decoration: const InputDecoration(
+                  labelText: 'Telefon Numarası',
+                  hintText: '5551234567',
+                  prefixIcon: Icon(Icons.phone),
+                  border: OutlineInputBorder(),
                 ),
-              ],
-            ),
+                keyboardType: TextInputType.phone,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Telefon numarası gerekli';
+                  }
+                  if (value.length < 10) {
+                    return 'Geçerli bir telefon numarası girin';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _relation,
+                decoration: const InputDecoration(
+                  labelText: 'Yakınlık Derecesi',
+                  prefixIcon: Icon(Icons.family_restroom),
+                  border: OutlineInputBorder(),
+                ),
+                items: _relations.map((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _relation = value!;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _messageController,
+                decoration: const InputDecoration(
+                  labelText: 'Davet Mesajı',
+                  prefixIcon: Icon(Icons.message),
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Davet mesajı gerekli';
+                  }
+                  return null;
+                },
+              ),
+            ],
           ),
-        ],
+        ),
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('İptal'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            if (_formKey.currentState!.validate()) {
+              Navigator.pop(context, {
+                'phone': _phoneController.text.trim(),
+                'relation': _relation,
+                'message': _messageController.text.trim(),
+              });
+            }
+          },
+          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE53E3E)),
+          child: const Text(
+            'Davet Gönder',
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
+      ],
     );
-  }
-
-  String _getComparisonSummary(Map<String, dynamic> latest, Map<String, dynamic> previous) {
-    String latestRisk = latest['riskLevel'];
-    String previousRisk = previous['riskLevel'];
-    
-    if (latestRisk == previousRisk) {
-      return 'Sağlık durumunuz $latestRisk risk seviyesinde stabil kalıyor. Mevcut tedavi ve beslenme planınıza devam edin.';
-    } else {
-      Map<String, int> riskValues = {'Düşük': 1, 'Orta': 2, 'Yüksek': 3};
-      int latestValue = riskValues[latestRisk] ?? 0;
-      int previousValue = riskValues[previousRisk] ?? 0;
-      
-      if (latestValue < previousValue) {
-        return 'Tebrikler! Sağlık durumunuzda iyileşme var. $previousRisk riskten $latestRisk riske düştünüz. Mevcut programınıza devam edin.';
-      } else {
-        return 'Dikkat! Risk seviyeniz $previousRisk\'tan $latestRisk\'a yükseldi. Doktor kontrolü ve tedavi planı revizyonu gerekli olabilir.';
-      }
-    }
   }
 }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/database_helper.dart';
+import '../services/preferences_service.dart';
 
 class AlternativeMedicineScreen extends StatefulWidget {
   const AlternativeMedicineScreen({Key? key}) : super(key: key);
@@ -9,6 +11,12 @@ class AlternativeMedicineScreen extends StatefulWidget {
 
 class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> with TickerProviderStateMixin {
   late TabController _tabController;
+  final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
+  final PreferencesService _preferencesService = PreferencesService();
+  
+  Map<String, double> userValues = {};
+  List<String> recommendedCategories = [];
+  bool isLoading = true;
 
   // Bitkisel çözümler verisi
   final Map<String, Map<String, dynamic>> herbalSolutions = {

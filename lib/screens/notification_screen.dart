@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/database_helper.dart';
+import '../services/preferences_service.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({Key? key}) : super(key: key);
@@ -9,9 +11,15 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen> with TickerProviderStateMixin {
   late TabController _tabController;
+  final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
+  final PreferencesService _preferencesService = PreferencesService();
   
-  // Aktif bildirimler
-  final List<Map<String, dynamic>> notifications = [
+  List<Map<String, dynamic>> notifications = [];
+  List<Map<String, dynamic>> medications = [];
+  bool isLoading = true;
+  
+  // Örnek bildirimler (fallback)
+  final List<Map<String, dynamic>> exampleNotifications = [
     {
       'id': '1',
       'title': '🩸 Tahlil Hatırlatıcısı',
@@ -91,11 +99,11 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
   };
 
   // Su içme takibi
-  int waterCount = 5;
+  int waterCount = 0;
   final int waterGoal = 8;
 
-  // İlaç takibi
-  final List<Map<String, dynamic>> medications = [
+  // Örnek ilaçlar (fallback)
+  final List<Map<String, dynamic>> exampleMedications = [
     {
       'name': 'Demir Takviyesi',
       'dosage': '1 tablet',
@@ -129,6 +137,94 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _loadNotificationData();
+  }
+
+  Future<void> _loadNotificationData() async {
+    try {
+      int? userId = await _preferencesService.getUserId();
+      if (userId != null) {
+        // Bildirimleri yükle
+        List<Map<String, dynamic>> dbNotifications = await _databaseHelper.getNotifications(userId);
+        
+        // İlaçları yükle
+        List<Map<String, dynamic>> dbMedications = await _databaseHelper.getMedications(userId);
+        
+        // Su takibini yükle
+        int todayWater = await _databaseHelper.getTodayWaterIntake(userId);
+        
+        setState(() {
+          notifications = dbNotifications.isNotEmpty ? dbNotifications : exampleNotifications;
+          medications = dbMedications.isNotEmpty ? dbMedications : exampleMedications;
+          waterCount = todayWater;
+          isLoading = false;
+        });
+      } else {
+        // Kullanıcı girişi yapılmamış, örnek verileri kullan
+        setState(() {
+          notifications = exampleNotifications;
+          medications = exampleMedications;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Bildirim verileri yüklenirken hata: $e');
+      setState(() {
+        notifications = exampleNotifications;
+        medications = exampleMedications;
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _createNotification(String title, String message, String type) async {
+    try {
+      int? userId = await _preferencesService.getUserId();
+      if (userId != null) {
+        await _databaseHelper.createNotification(userId, title, message, type);
+        _loadNotificationData(); // Listeyi yenile
+      }
+    } catch (e) {
+      print('Bildirim oluşturulurken hata: $e');
+    }
+  }
+
+  Future<void> _addMedication(String name, String dosage, String frequency, String time) async {
+    try {
+      int? userId = await _preferencesService.getUserId();
+      if (userId != null) {
+        await _databaseHelper.addMedication(userId, name, dosage, frequency, time);
+        _loadNotificationData(); // Listeyi yenile
+      }
+    } catch (e) {
+      print('İlaç eklenirken hata: $e');
+    }
+  }
+
+  Future<void> _updateWaterCount(int newCount) async {
+    try {
+      int? userId = await _preferencesService.getUserId();
+      if (userId != null) {
+        await _databaseHelper.logWaterIntake(userId, newCount);
+        setState(() {
+          waterCount = newCount;
+        });
+        
+        // Hedefe ulaşıldığında bildirim oluştur
+        if (newCount >= waterGoal) {
+          await _createNotification(
+            '🎉 Su Hedefi Tamamlandı!',
+            'Günlük $waterGoal bardak su hedefinizi başarıyla tamamladınız!',
+            'water_achievement'
+          );
+        }
+      }
+    } catch (e) {
+      print('Su takibi güncellenirken hata: $e');
+      setState(() {
+        waterCount = newCount; // En azından UI'yi güncelle
+      });
+    }
   }
 
   @override
@@ -348,7 +444,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               ElevatedButton.icon(
-                onPressed: waterCount > 0 ? () => setState(() => waterCount--) : null,
+                onPressed: waterCount > 0 ? () => _updateWaterCount(waterCount - 1) : null,
                 icon: const Icon(Icons.remove, size: 16),
                 label: const Text('Azalt'),
                 style: ElevatedButton.styleFrom(
@@ -358,7 +454,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                 ),
               ),
               ElevatedButton.icon(
-                onPressed: waterCount < waterGoal ? () => setState(() => waterCount++) : null,
+                onPressed: waterCount < 12 ? () => _updateWaterCount(waterCount + 1) : null,
                 icon: const Icon(Icons.add, size: 16),
                 label: const Text('Artır'),
                 style: ElevatedButton.styleFrom(
@@ -696,6 +792,27 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          title: const Text('Bildirimler & Takip'),
+          backgroundColor: Colors.white,
+          foregroundColor: const Color(0xFFE53E3E),
+          elevation: 0,
+        ),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: Color(0xFFE53E3E)),
+              SizedBox(height: 16),
+              Text('Verileriniz yükleniyor...'),
+            ],
+          ),
+        ),
+      );
+    }
     int unreadCount = notifications.where((n) => !n['isRead']).length;
     
     return Scaffold(
@@ -846,59 +963,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                 const SizedBox(height: 24),
                 
                 ElevatedButton.icon(
-                  onPressed: () {
-                    // Yeni ilaç ekleme dialogu
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Yeni İlaç Ekle'),
-                        content: const Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            TextField(
-                              decoration: InputDecoration(
-                                labelText: 'İlaç Adı',
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                            SizedBox(height: 16),
-                            TextField(
-                              decoration: InputDecoration(
-                                labelText: 'Dozaj',
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                            SizedBox(height: 16),
-                            TextField(
-                              decoration: InputDecoration(
-                                labelText: 'Sıklık',
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                          ],
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('İptal'),
-                          ),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('İlaç başarıyla eklendi!'),
-                                  backgroundColor: Color(0xFFE53E3E),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE53E3E)),
-                            child: const Text('Ekle', style: TextStyle(color: Colors.white)),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                  onPressed: () => _showAddMedicationDialog(),
                   icon: const Icon(Icons.add),
                   label: const Text('Yeni İlaç Ekle'),
                   style: ElevatedButton.styleFrom(
@@ -914,6 +979,110 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
           
           // Ayarlar Tab
           _buildSettingsTab(),
+        ],
+      ),
+    );
+  }
+
+  void _showAddMedicationDialog() {
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController dosageController = TextEditingController();
+    final TextEditingController frequencyController = TextEditingController();
+    final TextEditingController timeController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Yeni İlaç Ekle'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'İlaç Adı *',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.medication),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: dosageController,
+                decoration: const InputDecoration(
+                  labelText: 'Dozaj (örn: 1 tablet, 10mg)',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.science),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: frequencyController,
+                decoration: const InputDecoration(
+                  labelText: 'Sıklık (örn: Günde 2 kez)',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.schedule),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: timeController,
+                decoration: const InputDecoration(
+                  labelText: 'Saat (örn: 08:00)',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.access_time),
+                ),
+                onTap: () async {
+                  TimeOfDay? time = await showTimePicker(
+                    context: context,
+                    initialTime: TimeOfDay.now(),
+                  );
+                  if (time != null) {
+                    timeController.text = time.format(context);
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('İptal'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.isNotEmpty) {
+                await _addMedication(
+                  nameController.text,
+                  dosageController.text.isNotEmpty ? dosageController.text : '1 doz',
+                  frequencyController.text.isNotEmpty ? frequencyController.text : 'Günde 1 kez',
+                  timeController.text.isNotEmpty ? timeController.text : '08:00',
+                );
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('İlaç başarıyla eklendi!'),
+                    backgroundColor: Color(0xFFE53E3E),
+                  ),
+                );
+                await _createNotification(
+                  '💊 Yeni İlaç Eklendi',
+                  '${nameController.text} ilacı takip listenize eklendi.',
+                  'medication_added'
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('İlaç adı zorunludur'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE53E3E)),
+            child: const Text('Ekle', style: TextStyle(color: Colors.white)),
+          ),
         ],
       ),
     );

@@ -49,6 +49,14 @@ class PreferencesService {
     return _preferences?.getBool('user_logged_in') ?? false;
   }
 
+  Future<int?> getUserId() async {
+    return _preferences?.getInt('current_user_id');
+  }
+
+  Future<void> setUserId(int userId) async {
+    await _preferences!.setInt('current_user_id', userId);
+  }
+
   // Kullanıcı oturum yönetimi
   Future<void> setCurrentUserId(int userId) async {
     if (_preferences == null) {

@@ -168,232 +168,167 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF2196F3), // Mavi
-              Color(0xFF64B5F6), // Açık mavi
-              Color(0xFFE3F2FD), // Çok açık mavi
-            ],
-          ),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Giriş Yap'),
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFFE53E3E),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
         ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Üst kısım - Geri butonu
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    const Expanded(
-                      child: Text(
-                        'Giriş Yap',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Logo (küçük version)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 48),
+                  child: Image.asset(
+                    'assets/hemoai pic 1.O.jpg',
+                    width: 120,
+                    height: 120,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(60),
+                          border: Border.all(color: const Color(0xFFE53E3E), width: 2),
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    const SizedBox(width: 44), // IconButton genişliği kadar boşluk
-                  ],
+                        child: const Icon(
+                          Icons.local_hospital,
+                          size: 50,
+                          color: Color(0xFFE53E3E),
+                        ),
+                      );
+                    },
+                  ),
                 ),
-              ),
-              
-              // Ana içerik
-              Expanded(
-                child: Center(
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Logo
-                          Container(
-                            margin: const EdgeInsets.only(bottom: 40),
-                            child: Image.asset(
-                              'assets/hemoai pic 1.O.jpg',
-                              width: 140,
-                              height: 140,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  width: 140,
-                                  height: 140,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(70),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.1),
-                                        spreadRadius: 2,
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Icon(
-                                    Icons.local_hospital,
-                                    size: 70,
-                                    color: Color(0xFF2196F3),
-                                  ),
-                                );
-                              },
-                            ),
+                
+                // Form alanları
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: phoneController,
+                        decoration: InputDecoration(
+                          labelText: 'Telefon Numarası',
+                          prefixIcon: const Icon(Icons.phone, color: Color(0xFFE53E3E)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          
-                          // Form kartı
-                          Container(
-                            padding: const EdgeInsets.all(28),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.95),
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  spreadRadius: 0,
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 10),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              children: [
-                                // Telefon numarası alanı
-                                TextField(
-                                  controller: phoneController,
-                                  decoration: InputDecoration(
-                                    labelText: 'Telefon Numarası',
-                                    prefixIcon: const Icon(Icons.phone, color: Color(0xFF2196F3)),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(15),
-                                      borderSide: BorderSide(color: Colors.grey[300]!),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(15),
-                                      borderSide: const BorderSide(color: Color(0xFF2196F3), width: 2),
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.grey[50],
-                                    contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-                                  ),
-                                  keyboardType: TextInputType.phone,
-                                ),
-                                const SizedBox(height: 20),
-                                
-                                // Şifre alanı
-                                TextField(
-                                  controller: passwordController,
-                                  decoration: InputDecoration(
-                                    labelText: 'Şifre',
-                                    prefixIcon: const Icon(Icons.lock, color: Color(0xFF2196F3)),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(15),
-                                      borderSide: BorderSide(color: Colors.grey[300]!),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(15),
-                                      borderSide: const BorderSide(color: Color(0xFF2196F3), width: 2),
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.grey[50],
-                                    contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-                                  ),
-                                  obscureText: true,
-                                ),
-                                const SizedBox(height: 16),
-                                
-                                // Test bilgisi
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF2196F3).withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: const Color(0xFF2196F3).withOpacity(0.3)),
-                                  ),
-                                  child: const Text(
-                                    '💡 Test için:\nTelefon: 5551234567\nŞifre: 1234',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Color(0xFF2196F3),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                                
-                                const SizedBox(height: 24),
-                                
-                                // Giriş butonu
-                                SizedBox(
-                                  width: double.infinity,
-                                  height: 56,
-                                  child: ElevatedButton(
-                                    onPressed: _isLoading ? null : _login,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF2196F3),
-                                      foregroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(15),
-                                      ),
-                                      elevation: 4,
-                                      shadowColor: const Color(0xFF2196F3).withOpacity(0.3),
-                                    ),
-                                    child: _isLoading 
-                                      ? const CircularProgressIndicator(
-                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                        )
-                                      : const Text(
-                                          'Giriş Yap',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w600,
-                                            letterSpacing: 0.5,
-                                          ),
-                                        ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Color(0xFFE53E3E), width: 2),
                           ),
-                          
-                          const SizedBox(height: 24),
-                          
-                          // Şifremi unuttum
-                          TextButton(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Şifre sıfırlama özelliği yakında eklenecek'),
-                                  backgroundColor: Color(0xFF2196F3),
-                                ),
-                              );
-                            },
-                            child: const Text(
-                              'Şifremi Unuttum',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                decoration: TextDecoration.underline,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
+                        keyboardType: TextInputType.phone,
                       ),
+                      const SizedBox(height: 20),
+                      TextField(
+                        controller: passwordController,
+                        decoration: InputDecoration(
+                          labelText: 'Şifre',
+                          prefixIcon: const Icon(Icons.lock, color: Color(0xFFE53E3E)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Color(0xFFE53E3E), width: 2),
+                          ),
+                        ),
+                        obscureText: true,
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Test bilgisi
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.blue[200]!),
+                        ),
+                        child: const Text(
+                          'Test için:\nTelefon: 5551234567\nŞifre: 1234',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.blue,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Giriş Yap Butonu
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _login,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFE53E3E),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 2,
+                          ),
+                          child: _isLoading 
+                            ? const CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              )
+                            : const Text(
+                                'Giriş Yap',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 24),
+                
+                // Şifremi Unuttum
+                TextButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Şifre sıfırlama özelliği yakında eklenecek'),
+                        backgroundColor: Color(0xFFE53E3E),
+                      ),
+                    );
+                  },
+                  child: const Text(
+                    'Şifremi Unuttum',
+                    style: TextStyle(
+                      color: Color(0xFFE53E3E),
+                      fontSize: 16,
+                      decoration: TextDecoration.underline,
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

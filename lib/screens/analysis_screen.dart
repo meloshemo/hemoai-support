@@ -1,6 +1,19 @@
 import 'package:flutter/material.dart';
+import '../services/database_helper.dart';
+import '../services/preferences_service.dart';
 
-class AnalysisScreen extends StatelessWidget {
+class AnalysisScreen extends StatefulWidget {
+  @override
+  _AnalysisScreenState createState() => _AnalysisScreenState();
+}
+
+class _AnalysisScreenState extends State<AnalysisScreen> {
+  final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
+  final PreferencesService _preferencesService = PreferencesService();
+  Map<String, double> currentValues = {};
+  List<Map<String, dynamic>> testHistory = [];
+  bool isLoading = true;
+  
   final Map<String, double> exampleValues = {
     'Demir (mcg/dL)': 50,
     'Hemoglobin (g/dL)': 11.5,
@@ -138,7 +151,85 @@ class AnalysisScreen extends StatelessWidget {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _loadHemogramData();
+  }
+
+  Future<void> _loadHemogramData() async {
+    try {
+      // Kullanıcı ID'sini al
+      int? userId = await _preferencesService.getUserId();
+      if (userId == null) {
+        setState(() {
+          currentValues = exampleValues; // Fallback to example values
+          isLoading = false;
+        });
+        return;
+      }
+
+      // Son hemogram testini al
+      List<Map<String, dynamic>> tests = await _databaseHelper.getHemogramTests(userId);
+      
+      if (tests.isNotEmpty) {
+        // En son testin verilerini al
+        Map<String, dynamic> latestTest = tests.first;
+        currentValues = HemogramValues.mapFromDatabase(latestTest);
+        testHistory = tests.take(5).toList(); // Son 5 test
+      } else {
+        // Eğer test yoksa örnek değerleri kullan
+        currentValues = exampleValues;
+      }
+    } catch (e) {
+      print('Hemogram verileri yüklenirken hata: $e');
+      currentValues = exampleValues; // Fallback
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Widget _buildTrendIndicator(String parameter) {
+    if (testHistory.length < 2) return Container();
+    
+    // Son iki testin değerlerini karşılaştır
+    double currentVal = currentValues[parameter] ?? 0;
+    Map<String, double> previousValues = HemogramValues.mapFromDatabase(testHistory[1]);
+    double previousVal = previousValues[parameter] ?? 0;
+    
+    if (currentVal == previousVal) {
+      return Icon(Icons.trending_flat, color: Colors.grey, size: 16);
+    } else if (currentVal > previousVal) {
+      return Icon(Icons.trending_up, color: Colors.green, size: 16);
+    } else {
+      return Icon(Icons.trending_down, color: Colors.red, size: 16);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          title: const Text('AI Hemogram Analizi'),
+          backgroundColor: Colors.white,
+          foregroundColor: const Color(0xFFE53E3E),
+          elevation: 0,
+        ),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: Color(0xFFE53E3E)),
+              SizedBox(height: 16),
+              Text('Hemogram verileriniz yükleniyor...'),
+            ],
+          ),
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -190,9 +281,31 @@ class AnalysisScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
+              // Test Geçmişi Butonu
+              if (testHistory.isNotEmpty) ...[
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  child: ElevatedButton.icon(
+                    onPressed: () => _showTestHistory(context),
+                    icon: const Icon(Icons.history),
+                    label: Text('Test Geçmişi (${testHistory.length} test)'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFFE53E3E),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: const BorderSide(color: Color(0xFFE53E3E), width: 1),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+              
               // Analiz Sonuçları
-              ...exampleValues.keys.map((param) {
-                double value = exampleValues[param]!;
+              ...currentValues.keys.map((param) {
+                double value = currentValues[param]!;
                 double low = referenceRanges[param]![0];
                 double high = referenceRanges[param]![1];
                 Color color = getScaleColor(value, low, high);
@@ -233,13 +346,19 @@ class AnalysisScreen extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Expanded(
-                            child: Text(
-                              param,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFFE53E3E),
-                              ),
+                            child: Row(
+                              children: [
+                                Text(
+                                  param,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFFE53E3E),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                _buildTrendIndicator(param),
+                              ],
                             ),
                           ),
                           Container(
@@ -782,5 +901,241 @@ class AnalysisScreen extends StatelessWidget {
       case 'Yüksek': return Colors.red;
       default: return Colors.green;
     }
+  }
+
+  void _showTestHistory(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 700, maxHeight: 600),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.timeline, color: Color(0xFFE53E3E), size: 28),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Hemogram Test Geçmişi',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFE53E3E),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const Divider(),
+              const SizedBox(height: 16),
+              
+              Expanded(
+                child: ListView.builder(
+                  itemCount: testHistory.length,
+                  itemBuilder: (context, index) {
+                    Map<String, dynamic> test = testHistory[index];
+                    DateTime testDate = DateTime.parse(test['created_at']);
+                    Map<String, double> values = HemogramValues.mapFromDatabase(test);
+                    
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: index == 0 ? const Color(0xFFE53E3E).withOpacity(0.1) : Colors.grey[50],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: index == 0 ? const Color(0xFFE53E3E) : Colors.grey[300]!,
+                          width: index == 0 ? 2 : 1,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                index == 0 ? Icons.fiber_new : Icons.history,
+                                color: index == 0 ? const Color(0xFFE53E3E) : Colors.grey[600],
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                index == 0 ? 'En Son Test' : 'Test ${index + 1}',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: index == 0 ? const Color(0xFFE53E3E) : Colors.grey[700],
+                                ),
+                              ),
+                              const Spacer(),
+                              Text(
+                                '${testDate.day}/${testDate.month}/${testDate.year}',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          
+                          // Önemli değerlerin özeti
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              'Hemoglobin (g/dL)',
+                              'Demir (mcg/dL)',
+                              'Lökosit (K/uL)',
+                              'Trombosit (K/uL)',
+                            ].map((param) {
+                              double? value = values[param];
+                              if (value == null) return const SizedBox.shrink();
+                              
+                              List<double> range = referenceRanges[param]!;
+                              Color statusColor = getScaleColor(value, range[0], range[1]);
+                              
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: statusColor.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: statusColor.withOpacity(0.5)),
+                                ),
+                                child: Text(
+                                  '${param.split(' ')[0]}: ${value.toStringAsFixed(1)}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: statusColor == Colors.yellow ? Colors.orange[800] : statusColor,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                          
+                          if (index < testHistory.length - 1) ...[
+                            const SizedBox(height: 12),
+                            _buildComparisonWithPrevious(index),
+                          ],
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.pushNamed(context, '/hemogram_entry');
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text('Yeni Test Ekle'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE53E3E),
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                      label: const Text('Kapat'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xFFE53E3E),
+                        side: const BorderSide(color: Color(0xFFE53E3E)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildComparisonWithPrevious(int currentIndex) {
+    if (currentIndex >= testHistory.length - 1) return const SizedBox.shrink();
+    
+    Map<String, double> currentValues = HemogramValues.mapFromDatabase(testHistory[currentIndex]);
+    Map<String, double> previousValues = HemogramValues.mapFromDatabase(testHistory[currentIndex + 1]);
+    
+    List<Widget> changes = [];
+    
+    ['Hemoglobin (g/dL)', 'Demir (mcg/dL)', 'Lökosit (K/uL)'].forEach((param) {
+      double? current = currentValues[param];
+      double? previous = previousValues[param];
+      
+      if (current != null && previous != null && current != previous) {
+        double difference = current - previous;
+        bool isIncrease = difference > 0;
+        
+        changes.add(
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: isIncrease ? Colors.green[100] : Colors.red[100],
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isIncrease ? Icons.arrow_upward : Icons.arrow_downward,
+                  size: 12,
+                  color: isIncrease ? Colors.green[700] : Colors.red[700],
+                ),
+                const SizedBox(width: 2),
+                Text(
+                  '${param.split(' ')[0]}: ${difference > 0 ? '+' : ''}${difference.toStringAsFixed(1)}',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: isIncrease ? Colors.green[700] : Colors.red[700],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    });
+    
+    if (changes.isEmpty) return const SizedBox.shrink();
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Önceki teste göre değişimler:',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Wrap(
+          spacing: 4,
+          runSpacing: 4,
+          children: changes,
+        ),
+      ],
+    );
   }
 }

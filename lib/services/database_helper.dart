@@ -290,38 +290,54 @@ class DatabaseHelper {
 
   // Aile üyesi işlemleri
   Future<int> insertFamilyMember(Map<String, dynamic> member) async {
-    final db = await database;
-    member['created_at'] = DateTime.now().toIso8601String();
-    return await db.insert('family_members', member);
+    if (kIsWeb) {
+      return await _webHelper!.insertFamilyMember(member);
+    } else {
+      final db = await database;
+      member['created_at'] = DateTime.now().toIso8601String();
+      return await db.insert('family_members', member);
+    }
   }
 
   Future<List<Map<String, dynamic>>> getFamilyMembers(int userId) async {
-    final db = await database;
-    return await db.query(
-      'family_members',
-      where: 'user_id = ?',
-      whereArgs: [userId],
-      orderBy: 'name ASC',
-    );
+    if (kIsWeb) {
+      return await _webHelper!.getFamilyMembers(userId);
+    } else {
+      final db = await database;
+      return await db.query(
+        'family_members',
+        where: 'user_id = ?',
+        whereArgs: [userId],
+        orderBy: 'name ASC',
+      );
+    }
   }
 
   Future<int> updateFamilyMember(int id, Map<String, dynamic> member) async {
-    final db = await database;
-    return await db.update(
-      'family_members',
-      member,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    if (kIsWeb) {
+      return await _webHelper!.updateFamilyMember(id, member);
+    } else {
+      final db = await database;
+      return await db.update(
+        'family_members',
+        member,
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    }
   }
 
   Future<int> deleteFamilyMember(int id) async {
-    final db = await database;
-    return await db.delete(
-      'family_members',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    if (kIsWeb) {
+      return await _webHelper!.deleteFamilyMember(id);
+    } else {
+      final db = await database;
+      return await db.delete(
+        'family_members',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    }
   }
 
   // Aile üyesi hemogram testleri
@@ -511,6 +527,161 @@ class DatabaseHelper {
   Future<void> close() async {
     final db = await database;
     await db.close();
+  }
+
+  // Davet sistemi
+  Future<int> sendFamilyInvitation(Map<String, dynamic> invitation) async {
+    if (kIsWeb) {
+      return await _webHelper!.sendFamilyInvitation(invitation);
+    } else {
+      final db = await database;
+      invitation['created_at'] = DateTime.now().toIso8601String();
+      return await db.insert('family_invitations', invitation);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getPendingInvitations(int userId) async {
+    if (kIsWeb) {
+      return await _webHelper!.getPendingInvitations(userId);
+    } else {
+      final db = await database;
+      return await db.query(
+        'family_invitations',
+        where: 'to_user_id = ? AND status = ?',
+        whereArgs: [userId, 'pending'],
+      );
+    }
+  }
+
+  Future<int> respondToInvitation(int invitationId, String response) async {
+    if (kIsWeb) {
+      return await _webHelper!.respondToInvitation(invitationId, response);
+    } else {
+      final db = await database;
+      return await db.update(
+        'family_invitations',
+        {
+          'status': response,
+          'responded_at': DateTime.now().toIso8601String(),
+        },
+        where: 'id = ?',
+        whereArgs: [invitationId],
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>?> findUserByPhone(String phone) async {
+    if (kIsWeb) {
+      return await _webHelper!.findUserByPhone(phone);
+    } else {
+      final db = await database;
+      List<Map<String, dynamic>> results = await db.query(
+        'users',
+        where: 'phone = ?',
+        whereArgs: [phone],
+        limit: 1,
+      );
+      return results.isNotEmpty ? results.first : null;
+    }
+  }
+
+  // İlaç yönetimi
+  Future<int> addMedication(int userId, String name, String dosage, String frequency, String time) async {
+    if (kIsWeb) {
+      return await _webHelper!.addMedication(userId, name, dosage, frequency, time);
+    } else {
+      final db = await database;
+      return await db.insert('medications', {
+        'user_id': userId,
+        'name': name,
+        'dosage': dosage,
+        'frequency': frequency,
+        'time': time,
+        'is_active': 1,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+    }
+  }
+
+  // Su tüketimi takibi
+  Future<int> getTodayWaterIntake(int userId) async {
+    if (kIsWeb) {
+      return await _webHelper!.getTodayWaterIntake(userId);
+    } else {
+      final db = await database;
+      final today = DateTime.now().toIso8601String().split('T')[0];
+
+      final results = await db.query(
+        'water_tracking',
+        columns: ['water_count'],
+        where: 'user_id = ? AND date = ?',
+        whereArgs: [userId, today],
+      );
+
+      return results.isNotEmpty && results.first['water_count'] != null
+          ? (results.first['water_count'] as num).toInt()
+          : 0;
+    }
+  }
+
+  Future<int> logWaterIntake(int userId, int amount) async {
+    if (kIsWeb) {
+      return await _webHelper!.logWaterIntake(userId, amount);
+    } else {
+      final db = await database;
+      final today = DateTime.now().toIso8601String().split('T')[0];
+      
+      // Check if there's already a record for today
+      final existing = await db.query(
+        'water_tracking',
+        where: 'user_id = ? AND date = ?',
+        whereArgs: [userId, today],
+      );
+      
+      if (existing.isNotEmpty) {
+        // Update existing record
+        return await db.update(
+          'water_tracking',
+          {
+            'water_count': amount,
+            'created_at': DateTime.now().toIso8601String(),
+          },
+          where: 'user_id = ? AND date = ?',
+          whereArgs: [userId, today],
+        );
+      } else {
+        // Insert new record
+        return await db.insert('water_tracking', {
+          'user_id': userId,
+          'date': today,
+          'water_count': amount,
+          'goal': 8,
+          'created_at': DateTime.now().toIso8601String(),
+        });
+      }
+    }
+  }
+
+  // Bildirim yönetimi
+  Future<int> createNotification(int userId, String title, String message, String type) async {
+    if (kIsWeb) {
+      return await _webHelper!.createNotification(userId, title, message, type);
+    } else {
+      final db = await database;
+      return await db.insert('notifications', {
+        'user_id': userId,
+        'title': title,
+        'subtitle': '',
+        'description': message,
+        'type': type,
+        'priority': 'medium',
+        'icon_data': 'Icons.notifications',
+        'color_value': 0xFFE53E3E,
+        'is_read': 0,
+        'scheduled_date': DateTime.now().toIso8601String(),
+        'created_at': DateTime.now().toIso8601String(),
+      });
+    }
   }
 }
 
