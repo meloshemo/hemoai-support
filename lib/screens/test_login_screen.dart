@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../services/preferences_service.dart';
 import '../services/database_helper.dart';
+import '../services/localization_service.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
 
@@ -162,7 +164,10 @@ class _TestLoginScreenState extends State<TestLoginScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Debug Login Test'),
+        title: Builder(builder: (context){
+          final loc = Provider.of<LocalizationService>(context, listen:false);
+          return Text(loc.getString('debug_login_title'));
+        }),
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFFE53E3E),
         elevation: 0,
@@ -191,7 +196,7 @@ class _TestLoginScreenState extends State<TestLoginScreen> {
             TextField(
               controller: phoneController,
               decoration: InputDecoration(
-                labelText: 'Telefon (5551234567)',
+                labelText: Provider.of<LocalizationService>(context, listen:false).getString('phone_number_label'),
                 prefixIcon: const Icon(Icons.phone, color: Color(0xFFE53E3E)),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 focusedBorder: OutlineInputBorder(
@@ -207,7 +212,7 @@ class _TestLoginScreenState extends State<TestLoginScreen> {
             TextField(
               controller: passwordController,
               decoration: InputDecoration(
-                labelText: 'Şifre (1234)',
+                labelText: Provider.of<LocalizationService>(context, listen:false).getString('password_label'),
                 prefixIcon: const Icon(Icons.lock, color: Color(0xFFE53E3E)),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 focusedBorder: OutlineInputBorder(
@@ -232,7 +237,10 @@ class _TestLoginScreenState extends State<TestLoginScreen> {
                     ),
                     child: _isLoading 
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Test Register'),
+                      : Builder(builder: (context){
+                          final loc = Provider.of<LocalizationService>(context, listen:false);
+                          return Text(loc.getString('test_register'));
+                        }),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -246,7 +254,10 @@ class _TestLoginScreenState extends State<TestLoginScreen> {
                     ),
                     child: _isLoading 
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Test Login'),
+                      : Builder(builder: (context){
+                          final loc = Provider.of<LocalizationService>(context, listen:false);
+                          return Text(loc.getString('test_login'));
+                        }),
                   ),
                 ),
               ],

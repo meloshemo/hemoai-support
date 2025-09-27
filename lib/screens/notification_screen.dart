@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
-import '../services/database_helper.dart';
+import 'package:provider/provider.dart';
+import '../widgets/app_drawer.dart';
+import '../services/web_database_helper.dart';
 import '../services/preferences_service.dart';
+import '../services/localization_service.dart';
+import '../services/notification_service.dart';
+import 'package:flutter/services.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({Key? key}) : super(key: key);
@@ -11,88 +16,168 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen> with TickerProviderStateMixin {
   late TabController _tabController;
-  final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
+  final WebDatabaseHelper _databaseHelper = WebDatabaseHelper.instance;
   final PreferencesService _preferencesService = PreferencesService();
+  TimeOfDay? _dailyMotivationTime;
   
   List<Map<String, dynamic>> notifications = [];
   List<Map<String, dynamic>> medications = [];
   bool isLoading = true;
   
-  // Örnek bildirimler (fallback)
-  final List<Map<String, dynamic>> exampleNotifications = [
-    {
-      'id': '1',
-      'title': '🩸 Tahlil Hatırlatıcısı',
-      'subtitle': 'Ayşe için aylık kontrol zamanı',
-      'description': 'Ayşe Yılmaz\'ın hemogram kontrolü bugün yapılmalı. Son tahlil değerleri düşük çıktığı için düzenli takip önemli.',
-      'time': '09:00',
-      'date': '24 Eylül 2025',
-      'type': 'test_reminder',
-      'priority': 'high',
-      'icon': Icons.bloodtype,
-      'color': Colors.red,
-      'isRead': false,
-    },
-    {
-      'id': '2',
-      'title': '🚨 Kritik Değer Uyarısı',
-      'subtitle': 'Hemoglobin seviyesi düşük',
-      'description': 'Ayşe\'nin hemoglobin değeri (10.8 g/dL) normal seviyenin altında. Doktora danışmanız önerilir.',
-      'time': '14:30',
-      'date': '23 Eylül 2025',
-      'type': 'critical_alert',
-      'priority': 'high',
-      'icon': Icons.warning,
-      'color': Colors.red,
-      'isRead': false,
-    },
-    {
-      'id': '3',
-      'title': '💊 İlaç Hatırlatıcısı',
-      'subtitle': 'Demir takviyesi zamanı',
-      'description': 'Ayşe için reçetelenen demir takviyesi alınmalı. Günde 1 tablet, öğünden sonra.',
-      'time': '20:00',
-      'date': '24 Eylül 2025',
-      'type': 'medication',
-      'priority': 'medium',
-      'icon': Icons.medication,
-      'color': Colors.orange,
-      'isRead': true,
-    },
-    {
-      'id': '4',
-      'title': '🥗 Beslenme Önerisi',
-      'subtitle': 'Demir içeriği yüksek yiyecekler',
-      'description': 'Hemoglobin seviyesini artırmak için kırmızı et, ıspanak ve kuruyemiş tüketimi artırılmalı.',
-      'time': '12:00',
-      'date': '24 Eylül 2025',
-      'type': 'nutrition',
-      'priority': 'medium',
-      'icon': Icons.restaurant,
-      'color': Colors.green,
-      'isRead': true,
-    },
-    {
-      'id': '5',
-      'title': '📅 Randevu Hatırlatıcısı',
-      'subtitle': 'Dr. Mehmet Kaya - Hematoloji',
-      'description': 'Yarın saat 10:00\'da hematoloji uzmanı ile randevunuz bulunmaktadır.',
-      'time': '16:00',
-      'date': '23 Eylül 2025',
-      'type': 'appointment',
-      'priority': 'medium',
-      'icon': Icons.calendar_today,
-      'color': Colors.blue,
-      'isRead': false,
-    },
-  ];
+  // Map backend notification types to icons/colors for UI
+  IconData _iconForType(String? type) {
+    switch (type) {
+      case 'motivational':
+        return Icons.favorite;
+      case 'personalized_diet':
+        return Icons.restaurant_menu;
+      case 'test_reminder':
+        return Icons.bloodtype;
+      case 'water_achievement':
+        return Icons.water_drop;
+      case 'medication_added':
+        return Icons.medication;
+      default:
+        return Icons.notifications;
+    }
+  }
+
+  Color _colorForType(String? type) {
+    switch (type) {
+      case 'motivational':
+        return Colors.pink;
+      case 'personalized_diet':
+        return Colors.green;
+      case 'test_reminder':
+        return Colors.red;
+      case 'water_achievement':
+        return const Color(0xFF1E88E5);
+      case 'medication_added':
+        return const Color(0xFFE53E3E);
+      default:
+        return const Color(0xFFE53E3E);
+    }
+  }
+
+  // Normalize DB notifications to UI-friendly shape
+  List<Map<String, dynamic>> _normalizeNotifications(List<Map<String, dynamic>> raw, LocalizationService loc) {
+    return raw.map((n) {
+      final createdAt = (n['created_at'] ?? '') as String; 
+      String date = '';
+      String time = '';
+      if (createdAt.isNotEmpty) {
+        // Expecting ISO8601; split to date/time if possible
+        final parts = createdAt.split('T');
+        if (parts.isNotEmpty) {
+          date = parts[0].replaceAll('-', '.');
+        }
+        if (parts.length > 1) {
+          time = parts[1].substring(0, 5); // HH:mm
+        }
+      }
+
+      final type = n['type'] as String?;
+      final id = n['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString();
+      final isRead = (n['isRead'] is bool)
+          ? (n['isRead'] as bool)
+          : ((n['is_read'] is bool) ? (n['is_read'] as bool) : false);
+    final title = (n['title'] as String?) ?? loc.getString('notifications');
+    final subtitle = (n['subtitle'] as String?) ?? loc.getString('no_subtitle');
+    // Prefer description; fallback to message
+    final description = (n['description'] as String?) ?? (n['message'] as String?) ?? loc.getString('no_description');
+
+      return {
+        'id': id,
+        'title': title,
+        'subtitle': subtitle,
+        'description': description,
+        'type': type ?? 'general',
+        'priority': (n['priority'] as String?) ?? 'medium',
+        'icon': _iconForType(type),
+        'color': _colorForType(type),
+        'isRead': isRead,
+        'date': date,
+        'time': time,
+      };
+    }).toList();
+  }
+
+  // Normalize DB medications to UI-friendly shape
+  List<Map<String, dynamic>> _normalizeMedications(List<Map<String, dynamic>> raw) {
+    return raw.map((m) {
+      return { 
+  'name': m['name'] ?? Provider.of<LocalizationService>(context, listen: false).getString('medication'),
+  'dosage': m['dosage'] ?? Provider.of<LocalizationService>(context, listen: false).getString('default_dosage'),
+  'frequency': m['frequency'] ?? Provider.of<LocalizationService>(context, listen: false).getString('default_frequency'),
+  'time': m['time'] ?? Provider.of<LocalizationService>(context, listen: false).getString('default_time'),
+        'taken_today': (m['taken_today'] is bool) ? m['taken_today'] : false,
+        'total_days': (m['total_days'] is int) ? m['total_days'] : 30,
+        'completed_days': (m['completed_days'] is int) ? m['completed_days'] : 0,
+      };
+    }).toList();
+  }
+  
+  // Localized sample notifications (fallback if DB empty / user not logged in)
+  List<Map<String, dynamic>> _buildSampleNotifications(LocalizationService loc) {
+    final now = DateTime.now();
+    final dateLabel = '${now.day}.${now.month}.${now.year}';
+    return [
+  {
+        'id': '1',
+  'title': '🌟 ${loc.getString('motivational_message')}',
+    'subtitle': loc.getString('take_care_today'),
+    'description': (loc.getString('motivational_custom_quote').isNotEmpty)
+    ? loc.getString('motivational_custom_quote')
+    : loc.getString('motivational_message_long'),
+        'time': '08:00',
+        'date': dateLabel,
+        'type': 'motivational',
+        'priority': 'medium',
+        'icon': Icons.favorite,
+        'color': Colors.pink,
+        'isRead': false,
+      },
+      {
+        'id': '2',
+  'title': '🥗 ${loc.getString('personal_diet_suggestion')}',
+        'subtitle': loc.getString('hemoglobin_menu_subtitle'),
+        'description': loc.getString('personal_diet_plan_example'),
+        'time': '07:30',
+        'date': dateLabel,
+        'type': 'personalized_diet',
+        'priority': 'high',
+        'icon': Icons.restaurant_menu,
+        'color': Colors.green,
+        'isRead': false,
+      },
+      {
+        'id': '3',
+  'title': '🩸 ${loc.getString('test_reminder_title')}',
+        'subtitle': loc.getString('monthly_check_subtitle'),
+        'description': loc.getString('test_reminder_description'),
+        'time': '09:00',
+        'date': dateLabel,
+        'type': 'test_reminder',
+        'priority': 'high',
+        'icon': Icons.bloodtype,
+        'color': Colors.red,
+        'isRead': false,
+      },
+    ];
+  }
 
   // Hatırlatıcı ayarları
   final Map<String, bool> reminderSettings = {
     'test_reminders': true,
     'critical_alerts': true,
     'medication_reminders': true,
-    'nutrition_tips': false,
+    'nutrition_tips': true,
+    'personalized_diet': true,
+    'motivational_messages': true,
+    'health_tips': true,
+    'smart_meals': true,
+    'stress_management': true,
+    'weekly_reports': true,
     'appointment_reminders': true,
     'water_reminders': true,
     'exercise_reminders': false,
@@ -102,30 +187,30 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
   int waterCount = 0;
   final int waterGoal = 8;
 
-  // Örnek ilaçlar (fallback)
+  // Sample medications (neutral English fallback)
   final List<Map<String, dynamic>> exampleMedications = [
     {
-      'name': 'Demir Takviyesi',
+      'name': 'Iron Supplement',
       'dosage': '1 tablet',
-      'frequency': 'Günde 1 kez',
+      'frequency': 'Once daily',
       'time': '20:00',
       'taken_today': true,
       'total_days': 30,
       'completed_days': 15,
     },
     {
-      'name': 'B12 Vitamini',
-      'dosage': '1 kapsül',
-      'frequency': 'Haftada 2 kez',
+      'name': 'Vitamin B12',
+      'dosage': '1 capsule',
+      'frequency': 'Twice weekly',
       'time': '09:00',
       'taken_today': false,
       'total_days': 60,
       'completed_days': 8,
     },
     {
-      'name': 'Folik Asit',
+      'name': 'Folic Acid',
       'dosage': '1 tablet',
-      'frequency': 'Günde 1 kez',
+      'frequency': 'Once daily',
       'time': '08:00',
       'taken_today': true,
       'total_days': 30,
@@ -137,12 +222,26 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    _loadNotificationData();
+    _initializePrefsAndData();
+  }
+
+  Future<void> _initializePrefsAndData() async {
+    // Ensure SharedPreferences is initialized and load saved daily motivation time
+    await PreferencesService.getInstance();
+    final savedHour = _preferencesService.getCustomSetting<int>('daily_motivation_hour');
+    final savedMinute = _preferencesService.getCustomSetting<int>('daily_motivation_minute');
+    if (mounted && savedHour != null && savedMinute != null) {
+      setState(() {
+        _dailyMotivationTime = TimeOfDay(hour: savedHour, minute: savedMinute);
+      });
+    }
+    await _loadNotificationData();
   }
 
   Future<void> _loadNotificationData() async {
     try {
       int? userId = await _preferencesService.getUserId();
+      final loc = Provider.of<LocalizationService>(context, listen: false);
       if (userId != null) {
         // Bildirimleri yükle
         List<Map<String, dynamic>> dbNotifications = await _databaseHelper.getNotifications(userId);
@@ -153,24 +252,32 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
         // Su takibini yükle
         int todayWater = await _databaseHelper.getTodayWaterIntake(userId);
         
+        if (!mounted) return;
         setState(() {
-          notifications = dbNotifications.isNotEmpty ? dbNotifications : exampleNotifications;
-          medications = dbMedications.isNotEmpty ? dbMedications : exampleMedications;
+          notifications = dbNotifications.isNotEmpty
+              ? _normalizeNotifications(dbNotifications, loc)
+              : _buildSampleNotifications(loc);
+          medications = dbMedications.isNotEmpty
+              ? _normalizeMedications(dbMedications)
+              : exampleMedications;
           waterCount = todayWater;
           isLoading = false;
         });
       } else {
         // Kullanıcı girişi yapılmamış, örnek verileri kullan
+        if (!mounted) return;
         setState(() {
-          notifications = exampleNotifications;
+          notifications = _buildSampleNotifications(loc);
           medications = exampleMedications;
           isLoading = false;
         });
       }
     } catch (e) {
-      print('Bildirim verileri yüklenirken hata: $e');
+      print('Error loading notification data: $e');
+      if (!mounted) return;
       setState(() {
-        notifications = exampleNotifications;
+        final loc = Provider.of<LocalizationService>(context, listen: false);
+        notifications = _buildSampleNotifications(loc);
         medications = exampleMedications;
         isLoading = false;
       });
@@ -185,7 +292,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
         _loadNotificationData(); // Listeyi yenile
       }
     } catch (e) {
-      print('Bildirim oluşturulurken hata: $e');
+      print('Notification create error: $e');
     }
   }
 
@@ -197,7 +304,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
         _loadNotificationData(); // Listeyi yenile
       }
     } catch (e) {
-      print('İlaç eklenirken hata: $e');
+      print('Medication add error: $e');
     }
   }
 
@@ -206,21 +313,24 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
       int? userId = await _preferencesService.getUserId();
       if (userId != null) {
         await _databaseHelper.logWaterIntake(userId, newCount);
+        if (!mounted) return;
         setState(() {
           waterCount = newCount;
         });
         
         // Hedefe ulaşıldığında bildirim oluştur
         if (newCount >= waterGoal) {
+          final loc = Provider.of<LocalizationService>(context, listen: false);
           await _createNotification(
-            '🎉 Su Hedefi Tamamlandı!',
-            'Günlük $waterGoal bardak su hedefinizi başarıyla tamamladınız!',
+            '🎉 ${loc.getString('water_goal_completed_title')}',
+            loc.getString('water_goal_completed_message').replaceFirst('{goal}', waterGoal.toString()),
             'water_achievement'
           );
         }
       }
     } catch (e) {
-      print('Su takibi güncellenirken hata: $e');
+      print('Water tracking update error: $e');
+      if (!mounted) return;
       setState(() {
         waterCount = newCount; // En azından UI'yi güncelle
       });
@@ -248,7 +358,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 4,
             offset: const Offset(0, 2),
@@ -263,7 +373,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: notification['color'].withOpacity(0.1),
+                  color: notification['color'].withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
@@ -315,13 +425,57 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
             ],
           ),
           const SizedBox(height: 12),
-          Text(
-            notification['description'],
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[700],
-              height: 1.4,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                notification['description'],
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[700],
+                  height: 1.4,
+                ),
+              ),
+              if (notification['type'] == 'motivational') ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        await Clipboard.setData(ClipboardData(text: notification['description'] as String));
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(Provider.of<LocalizationService>(context, listen: false).getString('quote_copied'))),
+                        );
+                      },
+                      icon: const Icon(Icons.share),
+                      label: Text(Provider.of<LocalizationService>(context, listen: false).getString('share_quote')),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          // Rotate by rebuilding sample data next reload; for DB items leave as is
+                          if (notifications.isNotEmpty && notifications.first['type'] == 'motivational') {
+                            final loc = Provider.of<LocalizationService>(context, listen: false);
+                            final list = [
+                              loc.getString('motivational_custom_quote'),
+                              loc.getString('motivational_message_long'),
+                            ].where((e) => e.isNotEmpty).toList();
+                            if (list.length > 1) {
+                              final current = notifications.first['description'] as String;
+                              final nextIndex = (list.indexOf(current) + 1) % list.length;
+                              notifications.first['description'] = list[nextIndex];
+                            }
+                          }
+                        });
+                      },
+                      child: const Icon(Icons.refresh, size: 18),
+                    ),
+                  ],
+                ),
+              ],
+            ],
           ),
           const SizedBox(height: 12),
           Row(
@@ -339,21 +493,29 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                   if (!notification['isRead'])
                     TextButton(
                       onPressed: () => _markAsRead(notification['id']),
-                      child: const Text('Okundu', style: TextStyle(fontSize: 12)),
+                      child: Text(Provider.of<LocalizationService>(context, listen: false).getString('mark_read'), style: const TextStyle(fontSize: 12)),
                     ),
                   const SizedBox(width: 8),
                   PopupMenuButton(
                     itemBuilder: (context) => [
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'details',
                         child: Row(
-                          children: [Icon(Icons.info, size: 16), SizedBox(width: 8), Text('Detaylar')],
+                          children: [
+                            const Icon(Icons.info, size: 16),
+                            const SizedBox(width: 8),
+                            Text(Provider.of<LocalizationService>(context, listen: false).getString('details')),
+                          ],
                         ),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'delete',
                         child: Row(
-                          children: [Icon(Icons.delete, size: 16), SizedBox(width: 8), Text('Sil')],
+                          children: [
+                            const Icon(Icons.delete, size: 16),
+                            const SizedBox(width: 8),
+                            Text(Provider.of<LocalizationService>(context, listen: false).getString('delete')),
+                          ],
                         ),
                       ),
                     ],
@@ -386,13 +548,13 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
       ),
       child: Column(
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.water_drop, color: Colors.white, size: 24),
-              SizedBox(width: 8),
+              const Icon(Icons.water_drop, color: Colors.white, size: 24),
+              const SizedBox(width: 8),
               Text(
-                'Günlük Su Takibi',
-                style: TextStyle(
+                Provider.of<LocalizationService>(context, listen: false).getString('daily_water_tracking'),
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -412,7 +574,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                 child: CircularProgressIndicator(
                   value: progress,
                   strokeWidth: 8,
-                  backgroundColor: Colors.white.withOpacity(0.3),
+                  backgroundColor: Colors.white.withValues(alpha: 0.3),
                   valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
               ),
@@ -446,7 +608,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
               ElevatedButton.icon(
                 onPressed: waterCount > 0 ? () => _updateWaterCount(waterCount - 1) : null,
                 icon: const Icon(Icons.remove, size: 16),
-                label: const Text('Azalt'),
+                label: Text(Provider.of<LocalizationService>(context, listen: false).getString('water_decrease')),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: const Color(0xFF1E88E5),
@@ -456,7 +618,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
               ElevatedButton.icon(
                 onPressed: waterCount < 12 ? () => _updateWaterCount(waterCount + 1) : null,
                 icon: const Icon(Icons.add, size: 16),
-                label: const Text('Artır'),
+                label: Text(Provider.of<LocalizationService>(context, listen: false).getString('water_increase')),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: const Color(0xFF1E88E5),
@@ -471,17 +633,17 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.celebration, color: Colors.white, size: 20),
-                  SizedBox(width: 8),
+                  const Icon(Icons.celebration, color: Colors.white, size: 20),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Tebrikler! Günlük su hedefinizi tamamladınız! 🎉',
-                      style: TextStyle(color: Colors.white, fontSize: 14),
+                      Provider.of<LocalizationService>(context, listen: false).getString('water_goal_completed_inline'),
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
                     ),
                   ),
                 ],
@@ -508,7 +670,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 4,
             offset: const Offset(0, 2),
@@ -522,7 +684,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: medication['taken_today'] ? Colors.green.withOpacity(0.1) : const Color(0xFFE53E3E).withOpacity(0.1),
+                  color: medication['taken_today'] ? Colors.green.withValues(alpha: 0.1) : const Color(0xFFE53E3E).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
@@ -549,7 +711,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                       style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                     ),
                     Text(
-                      'Saat: ${medication['time']}',
+                      '${Provider.of<LocalizationService>(context, listen: false).getString('time_label')}: ${medication['time']}',
                       style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                     ),
                   ],
@@ -565,7 +727,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                     }
                   });
                 },
-                activeColor: Colors.green,
+                activeThumbColor: Colors.green,
               ),
             ],
           ),
@@ -579,7 +741,10 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'İlerleme: ${medication['completed_days']}/${medication['total_days']} gün',
+          Provider.of<LocalizationService>(context, listen: false)
+            .getString('med_progress')
+            .replaceFirst('{completed}', medication['completed_days'].toString())
+            .replaceFirst('{total}', medication['total_days'].toString()),
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   Text(
@@ -609,15 +774,88 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Bildirim Ayarları',
-            style: TextStyle(
+          Text(
+            Provider.of<LocalizationService>(context, listen: false).getString('notification_settings_title'),
+            style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: Color(0xFFE53E3E),
             ),
           ),
           const SizedBox(height: 24),
+          // Daily motivation scheduler
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE53E3E).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.schedule, color: Color(0xFFE53E3E), size: 20),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        Provider.of<LocalizationService>(context, listen: false).getString('daily_motivation_time'),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
+                      Text(
+                        _dailyMotivationTime == null
+                            ? '--:--'
+                            : _dailyMotivationTime!.format(context),
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    final picked = await showTimePicker(context: context, initialTime: _dailyMotivationTime ?? TimeOfDay(hour: 8, minute: 0));
+                    if (picked != null) {
+                      setState(() => _dailyMotivationTime = picked);
+                      // Schedule via in-app notification service (simple timer loop)
+                      final now = DateTime.now();
+                      final first = DateTime(now.year, now.month, now.day, picked.hour, picked.minute);
+                      final firstTime = first.isAfter(now) ? first : first.add(const Duration(days: 1));
+                      final loc = Provider.of<LocalizationService>(context, listen: false);
+                      final quote = loc.getString('motivational_custom_quote').isNotEmpty
+                          ? loc.getString('motivational_custom_quote')
+                          : loc.getString('motivational_message_long');
+                      // Persist selected time
+                      await _preferencesService.saveCustomSettings('daily_motivation_hour', picked.hour);
+                      await _preferencesService.saveCustomSettings('daily_motivation_minute', picked.minute);
+                      // Schedule notification
+                      NotificationService().addNotification(
+                        NotificationItem(
+                          title: '🌟 ${loc.getString('motivational_message')}',
+                          description: quote,
+                          scheduledTime: firstTime,
+                          type: NotificationType.general,
+                          repeatType: RepeatType.daily,
+                        ),
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('${loc.getString('daily_motivation_time')}: ${picked.format(context)}')),
+                      );
+                    }
+                  },
+                  child: Text(Provider.of<LocalizationService>(context, listen: false).getString('edit')),
+                ),
+              ],
+            ),
+          ),
           
           ...reminderSettings.entries.map((entry) {
             String title = _getSettingTitle(entry.key);
@@ -637,7 +875,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE53E3E).withOpacity(0.1),
+                      color: const Color(0xFFE53E3E).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(icon, color: const Color(0xFFE53E3E), size: 20),
@@ -668,26 +906,26 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                         reminderSettings[entry.key] = value;
                       });
                     },
-                    activeColor: const Color(0xFFE53E3E),
+                    activeThumbColor: const Color(0xFFE53E3E),
                   ),
                 ],
               ),
             );
-          }).toList(),
+          }),
           
           const SizedBox(height: 32),
           
           ElevatedButton.icon(
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Bildirim ayarları kaydedildi!'),
-                  backgroundColor: Color(0xFFE53E3E),
+                SnackBar(
+                  content: Text(Provider.of<LocalizationService>(context, listen: false).getString('notification_settings_saved')),
+                  backgroundColor: const Color(0xFFE53E3E),
                 ),
               );
             },
             icon: const Icon(Icons.save),
-            label: const Text('Ayarları Kaydet'),
+            label: Text(Provider.of<LocalizationService>(context, listen: false).getString('save_settings')),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFE53E3E),
               foregroundColor: Colors.white,
@@ -701,29 +939,13 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
   }
 
   String _getSettingTitle(String key) {
-    switch (key) {
-      case 'test_reminders': return 'Tahlil Hatırlatıcıları';
-      case 'critical_alerts': return 'Kritik Değer Uyarıları';
-      case 'medication_reminders': return 'İlaç Hatırlatıcıları';
-      case 'nutrition_tips': return 'Beslenme Önerileri';
-      case 'appointment_reminders': return 'Randevu Hatırlatıcıları';
-      case 'water_reminders': return 'Su İçme Hatırlatıcıları';
-      case 'exercise_reminders': return 'Egzersiz Hatırlatıcıları';
-      default: return key;
-    }
+  return Provider.of<LocalizationService>(context, listen: false)
+    .getString('setting_title_$key');
   }
 
   String _getSettingSubtitle(String key) {
-    switch (key) {
-      case 'test_reminders': return 'Düzenli tahlil zamanlarını hatırlat';
-      case 'critical_alerts': return 'Anormal değerler için acil uyarılar';
-      case 'medication_reminders': return 'İlaç alma zamanlarını hatırlat';
-      case 'nutrition_tips': return 'Günlük beslenme önerileri';
-      case 'appointment_reminders': return 'Doktor randevularını hatırlat';
-      case 'water_reminders': return 'Su içme zamanlarını hatırlat';
-      case 'exercise_reminders': return 'Günlük aktivite hatırlatıcıları';
-      default: return '';
-    }
+  return Provider.of<LocalizationService>(context, listen: false)
+    .getString('setting_subtitle_$key');
   }
 
   IconData _getSettingIcon(String key) {
@@ -732,6 +954,12 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
       case 'critical_alerts': return Icons.warning;
       case 'medication_reminders': return Icons.medication;
       case 'nutrition_tips': return Icons.restaurant;
+      case 'personalized_diet': return Icons.restaurant_menu;
+      case 'motivational_messages': return Icons.favorite;
+      case 'health_tips': return Icons.lightbulb;
+      case 'smart_meals': return Icons.dining;
+      case 'stress_management': return Icons.self_improvement;
+      case 'weekly_reports': return Icons.star;
       case 'appointment_reminders': return Icons.calendar_today;
       case 'water_reminders': return Icons.water_drop;
       case 'exercise_reminders': return Icons.fitness_center;
@@ -739,18 +967,34 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
     }
   }
 
-  void _markAsRead(String id) {
+  Future<void> _markAsRead(dynamic id) async {
+    try {
+      // Try to persist if ID is numeric (DB-backed notification)
+      final intId = id is int ? id : int.tryParse(id?.toString() ?? '');
+      if (intId != null) {
+        await _databaseHelper.markNotificationAsRead(intId);
+      }
+    } catch (_) {}
+    if (!mounted) return;
     setState(() {
-      notifications.firstWhere((n) => n['id'] == id)['isRead'] = true;
+      final idx = notifications.indexWhere((n) => n['id'] == id.toString());
+      if (idx != -1) notifications[idx]['isRead'] = true;
     });
   }
 
-  void _deleteNotification(String id) {
+  Future<void> _deleteNotification(dynamic id) async {
+    try {
+      final intId = id is int ? id : int.tryParse(id?.toString() ?? '');
+      if (intId != null) {
+        await _databaseHelper.deleteNotification(intId);
+      }
+    } catch (_) {}
+    if (!mounted) return;
     setState(() {
-      notifications.removeWhere((n) => n['id'] == id);
+      notifications.removeWhere((n) => n['id'] == id.toString());
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Bildirim silindi')),
+      SnackBar(content: Text(Provider.of<LocalizationService>(context, listen: false).getString('notification_deleted'))),
     );
   }
 
@@ -766,7 +1010,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
             Text(notification['description']),
             const SizedBox(height: 16),
             Text(
-              'Tarih: ${notification['date']} ${notification['time']}',
+              '${Provider.of<LocalizationService>(context, listen: false).getString('date_label')}: ${notification['date']} ${notification['time']}',
               style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
@@ -774,7 +1018,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Kapat'),
+            child: Text(Provider.of<LocalizationService>(context, listen: false).getString('close')),
           ),
           if (!notification['isRead'])
             ElevatedButton(
@@ -783,7 +1027,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                 Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE53E3E)),
-              child: const Text('Okundu Olarak İşaretle', style: TextStyle(color: Colors.white)),
+              child: Text(Provider.of<LocalizationService>(context, listen: false).getString('mark_read_long'), style: const TextStyle(color: Colors.white)),
             ),
         ],
       ),
@@ -792,22 +1036,23 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
 
   @override
   Widget build(BuildContext context) {
+    final localizationService = Provider.of<LocalizationService>(context);
     if (isLoading) {
       return Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
-          title: const Text('Bildirimler & Takip'),
+          title: Text(localizationService.getString('notifications')),
           backgroundColor: Colors.white,
           foregroundColor: const Color(0xFFE53E3E),
           elevation: 0,
         ),
-        body: const Center(
+        body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(color: Color(0xFFE53E3E)),
-              SizedBox(height: 16),
-              Text('Verileriniz yükleniyor...'),
+              const CircularProgressIndicator(color: Color(0xFFE53E3E)),
+              const SizedBox(height: 16),
+              Text(localizationService.getString('loading_data')),
             ],
           ),
         ),
@@ -817,10 +1062,11 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
     
     return Scaffold(
       backgroundColor: Colors.white,
+      drawer: const AppDrawer(currentRoute: '/notifications'),
       appBar: AppBar(
         title: Row(
           children: [
-            const Text('Bildirimler & Takip'),
+            Text(localizationService.getString('notifications')),
             if (unreadCount > 0) ...[
               const SizedBox(width: 8),
               Container(
@@ -849,11 +1095,11 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
           labelColor: const Color(0xFFE53E3E),
           unselectedLabelColor: Colors.grey,
           indicatorColor: const Color(0xFFE53E3E),
-          tabs: const [
-            Tab(icon: Icon(Icons.notifications), text: 'Bildirimler'),
-            Tab(icon: Icon(Icons.water_drop), text: 'Su Takibi'),
-            Tab(icon: Icon(Icons.medication), text: 'İlaçlar'),
-            Tab(icon: Icon(Icons.settings), text: 'Ayarlar'),
+          tabs: [
+            Tab(icon: const Icon(Icons.notifications), text: localizationService.getString('notifications_tab')),
+            Tab(icon: const Icon(Icons.water_drop), text: localizationService.getString('water_tracking_tab')),
+            Tab(icon: const Icon(Icons.medication), text: localizationService.getString('medications_tab')),
+            Tab(icon: const Icon(Icons.settings), text: localizationService.getString('settings_tab')),
           ],
         ),
       ),
@@ -862,15 +1108,15 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
         children: [
           // Bildirimler Tab
           notifications.isEmpty 
-            ? const Center(
+            ? Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.notifications_none, size: 64, color: Colors.grey),
-                    SizedBox(height: 16),
+                    const Icon(Icons.notifications_none, size: 64, color: Colors.grey),
+                    const SizedBox(height: 16),
                     Text(
-                      'Henüz bildirim yok',
-                      style: TextStyle(fontSize: 18, color: Colors.grey),
+                      localizationService.getString('no_notifications_yet'),
+                      style: const TextStyle(fontSize: 18, color: Colors.grey),
                     ),
                   ],
                 ),
@@ -883,7 +1129,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '$unreadCount okunmamış bildirim',
+                          localizationService.getString('unread_notifications_count').replaceFirst('{count}', unreadCount.toString()),
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -898,13 +1144,13 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                               }
                             });
                           },
-                          child: const Text('Tümünü Okundu İşaretle'),
+                          child: Text(localizationService.getString('mark_all_read')),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
                   ],
-                  ...notifications.map((notification) => _buildNotificationCard(notification)).toList(),
+                  ...notifications.map((notification) => _buildNotificationCard(notification)),
                 ],
               ),
           
@@ -921,20 +1167,20 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                     color: Colors.grey[50],
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Column(
+                  child: Column(
                     children: [
                       Text(
-                        '💧 Su İçmenin Faydaları',
-                        style: TextStyle(
+                        localizationService.getString('water_benefits_title'),
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFFE53E3E),
                         ),
                       ),
-                      SizedBox(height: 12),
+                      const SizedBox(height: 12),
                       Text(
-                        '• Kan dolaşımını iyileştirir\n• Hemoglobin taşınmasına yardımcı olur\n• Demir emilimini artırır\n• Toksinleri vücuttan atar\n• Enerji seviyesini yükseltir',
-                        style: TextStyle(fontSize: 14, height: 1.5),
+                        localizationService.getString('water_benefits_list'),
+                        style: const TextStyle(fontSize: 14, height: 1.5),
                       ),
                     ],
                   ),
@@ -949,23 +1195,23 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Günlük İlaç Takibi',
-                  style: TextStyle(
+                Text(
+                  localizationService.getString('daily_medication_tracking'),
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFFE53E3E),
                   ),
                 ),
                 const SizedBox(height: 16),
-                ...medications.map((medication) => _buildMedicationCard(medication)).toList(),
+                ...medications.map((medication) => _buildMedicationCard(medication)),
                 
                 const SizedBox(height: 24),
                 
                 ElevatedButton.icon(
                   onPressed: () => _showAddMedicationDialog(),
                   icon: const Icon(Icons.add),
-                  label: const Text('Yeni İlaç Ekle'),
+                  label: Text(localizationService.getString('add_new_medication')),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFE53E3E),
                     foregroundColor: Colors.white,
@@ -993,44 +1239,44 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Yeni İlaç Ekle'),
+  title: Text(Provider.of<LocalizationService>(context, listen: false).getString('add_new_medication')),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'İlaç Adı *',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.medication),
+                decoration: InputDecoration(
+                  labelText: Provider.of<LocalizationService>(context, listen: false).getString('med_name_label'),
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.medication),
                 ),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: dosageController,
-                decoration: const InputDecoration(
-                  labelText: 'Dozaj (örn: 1 tablet, 10mg)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.science),
+                decoration: InputDecoration(
+                  labelText: Provider.of<LocalizationService>(context, listen: false).getString('dosage_hint'),
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.science),
                 ),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: frequencyController,
-                decoration: const InputDecoration(
-                  labelText: 'Sıklık (örn: Günde 2 kez)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.schedule),
+                decoration: InputDecoration(
+                  labelText: Provider.of<LocalizationService>(context, listen: false).getString('frequency_hint'),
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.schedule),
                 ),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: timeController,
-                decoration: const InputDecoration(
-                  labelText: 'Saat (örn: 08:00)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.access_time),
+                decoration: InputDecoration(
+                  labelText: Provider.of<LocalizationService>(context, listen: false).getString('time_hint'),
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.access_time),
                 ),
                 onTap: () async {
                   TimeOfDay? time = await showTimePicker(
@@ -1048,40 +1294,41 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('İptal'),
+            child: Text(Provider.of<LocalizationService>(context, listen: false).getString('cancel')),
           ),
           ElevatedButton(
             onPressed: () async {
               if (nameController.text.isNotEmpty) {
                 await _addMedication(
                   nameController.text,
-                  dosageController.text.isNotEmpty ? dosageController.text : '1 doz',
-                  frequencyController.text.isNotEmpty ? frequencyController.text : 'Günde 1 kez',
+                  dosageController.text.isNotEmpty ? dosageController.text : '1 dose',
+                  frequencyController.text.isNotEmpty ? frequencyController.text : 'Once daily',
                   timeController.text.isNotEmpty ? timeController.text : '08:00',
                 );
+                if (!mounted) return;
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('İlaç başarıyla eklendi!'),
-                    backgroundColor: Color(0xFFE53E3E),
+                  SnackBar(
+                    content: Text(Provider.of<LocalizationService>(context, listen: false).getString('med_added_success')),
+                    backgroundColor: const Color(0xFFE53E3E),
                   ),
                 );
                 await _createNotification(
-                  '💊 Yeni İlaç Eklendi',
-                  '${nameController.text} ilacı takip listenize eklendi.',
+                  '💊 ${Provider.of<LocalizationService>(context, listen: false).getString('new_medication_added')}',
+                  Provider.of<LocalizationService>(context, listen: false).getString('medication_added_to_list').replaceFirst('{name}', nameController.text),
                   'medication_added'
                 );
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('İlaç adı zorunludur'),
+                  SnackBar(
+                    content: Text(Provider.of<LocalizationService>(context, listen: false).getString('med_name_required')),
                     backgroundColor: Colors.red,
                   ),
                 );
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE53E3E)),
-            child: const Text('Ekle', style: TextStyle(color: Colors.white)),
+            child: Text(Provider.of<LocalizationService>(context, listen: false).getString('add'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),

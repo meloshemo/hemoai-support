@@ -176,9 +176,9 @@ class PreferencesService {
       // Varsayılan ilaçlar
       return [
         {
-          'name': 'Demir Takviyesi',
+          'name': 'Iron Supplement',
           'dosage': '1 tablet',
-          'frequency': 'Günde 1 kez',
+          'frequency': 'Once daily',
           'time': '20:00',
           'taken_today': false,
           'total_days': 30,

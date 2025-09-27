@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../services/preferences_service.dart';
-import '../services/database_helper.dart';
+import '../services/web_database_helper.dart';
+import '../services/localization_service.dart';
+import '../widgets/app_drawer.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
   const PersonalInfoScreen({Key? key}) : super(key: key);
@@ -13,14 +16,14 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   final TextEditingController ageController = TextEditingController();
   final TextEditingController weightController = TextEditingController();
   final TextEditingController heightController = TextEditingController();
-  String gender = 'Erkek';
+  String gender = 'male'; // canonical code; will be localized/mapped before use
   double bmi = 0.0;
   Color riskColor = Colors.green;
   bool _isLoading = true;
   bool _isSaving = false;
 
   PreferencesService? _prefsService;
-  final DatabaseHelper _dbHelper = DatabaseHelper.instance;
+  final WebDatabaseHelper _dbHelper = WebDatabaseHelper.instance;
 
   double calculateBMI(double weight, double height) {
     if (height == 0) return 0;
@@ -47,6 +50,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
   Future<void> _loadUserData() async {
     try {
+      final loc = Provider.of<LocalizationService>(context, listen: false);
       int? userId = _prefsService?.getCurrentUserId();
       if (userId != null) {
         Map<String, dynamic>? user = await _dbHelper.getUserById(userId);
@@ -55,7 +59,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
             ageController.text = user['age'].toString();
             weightController.text = user['weight'].toString();
             heightController.text = user['height'].toString();
-            gender = user['gender'] ?? 'Erkek';
+            gender = _mapGenderToCurrentLocale(user['gender']?.toString() ?? 'male', loc);
             bmi = user['bmi'] ?? 0.0;
             riskColor = getRiskColor(bmi);
             _isLoading = false;
@@ -68,18 +72,33 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     }
     
     setState(() {
+      // Set default gender localized for current locale
+      final loc = Provider.of<LocalizationService>(context, listen: false);
+      gender = _mapGenderToCurrentLocale(gender, loc);
       _isLoading = false;
     });
+  }
+
+  // Map stored gender (possibly TR/EN or code) to current locale label
+  String _mapGenderToCurrentLocale(String value, LocalizationService loc) {
+    final male = loc.getString('male');
+    final female = loc.getString('female');
+    final normalized = value.toLowerCase();
+    if (normalized == 'erkek' || normalized == 'male') return male;
+    if (normalized == 'kadın' || normalized == 'kadin' || normalized == 'female') return female;
+    if (value == male || value == female) return value;
+    return male; // default
   }
 
   Future<void> _saveUserData() async {
     if (ageController.text.isEmpty || 
         weightController.text.isEmpty || 
         heightController.text.isEmpty) {
+      final loc = Provider.of<LocalizationService>(context, listen: false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Lütfen tüm alanları doldurun'),
-          backgroundColor: Color(0xFFE53E3E),
+        SnackBar(
+          content: Text(loc.getString('please_fill_all_fields')),
+          backgroundColor: const Color(0xFFE53E3E),
         ),
       );
       return;
@@ -121,17 +140,19 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           riskColor = getRiskColor(bmi);
         });
 
+        final loc = Provider.of<LocalizationService>(context, listen: false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Bilgiler başarıyla kaydedildi!'),
+          SnackBar(
+            content: Text(loc.getString('info_saved_successfully')),
             backgroundColor: Colors.green,
           ),
         );
       }
     } catch (e) {
+      final loc = Provider.of<LocalizationService>(context, listen: false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Kaydetme hatası: $e'),
+          content: Text(loc.getStringWithParams('save_error', {'error': e.toString()})),
           backgroundColor: const Color(0xFFE53E3E),
         ),
       );
@@ -146,11 +167,33 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).brightness == Brightness.dark 
+          ? const Color(0xFF0D1117) 
+          : Colors.white,
         appBar: AppBar(
-          title: const Text('Kişisel Bilgi Girişi'),
-          backgroundColor: Colors.white,
-          foregroundColor: const Color(0xFFE53E3E),
+          leading: Builder(
+            builder: (context) => IconButton(
+              icon: Icon(
+                Icons.menu,
+                color: Theme.of(context).brightness == Brightness.dark 
+                  ? const Color(0xFFF0F6FC) 
+                  : const Color(0xFFE53E3E),
+                size: 24,
+              ),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+              tooltip: Provider.of<LocalizationService>(context, listen: false).getString('menu'),
+            ),
+          ),
+          title: Builder(builder: (context){
+            final loc = Provider.of<LocalizationService>(context, listen: false);
+            return Text(loc.getString('personal_info_entry'));
+          }),
+          backgroundColor: Theme.of(context).brightness == Brightness.dark 
+            ? const Color(0xFF161B22) 
+            : Colors.white,
+          foregroundColor: Theme.of(context).brightness == Brightness.dark 
+            ? Colors.white 
+            : const Color(0xFFE53E3E),
           elevation: 0,
         ),
         body: const Center(
@@ -161,11 +204,34 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       );
     }
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).brightness == Brightness.dark 
+        ? const Color(0xFF0D1117) 
+        : Colors.white,
+      drawer: const AppDrawer(currentRoute: '/personal_info'),
       appBar: AppBar(
-        title: const Text('Kişisel Bilgi Girişi'),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFFE53E3E),
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: Icon(
+              Icons.menu,
+              color: Theme.of(context).brightness == Brightness.dark 
+                ? const Color(0xFFF0F6FC) 
+                : const Color(0xFFE53E3E),
+              size: 24,
+            ),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+            tooltip: Provider.of<LocalizationService>(context, listen: false).getString('menu'),
+          ),
+        ),
+        title: Builder(builder: (context){
+          final loc = Provider.of<LocalizationService>(context, listen: false);
+          return Text(loc.getString('personal_info_entry'));
+        }),
+        backgroundColor: Theme.of(context).brightness == Brightness.dark 
+          ? const Color(0xFF161B22) 
+          : Colors.white,
+        foregroundColor: Theme.of(context).brightness == Brightness.dark 
+          ? Colors.white 
+          : const Color(0xFFE53E3E),
         elevation: 0,
       ),
       body: Center(
@@ -203,14 +269,17 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                       ),
                     ),
                     
-                    const Text(
-                      'Kişisel Bilgilerinizi Girin',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFE53E3E),
-                      ),
-                    ),
+                    Builder(builder: (context){
+                      final loc = Provider.of<LocalizationService>(context, listen:false);
+                      return Text(
+                        loc.getString('enter_your_personal_info'),
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFE53E3E),
+                        ),
+                      );
+                    }),
                     const SizedBox(height: 32),
                     
                     // Form Container
@@ -227,7 +296,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                             controller: ageController,
                             keyboardType: TextInputType.number,
                             decoration: InputDecoration(
-                              labelText: 'Yaş',
+                              labelText: Provider.of<LocalizationService>(context, listen:false).getString('age'),
                               prefixIcon: const Icon(Icons.cake, color: Color(0xFFE53E3E)),
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                               focusedBorder: OutlineInputBorder(
@@ -238,17 +307,26 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                           ),
                           const SizedBox(height: 16),
                           DropdownButtonFormField<String>(
-                            value: gender,
-                            items: ['Erkek', 'Kadın']
-                                .map((g) => DropdownMenuItem(value: g, child: Text(g)))
-                                .toList(),
+                            value: () {
+                              final male = Provider.of<LocalizationService>(context, listen:false).getString('male');
+                              final female = Provider.of<LocalizationService>(context, listen:false).getString('female');
+                              final options = [male, female];
+                              return options.contains(gender) ? gender : male;
+                            }(),
+                            items: () {
+                              final male = Provider.of<LocalizationService>(context, listen:false).getString('male');
+                              final female = Provider.of<LocalizationService>(context, listen:false).getString('female');
+                              return [male, female]
+                                  .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                                  .toList();
+                            }(),
                             onChanged: (val) {
                               setState(() {
                                 gender = val!;
                               });
                             },
                             decoration: InputDecoration(
-                              labelText: 'Cinsiyet',
+                              labelText: Provider.of<LocalizationService>(context, listen:false).getString('gender'),
                               prefixIcon: const Icon(Icons.person, color: Color(0xFFE53E3E)),
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                               focusedBorder: OutlineInputBorder(
@@ -262,7 +340,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                             controller: weightController,
                             keyboardType: TextInputType.number,
                             decoration: InputDecoration(
-                              labelText: 'Kilo (kg)',
+                              labelText: Provider.of<LocalizationService>(context, listen:false).getString('weight_kg'),
                               prefixIcon: const Icon(Icons.monitor_weight, color: Color(0xFFE53E3E)),
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                               focusedBorder: OutlineInputBorder(
@@ -276,7 +354,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                             controller: heightController,
                             keyboardType: TextInputType.number,
                             decoration: InputDecoration(
-                              labelText: 'Boy (cm)',
+                              labelText: Provider.of<LocalizationService>(context, listen:false).getString('height_cm'),
                               prefixIcon: const Icon(Icons.height, color: Color(0xFFE53E3E)),
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                               focusedBorder: OutlineInputBorder(
@@ -304,7 +382,10 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                 foregroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               ),
-                              child: const Text('VKİ Hesapla', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                              child: Builder(builder: (context){
+                                final loc = Provider.of<LocalizationService>(context, listen:false);
+                                return Text(loc.getString('bmi_calculate'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600));
+                              }),
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -319,10 +400,13 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Text(
-                                        'VKİ: ${bmi.toStringAsFixed(1)}',
-                                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                                      ),
+                                      Builder(builder: (context){
+                                        final loc = Provider.of<LocalizationService>(context, listen:false);
+                                        return Text(
+                                          '${loc.getString('bmi_short')}: ${bmi.toStringAsFixed(1)}',
+                                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                        );
+                                      }),
                                       const SizedBox(width: 16),
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -330,14 +414,15 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                           color: riskColor,
                                           borderRadius: BorderRadius.circular(12),
                                         ),
-                                        child: Text(
-                                          riskColor == Colors.green
-                                              ? 'İdeal'
+                                        child: Builder(builder: (context){
+                                          final loc = Provider.of<LocalizationService>(context, listen:false);
+                                          final status = riskColor == Colors.green
+                                              ? loc.getString('bmi_status_ideal')
                                               : riskColor == Colors.yellow
-                                                  ? 'Normal'
-                                                  : 'Risk',
-                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                                        ),
+                                                  ? loc.getString('bmi_status_normal')
+                                                  : loc.getString('bmi_status_risk');
+                                          return Text(status, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold));
+                                        }),
                                       ),
                                     ],
                                   ),
@@ -365,7 +450,31 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                           ? const CircularProgressIndicator(
                               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                             )
-                          : const Text('Devam Et', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                          : Builder(builder: (context){
+                              final loc = Provider.of<LocalizationService>(context, listen:false);
+                              return Text(loc.getString('go_to_hemogram_entry'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600));
+                            }),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          await _saveUserData();
+                          Navigator.pushNamed(context, '/dashboard');
+                        },
+                        icon: const Icon(Icons.dashboard),
+                        label: Builder(builder: (context){
+                          final loc = Provider.of<LocalizationService>(context, listen:false);
+                          return Text(loc.getString('go_to_main_panel'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600));
+                        }),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue[600],
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
                       ),
                     ),
                   ],

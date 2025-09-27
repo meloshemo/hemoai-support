@@ -1,6 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 
 class WebDatabaseHelper {
   static WebDatabaseHelper? _instance;
@@ -269,7 +268,8 @@ class WebDatabaseHelper {
         'connected_user_id': toUserId,
         'name': toUser['name'],
         'phone': toUser['phone'],
-        'relation': invitation['relation'] ?? 'Aile Üyesi',
+        // store relation as a code for localization-agnostic persistence
+        'relation': _normalizeRelationCode(invitation['relation'] as String? ?? 'other'),
         'is_real_user': true,
       });
     }
@@ -277,7 +277,7 @@ class WebDatabaseHelper {
     // To user'ın aile listesine from user'ı ekle  
     Map<String, dynamic>? fromUser = await getUserById(fromUserId);
     if (fromUser != null) {
-      String reverseRelation = _getReverseRelation(invitation['relation'] ?? 'Aile Üyesi');
+      String reverseRelation = _getReverseRelationCode(invitation['relation'] as String? ?? 'other');
       await insertFamilyMember({
         'user_id': toUserId,
         'connected_user_id': fromUserId,
@@ -289,18 +289,46 @@ class WebDatabaseHelper {
     }
   }
 
-  String _getReverseRelation(String relation) {
-    Map<String, String> reverseMap = {
-      'Baba': 'Çocuk',
-      'Anne': 'Çocuk', 
-      'Çocuk': 'Ebeveyn',
-      'Eş': 'Eş',
-      'Kardeş': 'Kardeş',
-      'Büyükbaba': 'Torun',
-      'Büyükanne': 'Torun',
-      'Torun': 'Büyükbaba', // Varsayılan
+  // Normalize human-readable (possibly localized) relation strings to codes
+  String _normalizeRelationCode(String relation) {
+    // Map known Turkish labels to codes; fallback to provided code if already code-like
+    const Map<String, String> trToCode = {
+      'Baba': 'father',
+      'Anne': 'mother',
+      'Çocuk': 'child',
+      'Eş': 'spouse',
+      'Kardeş': 'sibling',
+      'Büyükbaba': 'grandfather',
+      'Büyükanne': 'grandmother',
+      'Torun': 'grandchild',
+      'Aile Üyesi': 'other',
     };
-    return reverseMap[relation] ?? 'Aile Üyesi';
+    final lower = relation.trim();
+    if (trToCode.containsKey(lower)) return trToCode[lower]!;
+    // If it already looks like a code we support, keep it
+    const allowed = {
+      'father','mother','child','spouse','sibling','grandfather','grandmother','grandchild','other'
+    };
+    return allowed.contains(lower) ? lower : 'other';
+  }
+
+  // Given a relation (localized or code), return reverse relation code
+  String _getReverseRelationCode(String relation) {
+    final code = _normalizeRelationCode(relation);
+    const Map<String, String> reverse = {
+      'father': 'child',
+      'mother': 'child',
+      'child': 'parent', // map to parent generic; will display localized label accordingly
+      'spouse': 'spouse',
+      'sibling': 'sibling',
+      'grandfather': 'grandchild',
+      'grandmother': 'grandchild',
+      'grandchild': 'grandparent',
+      'other': 'other',
+      'parent': 'child',
+      'grandparent': 'grandchild',
+    };
+    return reverse[code] ?? 'other';
   }
 
   Future<Map<String, dynamic>?> findUserByPhone(String phone) async {
@@ -460,6 +488,89 @@ class WebDatabaseHelper {
     }
   }
 
+  // Hatırlatıcılar (Reminders)
+  Future<int> createReminder(Map<String, dynamic> reminder) async {
+    try {
+      if (_prefs == null) await init();
+      final int userId = reminder['user_id'] as int;
+      // Load existing reminders for user
+      String? data = _prefs!.getString('reminders_$userId');
+      List<Map<String, dynamic>> reminders = [];
+      if (data != null && data.isNotEmpty) {
+        reminders = (jsonDecode(data) as List).cast<Map<String, dynamic>>();
+      }
+
+      // Assign ID
+      int newId = DateTime.now().millisecondsSinceEpoch;
+      reminder['id'] = newId;
+      reminder['created_at'] = DateTime.now().toIso8601String();
+      reminder['updated_at'] = DateTime.now().toIso8601String();
+
+      reminders.insert(0, reminder);
+      await _prefs!.setString('reminders_$userId', jsonEncode(reminders));
+      return newId;
+    } catch (e) {
+      print('Hatırlatıcı oluşturma hatası: $e');
+      return 0;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getReminders(int userId) async {
+    try {
+      if (_prefs == null) await init();
+      String? data = _prefs!.getString('reminders_$userId');
+      if (data != null) {
+        List<dynamic> decoded = jsonDecode(data);
+        return decoded.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      print('Hatırlatıcı listesi yükleme hatası: $e');
+      return [];
+    }
+  }
+
+  Future<int> updateReminderStatus(int userId, int reminderId, bool isActive) async {
+    try {
+      if (_prefs == null) await init();
+      String? data = _prefs!.getString('reminders_$userId');
+      if (data == null) return 0;
+      List<Map<String, dynamic>> reminders = (jsonDecode(data) as List).cast<Map<String, dynamic>>();
+      bool updated = false;
+      for (int i = 0; i < reminders.length; i++) {
+        if (reminders[i]['id'] == reminderId) {
+          reminders[i]['is_active'] = isActive;
+          reminders[i]['updated_at'] = DateTime.now().toIso8601String();
+          updated = true;
+          break;
+        }
+      }
+      if (!updated) return 0;
+      await _prefs!.setString('reminders_$userId', jsonEncode(reminders));
+      return 1;
+    } catch (e) {
+      print('Hatırlatıcı durumu güncelleme hatası: $e');
+      return 0;
+    }
+  }
+
+  Future<int> deleteReminder(int userId, int reminderId) async {
+    try {
+      if (_prefs == null) await init();
+      String? data = _prefs!.getString('reminders_$userId');
+      if (data == null) return 0;
+      List<Map<String, dynamic>> reminders = (jsonDecode(data) as List).cast<Map<String, dynamic>>();
+      int before = reminders.length;
+      reminders.removeWhere((r) => r['id'] == reminderId);
+      if (reminders.length == before) return 0;
+      await _prefs!.setString('reminders_$userId', jsonEncode(reminders));
+      return 1;
+    } catch (e) {
+      print('Hatırlatıcı silme hatası: $e');
+      return 0;
+    }
+  }
+
   // Su takibi
   Future<int> logWaterIntake(int userId, int glassCount) async {
     try {
@@ -482,35 +593,20 @@ class WebDatabaseHelper {
     }
   }
 
-  Future<int> createNotification(int userId, String title, String message, String type) async {
+
+
+  // Advanced Analytics metodları
+  Future<List<Map<String, dynamic>>> getHemogramTestsByUser(int userId) async {
     try {
-      String key = 'notifications_$userId';
-      String? data = _prefs!.getString(key);
-      
-      List<Map<String, dynamic>> notifications = [];
+      String? data = _prefs!.getString('hemogram_tests');
       if (data != null) {
-        notifications = (jsonDecode(data) as List).cast<Map<String, dynamic>>();
+        List<Map<String, dynamic>> tests = (jsonDecode(data) as List).cast<Map<String, dynamic>>();
+        return tests.where((test) => test['user_id'] == userId).toList();
       }
-      
-      int newId = DateTime.now().millisecondsSinceEpoch;
-      
-      Map<String, dynamic> newNotification = {
-        'id': newId,
-        'user_id': userId,
-        'title': title,
-        'message': message,
-        'type': type,
-        'is_read': 0,
-        'created_at': DateTime.now().toIso8601String(),
-      };
-      
-      notifications.add(newNotification);
-      await _prefs!.setString(key, jsonEncode(notifications));
-      
-      return newId;
+      return [];
     } catch (e) {
-      print('Bildirim oluşturma hatası: $e');
-      return 0;
+      print('Hemogram testleri yükleme hatası: $e');
+      return [];
     }
   }
 

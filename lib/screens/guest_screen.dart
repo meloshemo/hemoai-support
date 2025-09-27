@@ -1,14 +1,37 @@
 import 'package:flutter/material.dart';
+import '../widgets/app_drawer.dart';
+import '../services/localization_service.dart';
 
 class GuestScreen extends StatelessWidget {
+  const GuestScreen({super.key});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).brightness == Brightness.dark 
+        ? const Color(0xFF0D1117) 
+        : Colors.white,
+      drawer: const AppDrawer(currentRoute: '/guest'),
       appBar: AppBar(
-        title: const Text('Misafir Modu'),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFFE53E3E),
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: Icon(
+              Icons.menu,
+              color: Theme.of(context).brightness == Brightness.dark 
+                ? const Color(0xFFF0F6FC) 
+                : const Color(0xFFE53E3E),
+              size: 24,
+            ),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+            tooltip: LocalizationService.translate('menu'),
+          ),
+        ),
+        title: Text(LocalizationService.translate('guest_mode')),
+        backgroundColor: Theme.of(context).brightness == Brightness.dark 
+          ? const Color(0xFF161B22) 
+          : Colors.white,
+        foregroundColor: Theme.of(context).brightness == Brightness.dark 
+          ? Colors.white 
+          : const Color(0xFFE53E3E),
         elevation: 0,
       ),
       body: Center(
@@ -45,9 +68,9 @@ class GuestScreen extends StatelessWidget {
                 ),
                 
                 // Başlık
-                const Text(
-                  'HemoAI Misafir Modu',
-                  style: TextStyle(
+                Text(
+                  "HemoAI ${LocalizationService.translate('guest_mode')}",
+                  style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFFE53E3E),
@@ -65,10 +88,10 @@ class GuestScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: Colors.grey[300]!),
                   ),
-                  child: const Text(
-                    'Kayıt olmadan uygulamanın temel özelliklerini deneyimleyebilirsiniz.\n\nKişisel bilgilerinizi girip hemogram sonuçlarınızı analiz ettirebilir, AI destekli tavsiye ve diyet programı alabilirsiniz.',
+                  child: Text(
+                    LocalizationService.translate('guest_description'),
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: Colors.black87),
+                    style: const TextStyle(fontSize: 16, color: Colors.black87),
                   ),
                 ),
                 
@@ -78,7 +101,7 @@ class GuestScreen extends StatelessWidget {
                   height: 56,
                   child: ElevatedButton.icon(
                     icon: const Icon(Icons.person),
-                    label: const Text('Kişisel Bilgi Gir', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                    label: Text(LocalizationService.translate('enter_personal_info_short'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                     onPressed: () {
                       Navigator.pushNamed(context, '/personal_info');
                     },
@@ -95,7 +118,7 @@ class GuestScreen extends StatelessWidget {
                   height: 56,
                   child: ElevatedButton.icon(
                     icon: const Icon(Icons.bloodtype),
-                    label: const Text('Hemogram Sonucu Gir', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                    label: Text(LocalizationService.translate('enter_hemogram_result'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                     onPressed: () {
                       Navigator.pushNamed(context, '/hemogram_entry');
                     },
@@ -115,7 +138,7 @@ class GuestScreen extends StatelessWidget {
                   height: 56,
                   child: ElevatedButton.icon(
                     icon: const Icon(Icons.analytics),
-                    label: const Text('AI Analiz ve Tavsiye Al', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                    label: Text(LocalizationService.translate('get_ai_analysis_advice'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                     onPressed: () {
                       Navigator.pushNamed(context, '/analysis');
                     },
@@ -129,8 +152,137 @@ class GuestScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+                const SizedBox(height: 24),
+                
+                // Diğer Özellikler Başlığı
+                Text(
+                  LocalizationService.translate('additional_features'),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFE53E3E),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                // Ek Özellikler Grid
+                GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: 2,
+                  childAspectRatio: 1.1,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  children: [
+                    _buildFeatureCard(
+                      context,
+                      LocalizationService.translate('diet_program'),
+                      Icons.restaurant_menu,
+                      Colors.green[600]!,
+                      '/diet_program',
+                    ),
+                    _buildFeatureCard(
+                      context,
+                      LocalizationService.translate('family_panel'),
+                      Icons.family_restroom,
+                      Colors.purple[600]!,
+                      '/family_panel',
+                    ),
+                    _buildFeatureCard(
+                      context,
+                      LocalizationService.translate('alternative_medicine'),
+                      Icons.nature_people,
+                      Colors.teal[600]!,
+                      '/alternative_medicine',
+                    ),
+                    _buildFeatureCard(
+                      context,
+                      LocalizationService.translate('notifications'),
+                      Icons.notifications,
+                      Colors.orange[600]!,
+                      '/notifications',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                
+                // Ana Panel Butonu
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.dashboard),
+                    label: Text(LocalizationService.translate('dashboard'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/dashboard');
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue[600],
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureCard(
+    BuildContext context,
+    String title,
+    IconData icon,
+    Color color,
+    String route,
+  ) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.pushNamed(context, route);
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withValues(alpha: 0.1),
+              spreadRadius: 2,
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  icon,
+                  size: 28,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
           ),
         ),
       ),

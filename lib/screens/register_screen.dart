@@ -3,6 +3,8 @@ import '../services/preferences_service.dart';
 import '../services/database_helper.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
+import 'package:provider/provider.dart';
+import '../services/localization_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -56,10 +58,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       Map<String, dynamic>? existingUser = await _dbHelper.getUser(email);
       
       if (existingUser != null) {
+        final loc = Provider.of<LocalizationService>(context, listen: false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Bu telefon numarası ile kayıtlı kullanıcı zaten mevcut!'),
-            backgroundColor: Color(0xFFE53E3E),
+          SnackBar(
+            content: Text(loc.getString('phone_exists')),
+            backgroundColor: const Color(0xFFE53E3E),
           ),
         );
         return;
@@ -74,7 +77,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'phone': phoneController.text.trim(),
         'password_hash': hashedPassword,
         'age': 25, // Varsayılan değer, personal_info'da güncellenecek
-        'gender': 'Erkek', // Varsayılan değer, personal_info'da güncellenecek
+  'gender': 'male', // Default canonical code; personal_info will localize
         'height': 170.0, // Varsayılan değer
         'weight': 70.0, // Varsayılan değer
         'bmi': 24.22, // Hesaplanacak
@@ -93,9 +96,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           );
         }
         
+        final loc = Provider.of<LocalizationService>(context, listen: false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Kayıt başarılı! Profilinizi tamamlayın.'),
+          SnackBar(
+            content: Text(loc.getString('registration_success')),
             backgroundColor: Colors.green,
           ),
         );
@@ -104,9 +108,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         Navigator.pushReplacementNamed(context, '/personal_info');
       }
     } catch (e) {
+      final loc = Provider.of<LocalizationService>(context, listen: false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Kayıt sırasında hata oluştu: $e'),
+          content: Text('${loc.getString('registration_error_prefix')}$e'),
           backgroundColor: const Color(0xFFE53E3E),
         ),
       );
@@ -128,10 +133,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = Provider.of<LocalizationService>(context);
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Üye Ol'),
+        title: Text(loc.getString('register_appbar_title')),
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFFE53E3E),
         elevation: 0,
@@ -174,9 +180,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 
                 // Başlık
-                const Text(
-                  'Üye Olun',
-                  style: TextStyle(
+                Text(
+                  loc.getString('register_heading'),
+                  style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFFE53E3E),
@@ -184,9 +190,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'HemoAI ile sağlığınızı takip edin',
-                  style: TextStyle(
+                Text(
+                  loc.getString('register_subheading'),
+                  style: const TextStyle(
                     fontSize: 16,
                     color: Colors.grey,
                   ),
@@ -209,7 +215,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         TextFormField(
                           controller: nameController,
                           decoration: InputDecoration(
-                            labelText: 'Ad Soyad',
+                            labelText: loc.getString('name_label'),
                             prefixIcon: const Icon(Icons.person, color: Color(0xFFE53E3E)),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -221,7 +227,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Lütfen ad soyad giriniz';
+                              return loc.getString('name_required');
                             }
                             return null;
                           },
@@ -230,8 +236,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         TextFormField(
                           controller: phoneController,
                           decoration: InputDecoration(
-                            labelText: 'Telefon Numarası',
-                            hintText: '05XXXXXXXXX',
+                            labelText: loc.getString('phone_number_label'),
+                            hintText: loc.getString('phone_hint'),
                             prefixIcon: const Icon(Icons.phone, color: Color(0xFFE53E3E)),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -244,10 +250,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           keyboardType: TextInputType.phone,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Lütfen telefon numarası giriniz';
+                              return loc.getString('phone_required');
                             }
                             if (value.length < 10) {
-                              return 'Geçerli telefon numarası giriniz';
+                              return loc.getString('phone_invalid');
                             }
                             return null;
                           },
@@ -256,7 +262,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         TextFormField(
                           controller: passwordController,
                           decoration: InputDecoration(
-                            labelText: 'Şifre',
+                            labelText: loc.getString('password_label'),
                             prefixIcon: const Icon(Icons.lock, color: Color(0xFFE53E3E)),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -269,10 +275,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           obscureText: true,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Lütfen şifre giriniz';
+                              return loc.getString('password_required');
                             }
                             if (value.length < 4) {
-                              return 'Şifre en az 4 karakter olmalı';
+                              return loc.getString('password_min_length');
                             }
                             return null;
                           },
@@ -281,7 +287,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         TextFormField(
                           controller: confirmPasswordController,
                           decoration: InputDecoration(
-                            labelText: 'Şifre Tekrar',
+                            labelText: loc.getString('password_confirm_label'),
                             prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFFE53E3E)),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -294,10 +300,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           obscureText: true,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Lütfen şifreyi tekrar giriniz';
+                              return loc.getString('password_confirm_required');
                             }
                             if (value != passwordController.text) {
-                              return 'Şifreler eşleşmiyor';
+                              return loc.getString('password_mismatch');
                             }
                             return null;
                           },
@@ -322,9 +328,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ? const CircularProgressIndicator(
                                   valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                 )
-                              : const Text(
-                                  'Üye Ol',
-                                  style: TextStyle(
+                              : Text(
+                                  loc.getString('register'),
+                                  style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -340,7 +346,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 
                 // Gizlilik bildirimi
                 Text(
-                  'Üye olarak Gizlilik Politikası ve Kullanım Şartlarını kabul etmiş olursunuz.',
+                  loc.getString('privacy_notice'),
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey[600],

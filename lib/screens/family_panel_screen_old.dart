@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/preferences_service.dart';
 import '../services/database_helper.dart';
+import '../services/localization_service.dart';
 
 class FamilyPanelScreen extends StatefulWidget {
   const FamilyPanelScreen({Key? key}) : super(key: key);
@@ -16,200 +17,22 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
   List<Map<String, dynamic>> familyMembers = [];
   bool _isLoading = true;
-    {
-      'id': '1',
-      'name': 'Ahmet Yılmaz',
-      'relation': 'Baba',
-      'age': 45,
-      'gender': 'Erkek',
-      'avatar': '👨',
-      'lastTest': '2024-09-15',
-      'riskLevel': 'Orta',
-      'riskColor': Colors.orange,
-      'hemogram': {
-        'Hemoglobin (g/dL)': 13.2,
-        'Demir (mcg/dL)': 85.0,
-        'Lökosit (K/uL)': 9.2,
-        'Trombosit (K/uL)': 280.0,
-        'Hematokrit (%)': 42.0,
-      },
-      'trends': {
-        'Hemoglobin (g/dL)': [12.8, 13.0, 13.2], // Son 3 ay
-        'Demir (mcg/dL)': [75.0, 80.0, 85.0],
-      },
-      'testHistory': [
-        {
-          'date': '2024-09-15',
-          'hemogram': {
-            'Hemoglobin (g/dL)': 13.2,
-            'Demir (mcg/dL)': 85.0,
-            'Lökosit (K/uL)': 9.2,
-            'Trombosit (K/uL)': 280.0,
-            'Hematokrit (%)': 42.0,
-          },
-          'riskLevel': 'Orta',
-          'doctorNotes': 'Genel sağlık durumu iyi, demir seviyesi takip edilmeli.',
-        },
-        {
-          'date': '2024-06-15',
-          'hemogram': {
-            'Hemoglobin (g/dL)': 13.0,
-            'Demir (mcg/dL)': 80.0,
-            'Lökosit (K/uL)': 8.8,
-            'Trombosit (K/uL)': 270.0,
-            'Hematokrit (%)': 41.0,
-          },
-          'riskLevel': 'Düşük',
-          'doctorNotes': 'İyileşme var, diyet programına devam.',
-        },
-        {
-          'date': '2024-03-15',
-          'hemogram': {
-            'Hemoglobin (g/dL)': 12.8,
-            'Demir (mcg/dL)': 75.0,
-            'Lökosit (K/uL)': 8.5,
-            'Trombosit (K/uL)': 260.0,
-            'Hematokrit (%)': 40.0,
-          },
-          'riskLevel': 'Orta',
-          'doctorNotes': 'Demir eksikliği başlangıcı, beslenme düzenlenmeli.',
-        },
-      ]
-    },
-    {
-      'id': '2',
-      'name': 'Ayşe Yılmaz',
-      'relation': 'Anne',
-      'age': 42,
-      'gender': 'Kadın',
-      'avatar': '👩',
-      'lastTest': '2024-09-10',
-      'riskLevel': 'Yüksek',
-      'riskColor': Colors.red,
-      'hemogram': {
-        'Hemoglobin (g/dL)': 10.8,
-        'Demir (mcg/dL)': 45.0,
-        'Lökosit (K/uL)': 7.5,
-        'Trombosit (K/uL)': 180.0,
-        'Hematokrit (%)': 35.0,
-      },
-      'trends': {
-        'Hemoglobin (g/dL)': [11.2, 11.0, 10.8],
-        'Demir (mcg/dL)': [50.0, 47.0, 45.0],
-      },
-      'testHistory': [
-        {
-          'date': '2024-09-10',
-          'hemogram': {
-            'Hemoglobin (g/dL)': 10.8,
-            'Demir (mcg/dL)': 45.0,
-            'Lökosit (K/uL)': 7.5,
-            'Trombosit (K/uL)': 180.0,
-            'Hematokrit (%)': 35.0,
-          },
-          'riskLevel': 'Yüksek',
-          'doctorNotes': 'Şiddetli demir eksikliği anemisi, acil müdahale gerekli.',
-        },
-        {
-          'date': '2024-06-10',
-          'hemogram': {
-            'Hemoglobin (g/dL)': 11.0,
-            'Demir (mcg/dL)': 47.0,
-            'Lökosit (K/uL)': 7.2,
-            'Trombosit (K/uL)': 175.0,
-            'Hematokrit (%)': 36.0,
-          },
-          'riskLevel': 'Yüksek',
-          'doctorNotes': 'Anemi devam ediyor, tedavi planı revize edilmeli.',
-        },
-        {
-          'date': '2024-03-10',
-          'hemogram': {
-            'Hemoglobin (g/dL)': 11.2,
-            'Demir (mcg/dL)': 50.0,
-            'Lökosit (K/uL)': 7.0,
-            'Trombosit (K/uL)': 170.0,
-            'Hematokrit (%)': 37.0,
-          },
-          'riskLevel': 'Orta',
-          'doctorNotes': 'Hafif anemi tespit edildi, beslenme düzeni önemli.',
-        },
-      ]
-    },
-    {
-      'id': '3',
-      'name': 'Zeynep Yılmaz',
-      'relation': 'Kız',
-      'age': 16,
-      'gender': 'Kadın',
-      'avatar': '👧',
-      'lastTest': '2024-09-20',
-      'riskLevel': 'Düşük',
-      'riskColor': Colors.green,
-      'hemogram': {
-        'Hemoglobin (g/dL)': 12.5,
-        'Demir (mcg/dL)': 95.0,
-        'Lökosit (K/uL)': 6.8,
-        'Trombosit (K/uL)': 250.0,
-        'Hematokrit (%)': 38.0,
-      },
-      'trends': {
-        'Hemoglobin (g/dL)': [12.2, 12.3, 12.5],
-        'Demir (mcg/dL)': [88.0, 92.0, 95.0],
-      },
-      'testHistory': [
-        {
-          'date': '2024-09-20',
-          'hemogram': {
-            'Hemoglobin (g/dL)': 12.5,
-            'Demir (mcg/dL)': 95.0,
-            'Lökosit (K/uL)': 6.8,
-            'Trombosit (K/uL)': 250.0,
-            'Hematokrit (%)': 38.0,
-          },
-          'riskLevel': 'Düşük',
-          'doctorNotes': 'Mükemmel sağlık durumu, yaşına uygun değerler.',
-        },
-        {
-          'date': '2024-06-20',
-          'hemogram': {
-            'Hemoglobin (g/dL)': 12.3,
-            'Demir (mcg/dL)': 92.0,
-            'Lökosit (K/uL)': 6.5,
-            'Trombosit (K/uL)': 240.0,
-            'Hematokrit (%)': 37.5,
-          },
-          'riskLevel': 'Düşük',
-          'doctorNotes': 'Sağlıklı gelişim süreci, değerlerde iyileşme var.',
-        },
-        {
-          'date': '2024-03-20',
-          'hemogram': {
-            'Hemoglobin (g/dL)': 12.2,
-            'Demir (mcg/dL)': 88.0,
-            'Lökosit (K/uL)': 6.2,
-            'Trombosit (K/uL)': 230.0,
-            'Hematokrit (%)': 37.0,
-          },
-          'riskLevel': 'Düşük',
-          'doctorNotes': 'Yaşına uygun normal değerler, dengeli beslenme sürdürülmeli.',
-        },
-      ]
-    },
-  ];
+  
 
+  // Canonical parameter keys with reference ranges
   final Map<String, List<double>> referenceRanges = {
-    'Hemoglobin (g/dL)': [12.0, 17.0],
-    'Demir (mcg/dL)': [60.0, 170.0],
-    'Lökosit (K/uL)': [4.0, 10.0],
-    'Trombosit (K/uL)': [150.0, 400.0],
-    'Hematokrit (%)': [38.0, 50.0],
+    'hemoglobin': [12.0, 17.0],
+    'iron': [60.0, 170.0],
+    'white_blood_cells': [4.0, 10.0],
+    'platelets': [150.0, 400.0],
+    'hematocrit': [38.0, 50.0],
   };
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _loadSampleData();
   }
 
   @override
@@ -218,17 +41,259 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
     super.dispose();
   }
 
+  // Load sample data with canonical keys (no hard-coded UI strings)
+  void _loadSampleData() {
+    familyMembers = [
+      {
+        'id': '1',
+        'name': 'Ahmet Yılmaz',
+        'relation': 'father',
+        'age': 45,
+        'gender': 'male',
+        'avatar': '👨',
+        'lastTest': '2024-09-15',
+        'riskLevel': 'medium',
+        'hemogram': {
+          'hemoglobin': 13.2,
+          'iron': 85.0,
+          'white_blood_cells': 9.2,
+          'platelets': 280.0,
+          'hematocrit': 42.0,
+        },
+        'trends': {
+          'hemoglobin': [12.8, 13.0, 13.2],
+          'iron': [75.0, 80.0, 85.0],
+        },
+        'testHistory': [
+          {
+            'date': '2024-09-15',
+            'hemogram': {
+              'hemoglobin': 13.2,
+              'iron': 85.0,
+              'white_blood_cells': 9.2,
+              'platelets': 280.0,
+              'hematocrit': 42.0,
+            },
+            'riskLevel': 'medium',
+            'doctorNotesKey': 'doctor_notes_generated_by_hemoai',
+          },
+          {
+            'date': '2024-06-15',
+            'hemogram': {
+              'hemoglobin': 13.0,
+              'iron': 80.0,
+              'white_blood_cells': 8.8,
+              'platelets': 270.0,
+              'hematocrit': 41.0,
+            },
+            'riskLevel': 'low',
+            'doctorNotesKey': 'doctor_notes_generated_by_hemoai',
+          },
+          {
+            'date': '2024-03-15',
+            'hemogram': {
+              'hemoglobin': 12.8,
+              'iron': 75.0,
+              'white_blood_cells': 8.5,
+              'platelets': 260.0,
+              'hematocrit': 40.0,
+            },
+            'riskLevel': 'medium',
+            'doctorNotesKey': 'doctor_notes_generated_by_hemoai',
+          },
+        ]
+      },
+      {
+        'id': '2',
+        'name': 'Ayşe Yılmaz',
+        'relation': 'mother',
+        'age': 42,
+        'gender': 'female',
+        'avatar': '👩',
+        'lastTest': '2024-09-10',
+        'riskLevel': 'high',
+        'hemogram': {
+          'hemoglobin': 10.8,
+          'iron': 45.0,
+          'white_blood_cells': 7.5,
+          'platelets': 180.0,
+          'hematocrit': 35.0,
+        },
+        'trends': {
+          'hemoglobin': [11.2, 11.0, 10.8],
+          'iron': [50.0, 47.0, 45.0],
+        },
+        'testHistory': [
+          {
+            'date': '2024-09-10',
+            'hemogram': {
+              'hemoglobin': 10.8,
+              'iron': 45.0,
+              'white_blood_cells': 7.5,
+              'platelets': 180.0,
+              'hematocrit': 35.0,
+            },
+            'riskLevel': 'high',
+            'doctorNotesKey': 'doctor_notes_generated_by_hemoai',
+          },
+          {
+            'date': '2024-06-10',
+            'hemogram': {
+              'hemoglobin': 11.0,
+              'iron': 47.0,
+              'white_blood_cells': 7.2,
+              'platelets': 175.0,
+              'hematocrit': 36.0,
+            },
+            'riskLevel': 'high',
+            'doctorNotesKey': 'doctor_notes_generated_by_hemoai',
+          },
+          {
+            'date': '2024-03-10',
+            'hemogram': {
+              'hemoglobin': 11.2,
+              'iron': 50.0,
+              'white_blood_cells': 7.0,
+              'platelets': 170.0,
+              'hematocrit': 37.0,
+            },
+            'riskLevel': 'medium',
+            'doctorNotesKey': 'doctor_notes_generated_by_hemoai',
+          },
+        ]
+      },
+      {
+        'id': '3',
+        'name': 'Zeynep Yılmaz',
+        'relation': 'child',
+        'age': 16,
+        'gender': 'female',
+        'avatar': '👧',
+        'lastTest': '2024-09-20',
+        'riskLevel': 'low',
+        'hemogram': {
+          'hemoglobin': 12.5,
+          'iron': 95.0,
+          'white_blood_cells': 6.8,
+          'platelets': 250.0,
+          'hematocrit': 38.0,
+        },
+        'trends': {
+          'hemoglobin': [12.2, 12.3, 12.5],
+          'iron': [88.0, 92.0, 95.0],
+        },
+        'testHistory': [
+          {
+            'date': '2024-09-20',
+            'hemogram': {
+              'hemoglobin': 12.5,
+              'iron': 95.0,
+              'white_blood_cells': 6.8,
+              'platelets': 250.0,
+              'hematocrit': 38.0,
+            },
+            'riskLevel': 'low',
+            'doctorNotesKey': 'doctor_notes_generated_by_hemoai',
+          },
+          {
+            'date': '2024-06-20',
+            'hemogram': {
+              'hemoglobin': 12.3,
+              'iron': 92.0,
+              'white_blood_cells': 6.5,
+              'platelets': 240.0,
+              'hematocrit': 37.5,
+            },
+            'riskLevel': 'low',
+            'doctorNotesKey': 'doctor_notes_generated_by_hemoai',
+          },
+          {
+            'date': '2024-03-20',
+            'hemogram': {
+              'hemoglobin': 12.2,
+              'iron': 88.0,
+              'white_blood_cells': 6.2,
+              'platelets': 230.0,
+              'hematocrit': 37.0,
+            },
+            'riskLevel': 'low',
+            'doctorNotesKey': 'doctor_notes_generated_by_hemoai',
+          },
+        ]
+      },
+    ];
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  Color _riskColor(String risk) {
+    switch (risk) {
+      case 'high':
+        return Colors.red;
+      case 'medium':
+        return Colors.orange;
+      case 'low':
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _localizedRelation(String code) {
+    final loc = LocalizationService();
+    switch (code) {
+      case 'father':
+        return loc.getString('family_relation_father');
+      case 'mother':
+        return loc.getString('family_relation_mother');
+      case 'child':
+        return loc.getString('family_relation_child');
+      case 'spouse':
+        return loc.getString('family_relation_spouse');
+      case 'sibling':
+        return loc.getString('family_relation_sibling');
+      default:
+        return loc.getString('family_relation_other');
+    }
+  }
+
+  String _localizedParamName(String key) {
+    final loc = LocalizationService();
+    switch (key) {
+      case 'hemoglobin':
+        return loc.getString('hemoglobin');
+      case 'iron':
+        return loc.getString('iron');
+      case 'white_blood_cells':
+        return loc.getString('white_blood_cells');
+      case 'platelets':
+        return loc.getString('platelets');
+      case 'hematocrit':
+        return loc.getString('hematocrit');
+      default:
+        return key;
+    }
+  }
+
   Widget _buildMemberCard(Map<String, dynamic> member) {
+    final loc = LocalizationService();
+    String lastTestText = member['lastTest'] ?? '';
+    try {
+      lastTestText = loc.formatDate(DateTime.parse(member['lastTest']));
+    } catch (_) {}
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: member['riskColor'], width: 2),
+        border: Border.all(color: _riskColor(member['riskLevel']), width: 2),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+                    color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 4,
             offset: const Offset(0, 2),
@@ -245,9 +310,9 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: member['riskColor'].withOpacity(0.1),
+                  color: _riskColor(member['riskLevel']).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: member['riskColor'], width: 2),
+                  border: Border.all(color: _riskColor(member['riskLevel']), width: 2),
                 ),
                 child: Center(
                   child: Text(
@@ -272,16 +337,16 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      '${member['relation']} • ${member['age']} yaş',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
+                      Text(
+                        '${_localizedRelation(member['relation'])} • ${loc.getString('age')}: ${member['age']}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
                       ),
-                    ),
                     const SizedBox(height: 4),
                     Text(
-                      'Son tahlil: ${member['lastTest']}',
+                      '${loc.getString('last_test')}: $lastTestText',
                       style: const TextStyle(
                         fontSize: 12,
                         color: Colors.grey,
@@ -295,11 +360,11 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: member['riskColor'],
+                  color: _riskColor(member['riskLevel']),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  member['riskLevel'],
+                  _localizedRiskLabel(member['riskLevel']),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
@@ -321,8 +386,8 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
             ),
             child: Column(
               children: [
-                const Text(
-                  'Son Hemogram Değerleri',
+                Text(
+                  loc.getString('latest_hemogram_values'),
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -340,7 +405,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                     return Column(
                       children: [
                         Text(
-                          entry.key.split(' ')[0],
+                          _localizedParamName(entry.key),
                           style: const TextStyle(fontSize: 10, color: Colors.grey),
                         ),
                         const SizedBox(height: 2),
@@ -369,7 +434,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                 child: ElevatedButton.icon(
                   onPressed: () => _showMemberDetails(member),
                   icon: const Icon(Icons.visibility, size: 16),
-                  label: const Text('Detaylar', style: TextStyle(fontSize: 12)),
+                  label: Text(loc.getString('details'), style: const TextStyle(fontSize: 12)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFE53E3E),
                     foregroundColor: Colors.white,
@@ -383,7 +448,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                 child: ElevatedButton.icon(
                   onPressed: () => _showTrends(member),
                   icon: const Icon(Icons.trending_up, size: 16),
-                  label: const Text('Trend', style: TextStyle(fontSize: 12)),
+                  label: Text(loc.getString('trend'), style: const TextStyle(fontSize: 12)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: const Color(0xFFE53E3E),
@@ -409,6 +474,12 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
   }
 
   void _showMemberDetails(Map<String, dynamic> member) {
+    final loc = LocalizationService();
+    String lastTestText = member['lastTest'] ?? '';
+    try {
+      lastTestText = loc.formatDate(DateTime.parse(member['lastTest']));
+    } catch (_) {}
+
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -430,7 +501,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${member['name']} - Sağlık Geçmişi',
+                          '${member['name']} - ${loc.getString('medical_history')}',
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -438,7 +509,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                           ),
                         ),
                         Text(
-                          '${member['relation']} • ${member['age']} yaş',
+                          '${_localizedRelation(member['relation'])} • ${loc.getString('age')}: ${member['age']}',
                           style: const TextStyle(color: Colors.grey),
                         ),
                       ],
@@ -458,14 +529,14 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                   length: 3,
                   child: Column(
                     children: [
-                      const TabBar(
-                        labelColor: Color(0xFFE53E3E),
+                      TabBar(
+                        labelColor: const Color(0xFFE53E3E),
                         unselectedLabelColor: Colors.grey,
-                        indicatorColor: Color(0xFFE53E3E),
+                        indicatorColor: const Color(0xFFE53E3E),
                         tabs: [
-                          Tab(icon: Icon(Icons.analytics), text: 'Son Durum'),
-                          Tab(icon: Icon(Icons.history), text: 'Geçmiş'),
-                          Tab(icon: Icon(Icons.compare_arrows), text: 'Karşılaştır'),
+                          Tab(icon: const Icon(Icons.analytics), text: LocalizationService().getString('current_status')),
+                          Tab(icon: const Icon(Icons.history), text: LocalizationService().getString('history')),
+                          Tab(icon: const Icon(Icons.compare_arrows), text: LocalizationService().getString('compare')),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -500,7 +571,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                         Navigator.pushNamed(context, '/diet_program');
                       },
                       icon: const Icon(Icons.restaurant_menu),
-                      label: const Text('Kişisel Diyet'),
+                      label: Text(loc.getString('personal_diet_program')),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFE53E3E),
                         foregroundColor: Colors.white,
@@ -515,7 +586,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                         Navigator.pushNamed(context, '/notifications');
                       },
                       icon: const Icon(Icons.notifications),
-                      label: const Text('Hatırlatıcı'),
+                      label: Text(loc.getString('reminder')),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: const Color(0xFFE53E3E),
@@ -533,18 +604,22 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
   }
 
   void _showTrends(Map<String, dynamic> member) {
+    final loc = LocalizationService();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('${member['name']} - Trend Analizi'),
+        title: Text('${member['name']} - ${loc.getString('trend_analysis')}'),
         content: SizedBox(
           width: double.maxFinite,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: member['trends'].entries.map<Widget>((entry) {
               List<double> values = entry.value;
-              String trend = values.last > values.first ? '📈 Yükselişte' : 
-                            values.last < values.first ? '📉 Düşüşte' : '➡️ Stabil';
+              String trend = values.last > values.first
+                  ? '📈 ${loc.getString('trending_up')}'
+                  : values.last < values.first
+                      ? '📉 ${loc.getString('trending_down')}'
+                      : '➡️ ${loc.getString('stable')}';
               
               return Container(
                 margin: const EdgeInsets.symmetric(vertical: 8),
@@ -558,7 +633,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      entry.key,
+                      _localizedParamName(entry.key),
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -569,7 +644,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Son 3 ay: ${values.join(' → ')}'),
+                        Text('${loc.getString('last_3_months')}: ${values.join(' → ')}'),
                         Text(
                           trend,
                           style: const TextStyle(fontWeight: FontWeight.bold),
@@ -585,7 +660,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Kapat'),
+            child: Text(loc.getString('close')),
           ),
         ],
       ),
@@ -593,10 +668,11 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
   }
 
   Widget _buildFamilyStats() {
+    final loc = LocalizationService();
     int totalMembers = familyMembers.length;
-    int highRisk = familyMembers.where((m) => m['riskLevel'] == 'Yüksek').length;
-    int mediumRisk = familyMembers.where((m) => m['riskLevel'] == 'Orta').length;
-    int lowRisk = familyMembers.where((m) => m['riskLevel'] == 'Düşük').length;
+  int highRisk = familyMembers.where((m) => m['riskLevel'] == 'high').length;
+  int mediumRisk = familyMembers.where((m) => m['riskLevel'] == 'medium').length;
+  int lowRisk = familyMembers.where((m) => m['riskLevel'] == 'low').length;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -610,13 +686,13 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
       ),
       child: Column(
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.family_restroom, color: Colors.white, size: 24),
-              SizedBox(width: 8),
+              const Icon(Icons.family_restroom, color: Colors.white, size: 24),
+              const SizedBox(width: 8),
               Text(
-                'Aile Sağlık Durumu',
-                style: TextStyle(
+                loc.getString('family_health_status'),
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -628,10 +704,10 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildStatItem('Toplam', totalMembers.toString(), Colors.white),
-              _buildStatItem('Yüksek Risk', highRisk.toString(), Colors.red[100]!),
-              _buildStatItem('Orta Risk', mediumRisk.toString(), Colors.orange[100]!),
-              _buildStatItem('Düşük Risk', lowRisk.toString(), Colors.green[100]!),
+              _buildStatItem(loc.getString('total'), totalMembers.toString(), Colors.white),
+              _buildStatItem(loc.getString('high_risk'), highRisk.toString(), Colors.red[100]!),
+              _buildStatItem(loc.getString('moderate_risk'), mediumRisk.toString(), Colors.orange[100]!),
+              _buildStatItem(loc.getString('low_risk'), lowRisk.toString(), Colors.green[100]!),
             ],
           ),
         ],
@@ -669,13 +745,14 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
   }
 
   Widget _buildComparisonTab() {
+    final loc = LocalizationService();
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          const Text(
-            'Aile Hemogram Karşılaştırması',
-            style: TextStyle(
+          Text(
+            loc.getString('family_hemogram_comparison'),
+            style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: Color(0xFFE53E3E),
@@ -692,7 +769,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
               border: Border.all(color: Colors.grey[300]!),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
+                  color: Colors.grey.withValues(alpha: 0.1),
                   spreadRadius: 1,
                   blurRadius: 4,
                   offset: const Offset(0, 2),
@@ -703,7 +780,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  parameter,
+                  _localizedParamName(parameter),
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -731,7 +808,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: statusColor.withOpacity(0.1),
+                            color: statusColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: statusColor),
                           ),
@@ -747,10 +824,10 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                       ],
                     ),
                   );
-                }).toList(),
+                }),
               ],
             ),
-          )).toList(),
+          )),
         ],
       ),
     );
@@ -758,10 +835,11 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
 
   @override
   Widget build(BuildContext context) {
+    final loc = LocalizationService();
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Aile Sağlık Paneli'),
+        title: Text(loc.getString('family_health_panel')),
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFFE53E3E),
         elevation: 0,
@@ -769,7 +847,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
           IconButton(
             onPressed: () => _showAddMemberDialog(),
             icon: const Icon(Icons.person_add),
-            tooltip: 'Aile Üyesi Ekle',
+            tooltip: loc.getString('family_add_member'),
           ),
         ],
         bottom: TabBar(
@@ -777,11 +855,11 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
           labelColor: const Color(0xFFE53E3E),
           unselectedLabelColor: Colors.grey,
           indicatorColor: const Color(0xFFE53E3E),
-          tabs: const [
-            Tab(icon: Icon(Icons.dashboard), text: 'Genel'),
-            Tab(icon: Icon(Icons.people), text: 'Üyeler'),
-            Tab(icon: Icon(Icons.compare), text: 'Karşılaştır'),
-            Tab(icon: Icon(Icons.notifications), text: 'Hatırlatıcı'),
+          tabs: [
+            Tab(icon: const Icon(Icons.dashboard), text: loc.getString('overview')),
+            Tab(icon: const Icon(Icons.people), text: loc.getString('members')),
+            Tab(icon: const Icon(Icons.compare), text: loc.getString('compare')),
+            Tab(icon: const Icon(Icons.notifications), text: loc.getString('reminder')),
           ],
         ),
       ),
@@ -795,11 +873,11 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
               children: [
                 _buildFamilyStats(),
                 const SizedBox(height: 24),
-                const Align(
+                Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'Son Tahlil Sonuçları',
-                    style: TextStyle(
+                    loc.getString('latest_test_results'),
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFFE53E3E),
@@ -807,7 +885,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                   ),
                 ),
                 const SizedBox(height: 16),
-                ...familyMembers.take(2).map((member) => _buildMemberCard(member)).toList(),
+                ...familyMembers.take(2).map((member) => _buildMemberCard(member)),
               ],
             ),
           ),
@@ -817,16 +895,16 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                const Text(
-                  'Aile Üyeleri',
-                  style: TextStyle(
+                Text(
+                  loc.getString('family_members'),
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFFE53E3E),
                   ),
                 ),
                 const SizedBox(height: 16),
-                ...familyMembers.map((member) => _buildMemberCard(member)).toList(),
+                ...familyMembers.map((member) => _buildMemberCard(member)),
               ],
             ),
           ),
@@ -839,9 +917,9 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                const Text(
-                  'Tahlil Hatırlatıcıları',
-                  style: TextStyle(
+                Text(
+                  loc.getString('lab_reminders'),
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFFE53E3E),
@@ -855,12 +933,12 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.grey[300]!),
                   ),
-                  child: const Column(
+                  child: Column(
                     children: [
                       Icon(Icons.schedule, size: 40, color: Color(0xFFE53E3E)),
                       SizedBox(height: 16),
                       Text(
-                        'Tahlil Hatırlatıcıları',
+                        LocalizationService().getString('lab_reminders'),
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -869,7 +947,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                       ),
                       SizedBox(height: 8),
                       Text(
-                        'Aile üyelerinizin düzenli tahlil hatırlatıcılarını burada yönetebileceksiniz.',
+                        LocalizationService().getString('family_lab_reminders_desc'),
                         textAlign: TextAlign.center,
                         style: TextStyle(fontSize: 14, color: Colors.grey),
                       ),
@@ -885,30 +963,31 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
   }
 
   void _showAddMemberDialog() {
+    final loc = LocalizationService();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Yeni Aile Üyesi Ekle'),
-        content: const Column(
+        title: Text(loc.getString('family_add_member')),
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               decoration: InputDecoration(
-                labelText: 'Ad Soyad',
+                labelText: loc.getString('name_label'),
                 border: OutlineInputBorder(),
               ),
             ),
             SizedBox(height: 16),
             TextField(
               decoration: InputDecoration(
-                labelText: 'Yakınlık Derecesi',
+                labelText: loc.getString('relation_label'),
                 border: OutlineInputBorder(),
               ),
             ),
             SizedBox(height: 16),
             TextField(
               decoration: InputDecoration(
-                labelText: 'Yaş',
+                labelText: loc.getString('age'),
                 border: OutlineInputBorder(),
               ),
               keyboardType: TextInputType.number,
@@ -918,20 +997,20 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('İptal'),
+            child: Text(loc.getString('cancel')),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Aile üyesi başarıyla eklendi!'),
-                  backgroundColor: Color(0xFFE53E3E),
+                SnackBar(
+                  content: Text(loc.getString('family_member_added')),
+                  backgroundColor: const Color(0xFFE53E3E),
                 ),
               );
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE53E3E)),
-            child: const Text('Ekle', style: TextStyle(color: Colors.white)),
+            child: Text(loc.getString('add'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -939,6 +1018,11 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
   }
 
   Widget _buildCurrentStatus(Map<String, dynamic> member) {
+    final loc = LocalizationService();
+    String lastTestText = member['lastTest'] ?? '';
+    try {
+      lastTestText = loc.formatDate(DateTime.parse(member['lastTest']));
+    } catch (_) {}
     return SingleChildScrollView(
       child: Column(
         children: [
@@ -946,9 +1030,9 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: member['riskColor'].withOpacity(0.1),
+              color: _riskColor(member['riskLevel']).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: member['riskColor']),
+              border: Border.all(color: _riskColor(member['riskLevel'])),
             ),
             child: Column(
               children: [
@@ -957,12 +1041,12 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: member['riskColor'],
+                        color: _riskColor(member['riskLevel']),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
-                        member['riskLevel'] == 'Yüksek' ? Icons.warning :
-                        member['riskLevel'] == 'Orta' ? Icons.info : Icons.check_circle,
+                        member['riskLevel'] == 'high' ? Icons.warning :
+                        member['riskLevel'] == 'medium' ? Icons.info : Icons.check_circle,
                         color: Colors.white,
                         size: 20,
                       ),
@@ -973,7 +1057,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Risk Seviyesi: ${member['riskLevel']}',
+                            '${loc.getString('risk_level')}: ${_localizedRiskLabel(member['riskLevel'])}',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -981,7 +1065,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                             ),
                           ),
                           Text(
-                            'Son tahlil: ${member['lastTest']}',
+                            '${loc.getString('last_test')}: $lastTestText',
                             style: const TextStyle(color: Colors.grey),
                           ),
                         ],
@@ -992,7 +1076,9 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                 if (member['testHistory'] != null && member['testHistory'].isNotEmpty) ...[
                   const SizedBox(height: 12),
                   Text(
-                    member['testHistory'][0]['doctorNotes'] ?? '',
+                    member['testHistory'][0]['doctorNotesKey'] != null
+                        ? loc.getString(member['testHistory'][0]['doctorNotesKey'])
+                        : '',
                     style: const TextStyle(fontStyle: FontStyle.italic),
                   ),
                 ],
@@ -1003,9 +1089,9 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
           const SizedBox(height: 20),
           
           // Güncel değerler
-          const Text(
-            'Güncel Hemogram Değerleri',
-            style: TextStyle(
+          Text(
+            loc.getString('latest_hemogram_values'),
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Color(0xFFE53E3E),
@@ -1031,7 +1117,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                 children: [
                   Expanded(
                     child: Text(
-                      entry.key,
+                      _localizedParamName(entry.key),
                       style: const TextStyle(fontSize: 14),
                     ),
                   ),
@@ -1055,23 +1141,24 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                 ],
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );
   }
 
   Widget _buildTestHistory(Map<String, dynamic> member) {
+    final loc = LocalizationService();
     List<dynamic> history = member['testHistory'] ?? [];
     
     if (history.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.history, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text('Henüz geçmiş test sonucu yok', style: TextStyle(color: Colors.grey)),
+            const Icon(Icons.history, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            Text(loc.getString('no_test_history'), style: const TextStyle(color: Colors.grey)),
           ],
         ),
       );
@@ -1081,8 +1168,11 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
       itemCount: history.length,
       itemBuilder: (context, index) {
         Map<String, dynamic> test = history[index];
-        Color riskColor = test['riskLevel'] == 'Yüksek' ? Colors.red :
-                         test['riskLevel'] == 'Orta' ? Colors.orange : Colors.green;
+  Color riskColor = _riskColor(test['riskLevel']);
+        String dateText = test['date'];
+        try {
+          dateText = loc.formatDate(DateTime.parse(test['date']));
+        } catch (_) {}
         
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
@@ -1090,7 +1180,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: riskColor.withOpacity(0.3)),
+            border: Border.all(color: riskColor.withValues(alpha: 0.3)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1101,7 +1191,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: riskColor.withOpacity(0.1),
+                      color: riskColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(Icons.bloodtype, color: riskColor, size: 20),
@@ -1112,7 +1202,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          test['date'],
+                          dateText,
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -1125,7 +1215,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            test['riskLevel'],
+                            _localizedRiskLabel(test['riskLevel']),
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 12,
@@ -1142,7 +1232,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
               const SizedBox(height: 12),
               
               // Doktor notları
-              if (test['doctorNotes'] != null) ...[
+              if (test['doctorNotesKey'] != null) ...[
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -1155,7 +1245,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          test['doctorNotes'],
+                          loc.getString(test['doctorNotesKey']),
                           style: const TextStyle(
                             fontStyle: FontStyle.italic,
                             color: Colors.grey,
@@ -1172,14 +1262,14 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: riskColor.withOpacity(0.1),
+                  color: riskColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
                   children: [
-                    const Text(
-                      'Hemogram Özeti',
-                      style: TextStyle(
+                    Text(
+                      loc.getString('hemogram_summary'),
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
@@ -1191,7 +1281,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                         return Column(
                           children: [
                             Text(
-                              entry.key.split(' ')[0],
+                              _localizedParamName(entry.key),
                               style: const TextStyle(fontSize: 10, color: Colors.grey),
                             ),
                             Text(
@@ -1216,18 +1306,19 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
   }
 
   Widget _buildComparison(Map<String, dynamic> member) {
+    final loc = LocalizationService();
     List<dynamic> history = member['testHistory'] ?? [];
     
     if (history.length < 2) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.compare_arrows, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
+            const Icon(Icons.compare_arrows, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
             Text(
-              'Karşılaştırma için en az 2 test sonucu gerekli',
-              style: TextStyle(color: Colors.grey),
+              loc.getString('comparison_min_two_tests'),
+              style: const TextStyle(color: Colors.grey),
               textAlign: TextAlign.center,
             ),
           ],
@@ -1237,6 +1328,12 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
     
     Map<String, dynamic> latest = history[0];
     Map<String, dynamic> previous = history[1];
+    String latestDate = latest['date'];
+    String previousDate = previous['date'];
+    try {
+      latestDate = loc.formatDate(DateTime.parse(latest['date']));
+      previousDate = loc.formatDate(DateTime.parse(previous['date']));
+    } catch (_) {}
     
     return SingleChildScrollView(
       child: Column(
@@ -1260,16 +1357,16 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Test Karşılaştırması',
-                        style: TextStyle(
+                      Text(
+                        loc.getString('test_comparison'),
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
-                        '${previous['date']} → ${latest['date']}',
+                        '$previousDate → $latestDate',
                         style: const TextStyle(color: Colors.white, fontSize: 14),
                       ),
                     ],
@@ -1319,7 +1416,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                 children: [
                   // Parametre adı
                   Text(
-                    param,
+                    _localizedParamName(param),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -1336,13 +1433,13 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: previousColor.withOpacity(0.1),
+                            color: previousColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Column(
                             children: [
                               Text(
-                                previous['date'],
+                                previousDate,
                                 style: const TextStyle(fontSize: 12, color: Colors.grey),
                               ),
                               const SizedBox(height: 4),
@@ -1389,13 +1486,13 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: latestColor.withOpacity(0.1),
+                            color: latestColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Column(
                             children: [
                               Text(
-                                latest['date'],
+                                latestDate,
                                 style: const TextStyle(fontSize: 12, color: Colors.grey),
                               ),
                               const SizedBox(height: 4),
@@ -1418,7 +1515,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
                   
                   // Normal aralık
                   Text(
-                    'Normal: ${range[0].toStringAsFixed(1)}-${range[1].toStringAsFixed(1)}',
+                    '${loc.getString('normal')}: ${range[0].toStringAsFixed(1)}-${range[1].toStringAsFixed(1)}',
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],
@@ -1436,13 +1533,13 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
             ),
             child: Column(
               children: [
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.analytics, color: Color(0xFFE53E3E), size: 20),
-                    SizedBox(width: 8),
+                    const Icon(Icons.analytics, color: Color(0xFFE53E3E), size: 20),
+                    const SizedBox(width: 8),
                     Text(
-                      'Genel Değerlendirme',
-                      style: TextStyle(
+                      loc.getString('general_assessment'),
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Color(0xFFE53E3E),
                       ),
@@ -1463,21 +1560,47 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
   }
 
   String _getComparisonSummary(Map<String, dynamic> latest, Map<String, dynamic> previous) {
+    final loc = LocalizationService();
     String latestRisk = latest['riskLevel'];
     String previousRisk = previous['riskLevel'];
-    
+
+    String latestRiskLabel = _localizedRiskLabel(latestRisk);
+    String previousRiskLabel = _localizedRiskLabel(previousRisk);
+
     if (latestRisk == previousRisk) {
-      return 'Sağlık durumunuz $latestRisk risk seviyesinde stabil kalıyor. Mevcut tedavi ve beslenme planınıza devam edin.';
+      return loc.getStringWithParams('comparison_stable', {
+        'risk': latestRiskLabel,
+      });
     } else {
-      Map<String, int> riskValues = {'Düşük': 1, 'Orta': 2, 'Yüksek': 3};
+  Map<String, int> riskValues = {'low': 1, 'medium': 2, 'high': 3};
       int latestValue = riskValues[latestRisk] ?? 0;
       int previousValue = riskValues[previousRisk] ?? 0;
-      
+
       if (latestValue < previousValue) {
-        return 'Tebrikler! Sağlık durumunuzda iyileşme var. $previousRisk riskten $latestRisk riske düştünüz. Mevcut programınıza devam edin.';
+        return loc.getStringWithParams('comparison_improved', {
+          'prev': previousRiskLabel,
+          'curr': latestRiskLabel,
+        });
       } else {
-        return 'Dikkat! Risk seviyeniz $previousRisk\'tan $latestRisk\'a yükseldi. Doktor kontrolü ve tedavi planı revizyonu gerekli olabilir.';
+        return loc.getStringWithParams('comparison_worsened', {
+          'prev': previousRiskLabel,
+          'curr': latestRiskLabel,
+        });
       }
+    }
+  }
+
+  String _localizedRiskLabel(String riskTr) {
+    final loc = LocalizationService();
+    switch (riskTr) {
+      case 'high':
+        return loc.getString('high_risk');
+      case 'medium':
+        return loc.getString('moderate_risk');
+      case 'low':
+        return loc.getString('low_risk');
+      default:
+        return loc.getString('unknown_risk');
     }
   }
 }

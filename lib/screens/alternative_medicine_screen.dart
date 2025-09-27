@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import '../services/database_helper.dart';
+import 'package:provider/provider.dart';
+import '../widgets/app_drawer.dart';
+import '../services/web_database_helper.dart';
 import '../services/preferences_service.dart';
+import '../services/localization_service.dart';
 
 class AlternativeMedicineScreen extends StatefulWidget {
   const AlternativeMedicineScreen({Key? key}) : super(key: key);
@@ -11,168 +14,168 @@ class AlternativeMedicineScreen extends StatefulWidget {
 
 class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> with TickerProviderStateMixin {
   late TabController _tabController;
-  final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
+  late final WebDatabaseHelper _databaseHelper;
   final PreferencesService _preferencesService = PreferencesService();
   
   Map<String, double> userValues = {};
   List<String> recommendedCategories = [];
   bool isLoading = true;
 
-  // Bitkisel çözümler verisi
+  // Bitkisel çözümler verisi (localized)
   final Map<String, Map<String, dynamic>> herbalSolutions = {
-    'Demir Eksikliği': {
+    'herbal_cat_iron_deficiency': {
       'icon': '🩸',
       'color': Colors.red,
       'herbs': [
         {
-          'name': 'Isırgan Otu',
-          'usage': 'Günde 2 kez çay olarak',
-          'benefits': 'Doğal demir kaynağı, kan yapımını destekler',
-          'preparation': '1 çay kaşığı kurutulmuş yaprak, 1 bardak sıcak su ile demleyin',
-          'warning': 'Hamilelikte doktor kontrolü gerekli',
+          'name': 'herb_stinging_nettle_name',
+          'usage': 'herb_stinging_nettle_usage',
+          'benefits': 'herb_stinging_nettle_benefits',
+          'preparation': 'herb_stinging_nettle_preparation',
+          'warning': 'herb_stinging_nettle_warning',
         },
         {
-          'name': 'Pekmez (Üzüm/Dut)',
-          'usage': 'Günde 1 yemek kaşığı',
-          'benefits': 'Yüksek demir içeriği, kolay emilim',
-          'preparation': 'Kahvaltıda veya ara öğünde tüketin',
-          'warning': 'Şeker hastalığında dikkatli kullanın',
+          'name': 'herb_molasses_name',
+          'usage': 'herb_molasses_usage',
+          'benefits': 'herb_molasses_benefits',
+          'preparation': 'herb_molasses_preparation',
+          'warning': 'herb_molasses_warning',
         },
         {
-          'name': 'Kekik Çayı',
-          'usage': 'Günde 2-3 fincan',
-          'benefits': 'Demir emilimini artırır, bağışıklığı güçlendirir',
-          'preparation': '1 tatlı kaşığı kekik, 5 dakika demleyin',
-          'warning': 'Tansiyon hastaları dikkat etsin',
+          'name': 'herb_thyme_tea_name',
+          'usage': 'herb_thyme_tea_usage',
+          'benefits': 'herb_thyme_tea_benefits',
+          'preparation': 'herb_thyme_tea_preparation',
+          'warning': 'herb_thyme_tea_warning',
         },
       ]
     },
-    'Anemi': {
+    'herbal_cat_anemia': {
       'icon': '🌿',
       'color': Colors.green,
       'herbs': [
         {
-          'name': 'Keçiboynuzu',
-          'usage': 'Günde 1 bardak çay',
-          'benefits': 'B12 ve folik asit içerir, kan yapımını destekler',
-          'preparation': 'Tozunu süt veya suyla karıştırın',
-          'warning': 'Alerji durumunda kullanmayın',
+          'name': 'herb_carob_name',
+          'usage': 'herb_carob_usage',
+          'benefits': 'herb_carob_benefits',
+          'preparation': 'herb_carob_preparation',
+          'warning': 'herb_carob_warning',
         },
         {
-          'name': 'Nar Suyu',
-          'usage': 'Günde 1 bardak taze sıkılmış',
-          'benefits': 'Antioksidan, hemoglobin artırıcı',
-          'preparation': 'Taze sıkılmış tercih edin, aç karnına için',
-          'warning': 'İlaç etkileşimi olabilir',
+          'name': 'herb_pomegranate_juice_name',
+          'usage': 'herb_pomegranate_juice_usage',
+          'benefits': 'herb_pomegranate_juice_benefits',
+          'preparation': 'herb_pomegranate_juice_preparation',
+          'warning': 'herb_pomegranate_juice_warning',
         },
         {
-          'name': 'Kırmızı Pancar',
-          'usage': 'Haftada 3-4 kez salata olarak',
-          'benefits': 'Nitrat içeriği yüksek, kan dolaşımını iyileştirir',
-          'preparation': 'Çiğ rendeleyin veya haşlayın',
-          'warning': 'Böbrek taşı riski olanlar dikkat etsin',
+          'name': 'herb_beetroot_name',
+          'usage': 'herb_beetroot_usage',
+          'benefits': 'herb_beetroot_benefits',
+          'preparation': 'herb_beetroot_preparation',
+          'warning': 'herb_beetroot_warning',
         },
       ]
     },
-    'Bağışıklık': {
+    'herbal_cat_immunity': {
       'icon': '🛡️',
       'color': Colors.blue,
       'herbs': [
         {
-          'name': 'Propolis',
-          'usage': 'Günde 10-15 damla',
-          'benefits': 'Doğal antibiyotik, bağışıklık güçlendirici',
-          'preparation': 'Su veya bal ile karıştırarak alın',
-          'warning': 'Arı ürünlerine alerjisi olanlarda dikkat',
+          'name': 'herb_propolis_name',
+          'usage': 'herb_propolis_usage',
+          'benefits': 'herb_propolis_benefits',
+          'preparation': 'herb_propolis_preparation',
+          'warning': 'herb_propolis_warning',
         },
         {
-          'name': 'Ekinezya',
-          'usage': 'Günde 2-3 fincan çay',
-          'benefits': 'Viral enfeksiyonlara karşı korur',
-          'preparation': 'Kurutulmuş kökü kaynatın',
-          'warning': 'Otoimmün hastalıklarda kullanmayın',
+          'name': 'herb_echinacea_name',
+          'usage': 'herb_echinacea_usage',
+          'benefits': 'herb_echinacea_benefits',
+          'preparation': 'herb_echinacea_preparation',
+          'warning': 'herb_echinacea_warning',
         },
         {
-          'name': 'Zencefil',
-          'usage': 'Günde 2-3 dilim taze',
-          'benefits': 'Anti-enflamatuar, sindirim destekleyici',
-          'preparation': 'Çay olarak demleyin veya yemeğe ekleyin',
-          'warning': 'Kan sulandırıcı kullanıyorsanız dikkat',
+          'name': 'herb_ginger_name',
+          'usage': 'herb_ginger_usage',
+          'benefits': 'herb_ginger_benefits',
+          'preparation': 'herb_ginger_preparation',
+          'warning': 'herb_ginger_warning',
         },
       ]
     },
-    'Trombosit': {
+    'herbal_cat_platelets': {
       'icon': '🩹',
       'color': Colors.orange,
       'herbs': [
         {
-          'name': 'Papaya Yaprağı',
-          'usage': 'Günde 2 kez çay olarak',
-          'benefits': 'Trombosit sayısını artırır',
-          'preparation': 'Taze yaprakları kaynatın, soğutarak için',
-          'warning': 'Hamilelikte kullanmayın',
+          'name': 'herb_papaya_leaf_name',
+          'usage': 'herb_papaya_leaf_usage',
+          'benefits': 'herb_papaya_leaf_benefits',
+          'preparation': 'herb_papaya_leaf_preparation',
+          'warning': 'herb_papaya_leaf_warning',
         },
         {
-          'name': 'Ginkgo Biloba',
-          'usage': 'Günde 1-2 fincan çay',
-          'benefits': 'Kan dolaşımını iyileştirir',
-          'preparation': 'Kurutulmuş yaprakları demleyin',
-          'warning': 'Ameliyat öncesi bırakın',
+          'name': 'herb_ginkgo_biloba_name',
+          'usage': 'herb_ginkgo_biloba_usage',
+          'benefits': 'herb_ginkgo_biloba_benefits',
+          'preparation': 'herb_ginkgo_biloba_preparation',
+          'warning': 'herb_ginkgo_biloba_warning',
         },
       ]
     },
   };
 
-  // Yöresel tedavi yöntemleri
+  // Yöresel tedavi yöntemleri (localized)
   final List<Map<String, dynamic>> traditionalMethods = [
     {
-      'title': 'Hacamat Tedavisi',
+      'title': 'trad_cupping_title',
       'icon': '🩸',
-      'description': 'Kan dolaşımını iyileştiren geleneksel yöntem',
-      'benefits': 'Kirli kanın çıkarılması, dolaşım iyileşmesi',
-      'procedure': 'Uzman tarafından steril ortamda uygulanmalı',
-      'frequency': 'Ayda 1-2 kez',
-      'warning': 'Kan hastalığı varsa doktor onayı şart',
+      'description': 'trad_cupping_description',
+      'benefits': 'trad_cupping_benefits',
+      'procedure': 'trad_cupping_procedure',
+      'frequency': 'trad_cupping_frequency',
+      'warning': 'trad_cupping_warning',
       'color': Colors.red,
     },
     {
-      'title': 'Sülük Tedavisi',
+      'title': 'trad_leech_title',
       'icon': '🐛',
-      'description': 'Doğal kan inceltici ve detoks yöntemi',
-      'benefits': 'Kan pıhtılaşmasını önler, toksin atılımı',
-      'procedure': 'Tıbbi sülüklerle uzman gözetiminde',
-      'frequency': '3 ayda 1 kez',
-      'warning': 'Enfeksiyon riski, steril ortam şart',
+      'description': 'trad_leech_description',
+      'benefits': 'trad_leech_benefits',
+      'procedure': 'trad_leech_procedure',
+      'frequency': 'trad_leech_frequency',
+      'warning': 'trad_leech_warning',
       'color': Colors.green,
     },
     {
-      'title': 'Kuru Kupa',
+      'title': 'trad_dry_cupping_title',
       'icon': '🥤',
-      'description': 'Vakum ile kan dolaşımını hızlandırma',
-      'benefits': 'Kas gevşemesi, dolaşım artışı',
-      'procedure': 'Cam kupa ile vakum oluşturulur',
-      'frequency': 'Haftada 1-2 kez',
-      'warning': 'Deri hassasiyeti olanlarda dikkat',
+      'description': 'trad_dry_cupping_description',
+      'benefits': 'trad_dry_cupping_benefits',
+      'procedure': 'trad_dry_cupping_procedure',
+      'frequency': 'trad_dry_cupping_frequency',
+      'warning': 'trad_dry_cupping_warning',
       'color': Colors.blue,
     },
     {
-      'title': 'Refleksoloji',
+      'title': 'trad_reflexology_title',
       'icon': '🦶',
-      'description': 'Ayak masajı ile organ uyarımı',
-      'benefits': 'Dolaşımı artırır, organları uyarır',
-      'procedure': 'Ayak tabanında belirli noktalara baskı',
-      'frequency': 'Haftada 2-3 kez',
-      'warning': 'Ayak yaraları varsa yapmayın',
+      'description': 'trad_reflexology_description',
+      'benefits': 'trad_reflexology_benefits',
+      'procedure': 'trad_reflexology_procedure',
+      'frequency': 'trad_reflexology_frequency',
+      'warning': 'trad_reflexology_warning',
       'color': Colors.purple,
     },
     {
-      'title': 'Aromaterapi',
+      'title': 'trad_aromatherapy_title',
       'icon': '🌸',
-      'description': 'Uçucu yağlarla tedavi',
-      'benefits': 'Stres azalması, hormon dengelenmesi',
-      'procedure': 'Diffüzer ile soluma veya masaj yağı',
-      'frequency': 'Günlük kullanım',
-      'warning': 'Hamilelikte bazı yağlar tehlikeli',
+      'description': 'trad_aromatherapy_description',
+      'benefits': 'trad_aromatherapy_benefits',
+      'procedure': 'trad_aromatherapy_procedure',
+      'frequency': 'trad_aromatherapy_frequency',
+      'warning': 'trad_aromatherapy_warning',
       'color': Colors.pink,
     },
   ];
@@ -181,6 +184,7 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _databaseHelper = WebDatabaseHelper.instance;
   }
 
   @override
@@ -218,7 +222,7 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
           ),
         ),
         title: Text(
-          category,
+          Provider.of<LocalizationService>(context, listen: false).getString(category),
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -226,7 +230,9 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
           ),
         ),
         subtitle: Text(
-          '${categoryData['herbs'].length} bitkisel çözüm',
+          Provider.of<LocalizationService>(context, listen: false)
+              .getString('herbal_solutions_count')
+              .replaceFirst('{count}', categoryData['herbs'].length.toString()),
           style: const TextStyle(color: Colors.grey),
         ),
         children: categoryData['herbs'].map<Widget>((herb) {
@@ -241,7 +247,7 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  herb['name'],
+                  Provider.of<LocalizationService>(context, listen: false).getString(herb['name']),
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -250,9 +256,9 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
                 ),
                 const SizedBox(height: 8),
                 
-                _buildInfoRow('Kullanım', herb['usage'], Icons.schedule),
-                _buildInfoRow('Faydaları', herb['benefits'], Icons.favorite),
-                _buildInfoRow('Hazırlanış', herb['preparation'], Icons.build),
+                _buildInfoRow(Provider.of<LocalizationService>(context, listen: false).getString('usage_label'), Provider.of<LocalizationService>(context, listen: false).getString(herb['usage']), Icons.schedule),
+                _buildInfoRow(Provider.of<LocalizationService>(context, listen: false).getString('benefits_label'), Provider.of<LocalizationService>(context, listen: false).getString(herb['benefits']), Icons.favorite),
+                _buildInfoRow(Provider.of<LocalizationService>(context, listen: false).getString('preparation_label'), Provider.of<LocalizationService>(context, listen: false).getString(herb['preparation']), Icons.build),
                 
                 if (herb['warning'] != null)
                   Container(
@@ -269,7 +275,7 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Uyarı: ${herb['warning']}',
+                            '${Provider.of<LocalizationService>(context, listen: false).getString('warning_label')}: ${Provider.of<LocalizationService>(context, listen: false).getString(herb['warning'])}',
                             style: const TextStyle(
                               fontSize: 12,
                               color: Colors.orange,
@@ -353,7 +359,7 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      method['title'],
+                      Provider.of<LocalizationService>(context, listen: false).getString(method['title']),
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -362,7 +368,7 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      method['description'],
+                      Provider.of<LocalizationService>(context, listen: false).getString(method['description']),
                       style: const TextStyle(
                         color: Colors.grey,
                         fontSize: 14,
@@ -384,9 +390,9 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
             ),
             child: Column(
               children: [
-                _buildMethodInfo('Faydaları', method['benefits'], Icons.check_circle),
-                _buildMethodInfo('Uygulama', method['procedure'], Icons.build),
-                _buildMethodInfo('Sıklık', method['frequency'], Icons.schedule),
+                _buildMethodInfo(Provider.of<LocalizationService>(context, listen: false).getString('benefits_label'), Provider.of<LocalizationService>(context, listen: false).getString(method['benefits']), Icons.check_circle),
+                _buildMethodInfo(Provider.of<LocalizationService>(context, listen: false).getString('application_label'), Provider.of<LocalizationService>(context, listen: false).getString(method['procedure']), Icons.build),
+                _buildMethodInfo(Provider.of<LocalizationService>(context, listen: false).getString('frequency_label'), Provider.of<LocalizationService>(context, listen: false).getString(method['frequency']), Icons.schedule),
               ],
             ),
           ),
@@ -406,7 +412,7 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Uyarı: ${method['warning']}',
+                    '${Provider.of<LocalizationService>(context, listen: false).getString('warning_label')}: ${Provider.of<LocalizationService>(context, listen: false).getString(method['warning'])}',
                     style: const TextStyle(
                       color: Colors.red,
                       fontWeight: FontWeight.w600,
@@ -453,7 +459,7 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // Genel uyarı
+          // General warning (localized)
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -464,23 +470,23 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
               ),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Column(
+            child: Column(
               children: [
-                Icon(Icons.health_and_safety, color: Colors.white, size: 32),
-                SizedBox(height: 12),
+                const Icon(Icons.health_and_safety, color: Colors.white, size: 32),
+                const SizedBox(height: 12),
                 Text(
-                  'Önemli Hatırlatma',
-                  style: TextStyle(
+                  Provider.of<LocalizationService>(context, listen: false).getString('important_reminder_title'),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Text(
-                  'Alternatif tıp yöntemleri tamamlayıcı tedavi amacıyla kullanılmalıdır. Ana tedavinizin yerini alamaz. Mutlaka doktorunuzla görüşerek uygulayın.',
+                  Provider.of<LocalizationService>(context, listen: false).getString('important_reminder_body'),
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white, fontSize: 14),
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
                 ),
               ],
             ),
@@ -488,10 +494,10 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
           
           const SizedBox(height: 24),
           
-          // Genel kurallar
-          const Text(
-            'Temel Kurallar',
-            style: TextStyle(
+          // Basic rules (localized)
+          Text(
+            Provider.of<LocalizationService>(context, listen: false).getString('basic_rules_title'),
+            style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: Color(0xFFE53E3E),
@@ -499,15 +505,10 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
           ),
           const SizedBox(height: 16),
           
-          ...[
-            'Herhangi bir bitkisel ürünü kullanmadan önce doktorunuza danışın',
-            'İlaçlarınızla etkileşim olup olmadığını kontrol ettirin',
-            'Hamilelik, emzirme döneminde extra dikkatli olun',
-            'Alerjik reaksiyonlara karşı dikkatli olun, küçük dozlarla başlayın',
-            'Kaliteli, güvenilir kaynaklardan temin edin',
-            'Belirtilen dozları aşmayın',
-            'Yan etki görürseniz hemen bırakın ve doktora başvurun',
-          ].map((rule) => Container(
+          ...Provider.of<LocalizationService>(context, listen: false)
+              .getString('basic_rules_list')
+              .split('\n')
+              .map((rule) => Container(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -531,7 +532,7 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
           
           const SizedBox(height: 24),
           
-          // Uzman tavsiyeleri
+          // Expert support (localized)
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -539,16 +540,16 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.blue[200]!),
             ),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Icon(Icons.medical_services, color: Colors.blue, size: 24),
-                    SizedBox(width: 12),
+                    const Icon(Icons.medical_services, color: Colors.blue, size: 24),
+                    const SizedBox(width: 12),
                     Text(
-                      'Uzman Desteği',
-                      style: TextStyle(
+                      Provider.of<LocalizationService>(context, listen: false).getString('expert_support_title'),
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.blue,
@@ -556,14 +557,10 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
                     ),
                   ],
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
                 Text(
-                  'Alternatif tıp yöntemlerini uygulamadan önce:\n\n'
-                  '• Fitoterapist veya geleneksel tıp uzmanına danışın\n'
-                  '• Hematoloji uzmanınızın onayını alın\n'
-                  '• Düzenli kan takibinizi aksatmayın\n'
-                  '• Tedavi sürecinizi doktorunuzla paylaşın',
-                  style: TextStyle(fontSize: 14, height: 1.4),
+                  Provider.of<LocalizationService>(context, listen: false).getString('expert_support_body'),
+                  style: const TextStyle(fontSize: 14, height: 1.4),
                 ),
               ],
             ),
@@ -575,10 +572,12 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
 
   @override
   Widget build(BuildContext context) {
+    final localizationService = Provider.of<LocalizationService>(context);
     return Scaffold(
       backgroundColor: Colors.white,
+      drawer: const AppDrawer(currentRoute: '/alternative_medicine'),
       appBar: AppBar(
-        title: const Text('Alternatif Tıp & Yöresel Yöntemler'),
+        title: Text(localizationService.getString('alternative_medicine')),
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFFE53E3E),
         elevation: 0,
@@ -587,10 +586,10 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
           labelColor: const Color(0xFFE53E3E),
           unselectedLabelColor: Colors.grey,
           indicatorColor: const Color(0xFFE53E3E),
-          tabs: const [
-            Tab(icon: Icon(Icons.local_florist), text: 'Bitkisel'),
-            Tab(icon: Icon(Icons.healing), text: 'Yöresel'),
-            Tab(icon: Icon(Icons.info), text: 'Genel Bilgi'),
+          tabs: [
+            Tab(icon: const Icon(Icons.local_florist), text: localizationService.getString('herbal_solutions_tab')),
+            Tab(icon: const Icon(Icons.healing), text: localizationService.getString('traditional_methods_tab')),
+            Tab(icon: const Icon(Icons.info), text: localizationService.getString('general_info_tab')),
           ],
         ),
       ),
@@ -603,8 +602,8 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Hemogram Sorunları İçin Bitkisel Çözümler',
+                Text(
+                  localizationService.getString('herbal_solutions_for_hemogram'),
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -612,8 +611,8 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Doğal bitkisel ürünlerle kan değerlerinizi destekleyin',
+                Text(
+                  localizationService.getString('support_blood_values_naturally'),
                   style: TextStyle(color: Colors.grey, fontSize: 16),
                 ),
                 const SizedBox(height: 24),
@@ -631,18 +630,18 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Geleneksel Tedavi Yöntemleri',
-                  style: TextStyle(
+                Text(
+                  localizationService.getString('traditional_treatments_title'),
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFFE53E3E),
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Asırlar boyunca kullanılan geleneksel iyileştirme yöntemleri',
-                  style: TextStyle(color: Colors.grey, fontSize: 16),
+                Text(
+                  localizationService.getString('traditional_treatments_subtitle'),
+                  style: const TextStyle(color: Colors.grey, fontSize: 16),
                 ),
                 const SizedBox(height: 24),
                 

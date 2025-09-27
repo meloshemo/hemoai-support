@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'register_screen.dart';
 import 'login_form_screen.dart';
+import '../services/localization_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -14,7 +16,35 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Beyaz arka plan
+      backgroundColor: Theme.of(context).brightness == Brightness.dark 
+        ? const Color(0xFF0D1117) 
+        : Colors.white,
+      appBar: AppBar(
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: Icon(
+              Icons.menu,
+              color: Theme.of(context).brightness == Brightness.dark 
+                ? const Color(0xFFF0F6FC) 
+                : Colors.white,
+              size: 24,
+            ),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+            tooltip: LocalizationService.translate('menu'),
+          ),
+        ),
+        title: const Text(
+          'HEMOAI',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: Theme.of(context).brightness == Brightness.dark 
+          ? const Color(0xFF161B22) 
+          : const Color(0xFFE53E3E),
+        elevation: 0,
+      ),
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -59,9 +89,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const Text(
-                    'Akıllı Sağlık Asistanı',
-                    style: TextStyle(
+                  Text(
+                    LocalizationService.translate('smart_health_assistant'),
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 14,
                     ),
@@ -71,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.local_florist, color: Color(0xFFE53E3E)),
-              title: const Text('Alternatif Tıp & Yöresel Yöntemler'),
+              title: Text(LocalizationService.translate('alternative_medicine_methods')),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.pushNamed(context, '/alternative_medicine');
@@ -79,7 +109,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.analytics, color: Color(0xFFE53E3E)),
-              title: const Text('Hemogram Analizi'),
+              title: Text(LocalizationService.translate('hemogram_analysis')),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.pushNamed(context, '/analysis');
@@ -87,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.restaurant_menu, color: Color(0xFFE53E3E)),
-              title: const Text('Kişisel Diyet Programı'),
+              title: Text(LocalizationService.translate('personal_diet_program')),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.pushNamed(context, '/diet_program');
@@ -95,7 +125,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.family_restroom, color: Color(0xFFE53E3E)),
-              title: const Text('Aile Sağlık Paneli'),
+              title: Text(LocalizationService.translate('family_health_panel')),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.pushNamed(context, '/family_panel');
@@ -103,7 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.notifications, color: Color(0xFFE53E3E)),
-              title: const Text('Bildirimler & Hatırlatıcı'),
+              title: Text(LocalizationService.translate('notifications_reminders')),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.pushNamed(context, '/notifications');
@@ -112,7 +142,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const Divider(),
             ListTile(
               leading: const Icon(Icons.info, color: Color(0xFFE53E3E)),
-              title: const Text('Hakkında'),
+              title: Text(LocalizationService.translate('about')),
               onTap: () {
                 Navigator.pop(context);
                 _showAboutDialog(context);
@@ -120,7 +150,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.help, color: Color(0xFFE53E3E)),
-              title: const Text('Yardım & Destek'),
+              title: Text(LocalizationService.translate('help_support')),
               onTap: () {
                 Navigator.pop(context);
                 _showHelpDialog(context);
@@ -186,9 +216,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             elevation: 3,
                           ),
-                          child: const Text(
-                            'Giriş Yap',
-                            style: TextStyle(
+                          child: Text(
+                            LocalizationService.translate('login'),
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
                             ),
@@ -216,9 +246,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             elevation: 1,
                           ),
-                          child: const Text(
-                            'Üye Ol',
-                            style: TextStyle(
+                          child: Text(
+                            LocalizationService.translate('register'),
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
                             ),
@@ -236,9 +266,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: TextButton.styleFrom(
                       foregroundColor: const Color(0xFFE53E3E),
                     ),
-                    child: const Text(
-                      'Misafir olarak devam et',
-                      style: TextStyle(
+                    child: Text(
+                      LocalizationService.translate('continue_as_guest'),
+                      style: const TextStyle(
                         fontSize: 16,
                         decoration: TextDecoration.underline,
                       ),
@@ -258,47 +288,53 @@ class _LoginScreenState extends State<LoginScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('HemoAI Hakkında'),
-        content: const SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'HemoAI - Akıllı Hemogram Analiz Asistanı',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Color(0xFFE53E3E),
+        title: Consumer<LocalizationService>(
+          builder: (context, localization, child) => Text(localization.getString('about_hemoai')),
+        ),
+        content: Consumer<LocalizationService>(
+          builder: (context, localization, child) => SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  localization.getString('app_description'),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Color(0xFFE53E3E),
+                  ),
                 ),
-              ),
-              SizedBox(height: 16),
-              Text('Versiyon: 1.0.0'),
-              SizedBox(height: 8),
-              Text('Geliştirilme Tarihi: Eylül 2025'),
-              SizedBox(height: 16),
-              Text(
-                'Özellikler:',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 8),
-              Text('• AI destekli hemogram analizi'),
-              Text('• Kişiselleştirilmiş diyet önerileri'),
-              Text('• Aile sağlık takip sistemi'),
-              Text('• Alternatif tıp rehberi'),
-              Text('• Akıllı hatırlatıcı sistemi'),
-              SizedBox(height: 16),
-              Text(
-                'HemoAI, hemogram sonuçlarınızı analiz ederek size kişiselleştirilmiş sağlık önerileri sunar. Bu uygulama tıbbi tanı koymaz, sadece bilgi amaçlıdır.',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-            ],
+                const SizedBox(height: 16),
+                Text('${localization.getString('version')}: 1.0.0'),
+                const SizedBox(height: 8),
+                Text('${localization.getString('development_date')}: ${localization.getString('september_2025')}'),
+                const SizedBox(height: 16),
+                Text(
+                  localization.getString('features'),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text('• ${localization.getString('ai_powered_hemogram_analysis')}'),
+                Text('• ${localization.getString('personalized_diet_recommendations')}'),
+                Text('• ${localization.getString('family_health_tracking_system')}'),
+                Text('• ${localization.getString('alternative_medicine_guide')}'),
+                Text('• ${localization.getString('smart_reminder_system')}'),
+                const SizedBox(height: 16),
+                Text(
+                  localization.getString('app_disclaimer'),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Kapat'),
+          Consumer<LocalizationService>(
+            builder: (context, localization, child) => TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(localization.getString('close')),
+            ),
           ),
         ],
       ),
@@ -308,68 +344,70 @@ class _LoginScreenState extends State<LoginScreen> {
   void _showHelpDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Yardım & Destek'),
-        content: const SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Nasıl Kullanılır?',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Color(0xFFE53E3E),
+      builder: (context) => Consumer<LocalizationService>(
+        builder: (context, localizationService, child) => AlertDialog(
+          title: Text(localizationService.getString('help_support')),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  localizationService.getString('how_to_use'),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Color(0xFFE53E3E),
+                  ),
                 ),
-              ),
-              SizedBox(height: 12),
-              Text('1. Kayıt olun veya giriş yapın'),
-              Text('2. Hemogram değerlerinizi girin'),
-              Text('3. AI analizinizi görüntüleyin'),
-              Text('4. Kişisel diyet programınızı inceleyin'),
-              Text('5. Aile üyelerinizi ekleyin ve takip edin'),
-              SizedBox(height: 16),
-              Text(
-                'Önemli Hatırlatmalar:',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 8),
-              Text('• Bu uygulama tıbbi tanı koymaz'),
-              Text('• Doktor tavsiyesi yerini tutmaz'),
-              Text('• Acil durumlarda doktora başvurun'),
-              Text('• Düzenli sağlık kontrollerinizi aksatmayın'),
-              SizedBox(height: 16),
-              Text(
-                'Destek İçin:',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 8),
-              Text('• Uygulama içi geri bildirim gönderin'),
-              Text('• Sorunları bildirin'),
-              Text('• Önerilerinizi paylaşın'),
+                const SizedBox(height: 12),
+                Text(localizationService.getString('step_1_register')),
+                Text(localizationService.getString('step_2_enter_values')),
+                Text(localizationService.getString('step_3_view_analysis')),
+                Text(localizationService.getString('step_4_diet_program')),
+                Text(localizationService.getString('step_5_family_tracking')),
+                const SizedBox(height: 16),
+                Text(
+                  localizationService.getString('important_reminders'),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(localizationService.getString('not_medical_diagnosis')),
+                Text(localizationService.getString('not_doctor_advice')),
+                Text(localizationService.getString('emergency_see_doctor')),
+                Text(localizationService.getString('regular_checkups')),
+                const SizedBox(height: 16),
+                Text(
+                  localizationService.getString('for_support'),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(localizationService.getString('send_feedback')),
+                Text(localizationService.getString('report_issues')),
+                Text(localizationService.getString('share_suggestions')),
             ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Kapat'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Geri bildiriminiz alındı, teşekkürler!'),
-                  backgroundColor: Color(0xFFE53E3E),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE53E3E)),
-            child: const Text('Geri Bildirim Gönder', style: TextStyle(color: Colors.white)),
-          ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(localizationService.getString('close')),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(localizationService.getString('feedback_received')),
+                    backgroundColor: const Color(0xFFE53E3E),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE53E3E)),
+              child: Text(localizationService.getString('send_feedback_button'), style: const TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
       ),
     );
   }

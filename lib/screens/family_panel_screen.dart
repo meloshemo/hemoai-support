@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../services/preferences_service.dart';
-import '../services/database_helper.dart';
+import '../services/web_database_helper.dart';
+import '../services/localization_service.dart';
+import '../widgets/app_drawer.dart';
 
 class FamilyPanelScreen extends StatefulWidget {
   const FamilyPanelScreen({Key? key}) : super(key: key);
@@ -11,7 +14,7 @@ class FamilyPanelScreen extends StatefulWidget {
 
 class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
   PreferencesService? _prefsService;
-  final DatabaseHelper _dbHelper = DatabaseHelper.instance;
+  final WebDatabaseHelper _dbHelper = WebDatabaseHelper.instance;
   List<Map<String, dynamic>> familyMembers = [];
   bool _isLoading = true;
   int? currentUserId;
@@ -64,22 +67,71 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
     }
   }
 
+  // Helpers to map between localized labels and stable relation codes
+  String _relationCodeFromLabel(LocalizationService loc, String label) {
+    final mapping = {
+      loc.getString('family_relation_spouse'): 'spouse',
+      loc.getString('family_relation_child'): 'child',
+      loc.getString('family_relation_father'): 'father',
+      loc.getString('family_relation_mother'): 'mother',
+      loc.getString('family_relation_sibling'): 'sibling',
+      loc.getString('family_relation_grandmother'): 'grandmother',
+      loc.getString('family_relation_grandfather'): 'grandfather',
+      loc.getString('family_relation_other'): 'other',
+    };
+    return mapping[label] ?? _normalizeExistingStored(label);
+  }
+
+  String _normalizeExistingStored(String stored) {
+    // If stored looks like a code already or legacy TR/EN label, map to code
+    final s = stored.trim();
+    const allowed = {
+      'father','mother','child','spouse','sibling','grandfather','grandmother','grandchild','parent','grandparent','other'
+    };
+    if (allowed.contains(s)) return s;
+    // Legacy Turkish/English to code
+    const legacy = {
+      'Baba': 'father', 'Anne': 'mother', 'Çocuk': 'child', 'Eş': 'spouse', 'Kardeş': 'sibling', 'Büyükbaba': 'grandfather', 'Büyükanne': 'grandmother', 'Torun': 'grandchild', 'Aile Üyesi': 'other',
+      'Father': 'father', 'Mother': 'mother', 'Child': 'child', 'Spouse': 'spouse', 'Sibling': 'sibling', 'Grandfather': 'grandfather', 'Grandmother': 'grandmother', 'Grandchild': 'grandchild', 'Parent': 'parent', 'Grandparent': 'grandparent', 'Other': 'other',
+    };
+    return legacy[s] ?? 'other';
+  }
+
+  String _relationLabelFromStored(LocalizationService loc, String? stored) {
+    if (stored == null || stored.isEmpty) return loc.getString('family_relation_unknown');
+    final code = _normalizeExistingStored(stored);
+    switch (code) {
+      case 'spouse': return loc.getString('family_relation_spouse');
+      case 'child': return loc.getString('family_relation_child');
+      case 'father': return loc.getString('family_relation_father');
+      case 'mother': return loc.getString('family_relation_mother');
+      case 'sibling': return loc.getString('family_relation_sibling');
+      case 'grandmother': return loc.getString('family_relation_grandmother');
+      case 'grandfather': return loc.getString('family_relation_grandfather');
+      case 'grandchild': return loc.getString('family_relation_grandchild');
+      case 'parent': return loc.getString('family_relation_parent');
+      case 'grandparent': return loc.getString('family_relation_grandparent');
+      default: return loc.getString('family_relation_other');
+    }
+  }
+
   Future<void> _addFamilyMember() async {
     // İki seçenek sun: Manuel ekleme veya Gerçek kullanıcı davet etme
+    final localizationService = Provider.of<LocalizationService>(context, listen: false);
     final choice = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Aile Üyesi Ekle'),
-        content: const Text('Hangi yöntemi kullanmak istiyorsuniz?'),
+        title: Text(localizationService.getString('family_add_member')),
+        content: Text(localizationService.getString('family_add_member_question')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, 'manual'),
-            child: const Text('Manuel Bilgi Girişi'),
+            child: Text(localizationService.getString('family_add_manual_entry')),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, 'invite'),
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE53E3E)),
-            child: const Text('Gerçek Kullanıcı Davet Et', style: TextStyle(color: Colors.white)),
+            child: Text(localizationService.getString('family_invite_real_user'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -101,12 +153,16 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
     if (result != null && currentUserId != null) {
       result['user_id'] = currentUserId;
       result['is_real_user'] = false;
+      // Normalize relation to code before saving
+      final loc = Provider.of<LocalizationService>(context, listen: false);
+      result['relation'] = _relationCodeFromLabel(loc, result['relation']);
       await _dbHelper.insertFamilyMember(result);
       await _loadFamilyMembers();
       
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${result['name']} aile paneline eklendi'),
+          content: Text(loc.getStringWithParams('family_member_added', {'name': result['name']})),
           backgroundColor: Colors.green,
         ),
       );
@@ -121,8 +177,8 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
 
     if (result != null && currentUserId != null) {
       // Kullanıcıyı telefon numarası ile ara
-      String phone = result['phone'];
-      String relation = result['relation'];
+  String phone = result['phone'];
+  String relationCode = _relationCodeFromLabel(Provider.of<LocalizationService>(context, listen: false), result['relation']);
       
       try {
         Map<String, dynamic>? targetUser = await _dbHelper.findUserByPhone(phone);
@@ -132,28 +188,31 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
           await _dbHelper.sendFamilyInvitation({
             'from_user_id': currentUserId,
             'to_user_id': targetUser['id'],
-            'relation': relation,
+            'relation': relationCode,
             'message': result['message'],
           });
           
+          final loc = Provider.of<LocalizationService>(context, listen: false);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('${targetUser['name']} kişisine davet gönderildi!'),
+              content: Text(loc.getStringWithParams('family_invite_sent', {'name': targetUser['name']})),
               backgroundColor: Colors.green,
             ),
           );
         } else {
+          final loc = Provider.of<LocalizationService>(context, listen: false);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Bu telefon numarası ile kayıtlı kullanıcı bulunamadı'),
+            SnackBar(
+              content: Text(loc.getString('family_invite_user_not_found')),
               backgroundColor: Colors.orange,
             ),
           );
         }
       } catch (e) {
+        final loc = Provider.of<LocalizationService>(context, listen: false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Davet gönderilirken hata: $e'),
+            content: Text(loc.getStringWithParams('family_invite_error', {'error': e.toString()})),
             backgroundColor: Colors.red,
           ),
         );
@@ -163,10 +222,12 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizationService = Provider.of<LocalizationService>(context);
     return Scaffold(
       backgroundColor: Colors.grey[50],
+      drawer: const AppDrawer(currentRoute: '/family_panel'),
       appBar: AppBar(
-        title: const Text('Aile Sağlık Paneli'),
+  title: Text(localizationService.getString('family_health_panel')),
         backgroundColor: const Color(0xFFE53E3E),
         foregroundColor: Colors.white,
         elevation: 0,
@@ -186,6 +247,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
   }
 
   Widget _buildEmptyState() {
+    final localizationService = Provider.of<LocalizationService>(context, listen: false);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -197,7 +259,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
           ),
           const SizedBox(height: 24),
           Text(
-            'Henüz aile üyesi eklenmemiş',
+            localizationService.getString('family_empty_title'),
             style: TextStyle(
               fontSize: 18,
               color: Colors.grey[600],
@@ -206,7 +268,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Aile üyelerinizi ekleyerek sağlık durumlarını\ntakip edebilirsiniz',
+            localizationService.getString('family_empty_subtitle'),
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.grey[500],
@@ -217,7 +279,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
           ElevatedButton.icon(
             onPressed: _addFamilyMember,
             icon: const Icon(Icons.person_add),
-            label: const Text('İlk Aile Üyesini Ekle'),
+            label: Text(localizationService.getString('family_add_first_member')),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFE53E3E),
               foregroundColor: Colors.white,
@@ -233,6 +295,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
   }
 
   Widget _buildFamilyList() {
+    final localizationService = Provider.of<LocalizationService>(context, listen: false); // for potential future use
     return RefreshIndicator(
       onRefresh: _loadFamilyMembers,
       color: const Color(0xFFE53E3E),
@@ -261,6 +324,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
   }
 
   Widget _buildPendingInvitations() {
+    final localizationService = Provider.of<LocalizationService>(context, listen: false);
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
@@ -284,7 +348,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
               ),
               const SizedBox(width: 12),
               Text(
-                'Bekleyen Davetler (${pendingInvitations.length})',
+                localizationService.getStringWithParams('family_pending_invitations', {'count': pendingInvitations.length.toString()}),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -318,14 +382,14 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                invitation['from_user_name'] ?? 'Bilinmeyen Kullanıcı',
+                                invitation['from_user_name'] ?? localizationService.getString('family_unknown_user'),
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                               Text(
-                                '${invitation['relation'] ?? 'Aile Üyesi'} olarak davet etti',
+                                localizationService.getStringWithParams('family_invited_as_relation', {'relation': _relationLabelFromStored(localizationService, invitation['relation'])}),
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: Colors.grey[600],
@@ -352,7 +416,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
                         TextButton.icon(
                           onPressed: () => _respondToInvitation(invitation['id'], 'rejected'),
                           icon: const Icon(Icons.close, size: 16),
-                          label: const Text('Reddet'),
+                          label: Text(localizationService.getString('family_decline')),
                           style: TextButton.styleFrom(
                             foregroundColor: Colors.red,
                           ),
@@ -361,7 +425,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
                         ElevatedButton.icon(
                           onPressed: () => _respondToInvitation(invitation['id'], 'accepted'),
                           icon: const Icon(Icons.check, size: 16),
-                          label: const Text('Kabul Et'),
+                          label: Text(localizationService.getString('family_accept')),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green,
                             foregroundColor: Colors.white,
@@ -378,13 +442,16 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
   }
 
   Future<void> _respondToInvitation(int invitationId, String response) async {
+    final localizationService = Provider.of<LocalizationService>(context, listen: false);
     try {
       await _dbHelper.respondToInvitation(invitationId, response);
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            response == 'accepted' ? 'Davet kabul edildi!' : 'Davet reddedildi.',
+      response == 'accepted'
+        ? localizationService.getString('family_invite_accepted')
+        : localizationService.getString('family_invite_rejected'),
           ),
           backgroundColor: response == 'accepted' ? Colors.green : Colors.orange,
         ),
@@ -395,7 +462,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Yanıt gönderilirken hata: $e'),
+          content: Text(localizationService.getStringWithParams('family_invite_response_error', {'error': e.toString()})),
           backgroundColor: Colors.red,
         ),
       );
@@ -403,6 +470,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
   }
 
   Widget _buildFamilyMemberCard(Map<String, dynamic> member) {
+    final localizationService = Provider.of<LocalizationService>(context, listen: false);
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
@@ -418,7 +486,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
                   radius: 30,
                   backgroundColor: const Color(0xFFE53E3E).withOpacity(0.1),
                   child: Text(
-                    member['gender'] == 'Kadın' ? '👩' : '👨',
+                    member['gender'] == localizationService.getString('family_gender_female') ? '👩' : '👨',
                     style: const TextStyle(fontSize: 24),
                   ),
                 ),
@@ -428,7 +496,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        member['name'] ?? 'İsimsiz',
+                        member['name'] ?? localizationService.getString('family_name_unknown'),
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -440,7 +508,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
                           Icon(Icons.family_restroom, size: 16, color: Colors.grey[600]),
                           const SizedBox(width: 4),
                           Text(
-                            member['relation'] ?? 'Bilinmiyor',
+                            _relationLabelFromStored(localizationService, member['relation']),
                             style: TextStyle(
                               color: Colors.grey[600],
                               fontSize: 14,
@@ -450,7 +518,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
                           Icon(Icons.cake, size: 16, color: Colors.grey[600]),
                           const SizedBox(width: 4),
                           Text(
-                            '${member['age'] ?? 0} yaş',
+                            '${member['age'] ?? 0} ${localizationService.getString('family_age_suffix')}',
                             style: TextStyle(
                               color: Colors.grey[600],
                               fontSize: 14,
@@ -470,25 +538,21 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
                     }
                   },
                   itemBuilder: (context) => [
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit, size: 18),
-                          SizedBox(width: 8),
-                          Text('Düzenle'),
-                        ],
-                      ),
+                      child: Row(children: [
+                        const Icon(Icons.edit, size: 18),
+                        const SizedBox(width: 8),
+                        Text(localizationService.getString('family_edit')),
+                      ]),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete, size: 18, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('Sil', style: TextStyle(color: Colors.red)),
-                        ],
-                      ),
+                      child: Row(children: [
+                        const Icon(Icons.delete, size: 18, color: Colors.red),
+                        const SizedBox(width: 8),
+                        Text(localizationService.getString('family_delete'), style: const TextStyle(color: Colors.red)),
+                      ]),
                     ),
                   ],
                 ),
@@ -508,7 +572,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Hemogram testleri henüz eklenmemiş. Test sonuçları eklemek için üyeye tıklayın.',
+                      localizationService.getString('family_hemogram_info'),
                       style: TextStyle(
                         color: Colors.blue[700],
                         fontSize: 12,
@@ -525,18 +589,21 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
   }
 
   Future<void> _editFamilyMember(Map<String, dynamic> member) async {
+    final localizationService = Provider.of<LocalizationService>(context, listen: false);
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (context) => _AddFamilyMemberDialog(member: member),
     );
 
     if (result != null) {
+      // Normalize relation to code before saving
+      result['relation'] = _relationCodeFromLabel(localizationService, result['relation']);
       await _dbHelper.updateFamilyMember(member['id'], result);
       await _loadFamilyMembers();
       
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Aile üyesi güncellendi'),
+        SnackBar(
+          content: Text(localizationService.getString('family_member_updated')),
           backgroundColor: Colors.green,
         ),
       );
@@ -544,20 +611,21 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
   }
 
   Future<void> _deleteFamilyMember(Map<String, dynamic> member) async {
+    final localizationService = Provider.of<LocalizationService>(context, listen: false);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Aile Üyesini Sil'),
-        content: Text('${member['name']} adlı aile üyesini silmek istediğinizden emin misiniz?'),
+        title: Text(localizationService.getString('family_member_delete_title')),
+        content: Text(localizationService.getStringWithParams('family_member_delete_confirm', {'name': member['name']})),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('İptal'),
+            child: Text(localizationService.getString('family_cancel')),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Sil', style: TextStyle(color: Colors.white)),
+            child: Text(localizationService.getString('family_delete'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -569,7 +637,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${member['name']} silindi'),
+          content: Text(localizationService.getStringWithParams('family_member_deleted', {'name': member['name']})),
           backgroundColor: Colors.red,
         ),
       );
@@ -590,20 +658,62 @@ class _AddFamilyMemberDialogState extends State<_AddFamilyMemberDialog> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _ageController;
-  String _gender = 'Erkek';
-  String _relation = 'Eş';
+  late String _gender;
+  late String _relation;
 
-  final List<String> _relations = [
-    'Eş', 'Çocuk', 'Baba', 'Anne', 'Kardeş', 'Büyükanne', 'Büyükbaba', 'Diğer'
-  ];
+  String _normalizeExistingStored(String stored) {
+    final s = stored.trim();
+    const allowed = {
+      'father','mother','child','spouse','sibling','grandfather','grandmother','grandchild','parent','grandparent','other'
+    };
+    if (allowed.contains(s)) return s;
+    const legacy = {
+      'Baba': 'father', 'Anne': 'mother', 'Çocuk': 'child', 'Eş': 'spouse', 'Kardeş': 'sibling', 'Büyükbaba': 'grandfather', 'Büyükanne': 'grandmother', 'Torun': 'grandchild', 'Aile Üyesi': 'other',
+      'Father': 'father', 'Mother': 'mother', 'Child': 'child', 'Spouse': 'spouse', 'Sibling': 'sibling', 'Grandfather': 'grandfather', 'Grandmother': 'grandmother', 'Grandchild': 'grandchild', 'Parent': 'parent', 'Grandparent': 'grandparent', 'Other': 'other',
+    };
+    return legacy[s] ?? 'other';
+  }
+
+  String _labelFromStored(LocalizationService loc, String? stored) {
+    if (stored == null || stored.isEmpty) return loc.getString('family_relation_spouse');
+    final code = _normalizeExistingStored(stored);
+    switch (code) {
+      case 'spouse': return loc.getString('family_relation_spouse');
+      case 'child': return loc.getString('family_relation_child');
+      case 'father': return loc.getString('family_relation_father');
+      case 'mother': return loc.getString('family_relation_mother');
+      case 'sibling': return loc.getString('family_relation_sibling');
+      case 'grandmother': return loc.getString('family_relation_grandmother');
+      case 'grandfather': return loc.getString('family_relation_grandfather');
+      case 'grandchild': return loc.getString('family_relation_grandchild');
+      case 'parent': return loc.getString('family_relation_parent');
+      case 'grandparent': return loc.getString('family_relation_grandparent');
+      default: return loc.getString('family_relation_other');
+    }
+  }
+
+  List<String> _relationOptions(BuildContext context) {
+    final loc = Provider.of<LocalizationService>(context, listen: false);
+    return [
+      loc.getString('family_relation_spouse'),
+      loc.getString('family_relation_child'),
+      loc.getString('family_relation_father'),
+      loc.getString('family_relation_mother'),
+      loc.getString('family_relation_sibling'),
+      loc.getString('family_relation_grandmother'),
+      loc.getString('family_relation_grandfather'),
+      loc.getString('family_relation_other'),
+    ];
+  }
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.member?['name'] ?? '');
     _ageController = TextEditingController(text: widget.member?['age']?.toString() ?? '');
-    _gender = widget.member?['gender'] ?? 'Erkek';
-    _relation = widget.member?['relation'] ?? 'Eş';
+    final loc = LocalizationService();
+    _gender = widget.member?['gender'] ?? loc.getString('family_gender_male');
+    _relation = _labelFromStored(loc, widget.member?['relation']);
   }
 
   @override
@@ -616,7 +726,10 @@ class _AddFamilyMemberDialogState extends State<_AddFamilyMemberDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.member == null ? 'Aile Üyesi Ekle' : 'Aile Üyesini Düzenle'),
+      title: Builder(builder: (context){
+        final loc = Provider.of<LocalizationService>(context, listen: false);
+        return Text(widget.member == null ? loc.getString('family_add_member') : loc.getString('family_member_delete_title'));
+      }),
       content: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -625,13 +738,13 @@ class _AddFamilyMemberDialogState extends State<_AddFamilyMemberDialog> {
             children: [
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Ad Soyad',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: Provider.of<LocalizationService>(context, listen: false).getString('family_name_label'),
+                  border: const OutlineInputBorder(),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Ad soyad gerekli';
+                    return Provider.of<LocalizationService>(context, listen: false).getString('family_name_required');
                   }
                   return null;
                 },
@@ -639,17 +752,17 @@ class _AddFamilyMemberDialogState extends State<_AddFamilyMemberDialog> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _ageController,
-                decoration: const InputDecoration(
-                  labelText: 'Yaş',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: Provider.of<LocalizationService>(context, listen: false).getString('family_age_label'),
+                  border: const OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Yaş gerekli';
+                    return Provider.of<LocalizationService>(context, listen: false).getString('family_age_required');
                   }
                   if (int.tryParse(value) == null) {
-                    return 'Geçerli bir yaş girin';
+                    return Provider.of<LocalizationService>(context, listen: false).getString('family_age_invalid');
                   }
                   return null;
                 },
@@ -657,11 +770,14 @@ class _AddFamilyMemberDialogState extends State<_AddFamilyMemberDialog> {
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: _gender,
-                decoration: const InputDecoration(
-                  labelText: 'Cinsiyet',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: Provider.of<LocalizationService>(context, listen: false).getString('family_gender_label'),
+                  border: const OutlineInputBorder(),
                 ),
-                items: ['Erkek', 'Kadın'].map((String value) {
+                items: [
+                  Provider.of<LocalizationService>(context, listen: false).getString('family_gender_male'),
+                  Provider.of<LocalizationService>(context, listen: false).getString('family_gender_female'),
+                ].map((String value) {
                   return DropdownMenuItem<String>(
                     value: value,
                     child: Text(value),
@@ -676,11 +792,11 @@ class _AddFamilyMemberDialogState extends State<_AddFamilyMemberDialog> {
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: _relation,
-                decoration: const InputDecoration(
-                  labelText: 'Yakınlık Derecesi',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: Provider.of<LocalizationService>(context, listen: false).getString('family_relation_label'),
+                  border: const OutlineInputBorder(),
                 ),
-                items: _relations.map((String value) {
+                items: _relationOptions(context).map((String value) {
                   return DropdownMenuItem<String>(
                     value: value,
                     child: Text(value),
@@ -699,7 +815,7 @@ class _AddFamilyMemberDialogState extends State<_AddFamilyMemberDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('İptal'),
+          child: Builder(builder: (context){return Text(Provider.of<LocalizationService>(context, listen:false).getString('family_cancel'));}),
         ),
         ElevatedButton(
           onPressed: () {
@@ -713,10 +829,13 @@ class _AddFamilyMemberDialogState extends State<_AddFamilyMemberDialog> {
             }
           },
           style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE53E3E)),
-          child: Text(
-            widget.member == null ? 'Ekle' : 'Güncelle',
-            style: const TextStyle(color: Colors.white),
-          ),
+          child: Builder(builder: (context){
+            final loc = Provider.of<LocalizationService>(context, listen:false);
+            return Text(
+              widget.member == null ? loc.getString('family_add_action') : loc.getString('family_update_action'),
+              style: const TextStyle(color: Colors.white),
+            );
+          }),
         ),
       ],
     );
@@ -732,17 +851,28 @@ class _InviteUserDialogState extends State<_InviteUserDialog> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _phoneController;
   late TextEditingController _messageController;
-  String _relation = 'Eş';
+  late String _relation;
 
-  final List<String> _relations = [
-    'Eş', 'Çocuk', 'Baba', 'Anne', 'Kardeş', 'Büyükanne', 'Büyükbaba', 'Diğer'
-  ];
+  List<String> _relationOptions(BuildContext context) {
+    final loc = Provider.of<LocalizationService>(context, listen: false);
+    return [
+      loc.getString('family_relation_spouse'),
+      loc.getString('family_relation_child'),
+      loc.getString('family_relation_father'),
+      loc.getString('family_relation_mother'),
+      loc.getString('family_relation_sibling'),
+      loc.getString('family_relation_grandmother'),
+      loc.getString('family_relation_grandfather'),
+      loc.getString('family_relation_other'),
+    ];
+  }
 
   @override
   void initState() {
     super.initState();
     _phoneController = TextEditingController();
-    _messageController = TextEditingController(text: 'Sizi aile sağlık panelime eklemek istiyorum.');
+    _messageController = TextEditingController(text: Provider.of<LocalizationService>(context, listen: false).getString('family_default_invite_message'));
+    _relation = Provider.of<LocalizationService>(context, listen: false).getString('family_relation_spouse');
   }
 
   @override
@@ -759,7 +889,7 @@ class _InviteUserDialogState extends State<_InviteUserDialog> {
         children: [
           Icon(Icons.person_add, color: const Color(0xFFE53E3E)),
           const SizedBox(width: 8),
-          const Text('Gerçek Kullanıcı Davet Et'),
+          Builder(builder: (context){return Text(Provider.of<LocalizationService>(context, listen:false).getString('family_invite_real_user'));}),
         ],
       ),
       content: Form(
@@ -781,7 +911,7 @@ class _InviteUserDialogState extends State<_InviteUserDialog> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Bu kişi HemoAI uygulamasını kullanıyor olmalıdır. Davet gönderilecek ve onaylaması beklenecek.',
+                        Provider.of<LocalizationService>(context, listen:false).getString('family_invite_info'),
                         style: TextStyle(
                           color: Colors.blue[700],
                           fontSize: 12,
@@ -794,19 +924,19 @@ class _InviteUserDialogState extends State<_InviteUserDialog> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _phoneController,
-                decoration: const InputDecoration(
-                  labelText: 'Telefon Numarası',
-                  hintText: '5551234567',
-                  prefixIcon: Icon(Icons.phone),
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: Provider.of<LocalizationService>(context, listen:false).getString('family_phone_label'),
+                  hintText: Provider.of<LocalizationService>(context, listen:false).getString('family_phone_hint'),
+                  prefixIcon: const Icon(Icons.phone),
+                  border: const OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.phone,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Telefon numarası gerekli';
+                    return Provider.of<LocalizationService>(context, listen:false).getString('family_phone_required');
                   }
                   if (value.length < 10) {
-                    return 'Geçerli bir telefon numarası girin';
+                    return Provider.of<LocalizationService>(context, listen:false).getString('family_phone_invalid');
                   }
                   return null;
                 },
@@ -814,12 +944,12 @@ class _InviteUserDialogState extends State<_InviteUserDialog> {
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: _relation,
-                decoration: const InputDecoration(
-                  labelText: 'Yakınlık Derecesi',
-                  prefixIcon: Icon(Icons.family_restroom),
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: Provider.of<LocalizationService>(context, listen:false).getString('family_relation_label'),
+                  prefixIcon: const Icon(Icons.family_restroom),
+                  border: const OutlineInputBorder(),
                 ),
-                items: _relations.map((String value) {
+                items: _relationOptions(context).map((String value) {
                   return DropdownMenuItem<String>(
                     value: value,
                     child: Text(value),
@@ -834,15 +964,15 @@ class _InviteUserDialogState extends State<_InviteUserDialog> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _messageController,
-                decoration: const InputDecoration(
-                  labelText: 'Davet Mesajı',
-                  prefixIcon: Icon(Icons.message),
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: Provider.of<LocalizationService>(context, listen:false).getString('family_invite_message_label'),
+                  prefixIcon: const Icon(Icons.message),
+                  border: const OutlineInputBorder(),
                 ),
                 maxLines: 3,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Davet mesajı gerekli';
+                    return Provider.of<LocalizationService>(context, listen:false).getString('family_invite_message_required');
                   }
                   return null;
                 },
@@ -854,7 +984,7 @@ class _InviteUserDialogState extends State<_InviteUserDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('İptal'),
+          child: Builder(builder: (context){return Text(Provider.of<LocalizationService>(context, listen:false).getString('family_cancel'));}),
         ),
         ElevatedButton(
           onPressed: () {
@@ -867,10 +997,10 @@ class _InviteUserDialogState extends State<_InviteUserDialog> {
             }
           },
           style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE53E3E)),
-          child: const Text(
-            'Davet Gönder',
-            style: TextStyle(color: Colors.white),
-          ),
+          child: Builder(builder: (context){return Text(
+            Provider.of<LocalizationService>(context, listen:false).getString('family_send_invite'),
+            style: const TextStyle(color: Colors.white),
+          );}),
         ),
       ],
     );

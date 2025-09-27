@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../services/preferences_service.dart';
 import '../services/database_helper.dart';
+import '../services/localization_service.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
 
@@ -39,20 +41,22 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
 
   Future<void> _login() async {
     if (_prefsService == null) {
+      final loc = Provider.of<LocalizationService>(context, listen: false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Servisler henüz yüklenmedi, lütfen bekleyin'),
-          backgroundColor: Color(0xFFE53E3E),
+        SnackBar(
+          content: Text(loc.getString('services_not_loaded')),
+          backgroundColor: const Color(0xFFE53E3E),
         ),
       );
       return;
     }
 
     if (phoneController.text.isEmpty || passwordController.text.isEmpty) {
+      final loc = Provider.of<LocalizationService>(context, listen: false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Lütfen telefon numarası ve şifre girin'),
-          backgroundColor: Color(0xFFE53E3E),
+        SnackBar(
+          content: Text(loc.getString('enter_phone_password')),
+          backgroundColor: const Color(0xFFE53E3E),
         ),
       );
       return;
@@ -91,12 +95,13 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
           await _prefsService!.setUserInfo(existingUser['name'], existingUser['email'], existingUser['phone']);
         }
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Hoş geldiniz Test Kullanıcısı!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+          final loc = Provider.of<LocalizationService>(context, listen: false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(loc.getString('welcome_test_user')),
+              backgroundColor: Colors.green,
+            ),
+          );
         
         Navigator.pushReplacementNamed(context, '/personal_info');
         return;
@@ -120,37 +125,41 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
             user['phone'],
           );
           
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Hoş geldiniz!'),
-              backgroundColor: Colors.green,
-            ),
-          );
+            final loc = Provider.of<LocalizationService>(context, listen: false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(loc.getString('welcome_generic')),
+                backgroundColor: Colors.green,
+              ),
+            );
           
           Navigator.pushReplacementNamed(context, '/personal_info');
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Şifre hatalı!'),
-              backgroundColor: Color(0xFFE53E3E),
-            ),
-          );
+            final loc = Provider.of<LocalizationService>(context, listen: false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(loc.getString('password_incorrect')),
+                backgroundColor: const Color(0xFFE53E3E),
+              ),
+            );
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Kullanıcı bulunamadı!'),
-            backgroundColor: Color(0xFFE53E3E),
-          ),
-        );
+          final loc = Provider.of<LocalizationService>(context, listen: false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(loc.getString('user_not_found')),
+              backgroundColor: const Color(0xFFE53E3E),
+            ),
+          );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Giriş yapılırken hata oluştu: $e'),
-          backgroundColor: const Color(0xFFE53E3E),
-        ),
-      );
+        final loc = Provider.of<LocalizationService>(context, listen: false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${loc.getString('login_error_prefix')}$e'),
+            backgroundColor: const Color(0xFFE53E3E),
+          ),
+        );
     } finally {
       setState(() {
         _isLoading = false;
@@ -167,10 +176,16 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // We will access localization via Provider in Builders where needed
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Giriş Yap'),
+        title: Builder(
+          builder: (context) {
+            final loc = Provider.of<LocalizationService>(context);
+            return Text(loc.getString('login'));
+          },
+        ),
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFFE53E3E),
         elevation: 0,
@@ -222,10 +237,13 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                   ),
                   child: Column(
                     children: [
-                      TextField(
+                      Builder(
+                        builder: (context) {
+                          final loc = Provider.of<LocalizationService>(context);
+                          return TextField(
                         controller: phoneController,
                         decoration: InputDecoration(
-                          labelText: 'Telefon Numarası',
+                            labelText: loc.getString('phone_number_label'),
                           prefixIcon: const Icon(Icons.phone, color: Color(0xFFE53E3E)),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -236,12 +254,17 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                           ),
                         ),
                         keyboardType: TextInputType.phone,
+                          );
+                        },
                       ),
                       const SizedBox(height: 20),
-                      TextField(
+                      Builder(
+                        builder: (context) {
+                          final loc = Provider.of<LocalizationService>(context);
+                          return TextField(
                         controller: passwordController,
                         decoration: InputDecoration(
-                          labelText: 'Şifre',
+                            labelText: loc.getString('password_label'),
                           prefixIcon: const Icon(Icons.lock, color: Color(0xFFE53E3E)),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -252,6 +275,8 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                           ),
                         ),
                         obscureText: true,
+                          );
+                        },
                       ),
                       const SizedBox(height: 16),
                       
@@ -263,14 +288,19 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: Colors.blue[200]!),
                         ),
-                        child: const Text(
-                          'Test için:\nTelefon: 5551234567\nŞifre: 1234',
+                          child: Builder(
+                            builder: (context) {
+                              final loc = Provider.of<LocalizationService>(context);
+                              return Text(
+                                loc.getString('test_credentials_hint'),
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.blue,
                           ),
                           textAlign: TextAlign.center,
-                        ),
+                              );
+                            },
+                          ),
                       ),
                       
                       const SizedBox(height: 16),
@@ -293,12 +323,17 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                             ? const CircularProgressIndicator(
                                 valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                               )
-                            : const Text(
-                                'Giriş Yap',
-                                style: TextStyle(
+                            : Builder(
+                                builder: (context) {
+                                  final loc = Provider.of<LocalizationService>(context);
+                                  return Text(
+                                    loc.getString('login'),
+                                style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w600,
                                 ),
+                                  );
+                                },
                               ),
                         ),
                       ),
@@ -308,24 +343,29 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                 
                 const SizedBox(height: 24),
                 
-                // Şifremi Unuttum
-                TextButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Şifre sıfırlama özelliği yakında eklenecek'),
-                        backgroundColor: Color(0xFFE53E3E),
+                // Forgot Password
+                Builder(
+                  builder: (context) {
+                    final loc = Provider.of<LocalizationService>(context);
+                    return TextButton(
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(loc.getString('forgot_password_coming_soon')),
+                            backgroundColor: const Color(0xFFE53E3E),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        loc.getString('forgot_password'),
+                        style: const TextStyle(
+                          color: Color(0xFFE53E3E),
+                          fontSize: 16,
+                          decoration: TextDecoration.underline,
+                        ),
                       ),
                     );
                   },
-                  child: const Text(
-                    'Şifremi Unuttum',
-                    style: TextStyle(
-                      color: Color(0xFFE53E3E),
-                      fontSize: 16,
-                      decoration: TextDecoration.underline,
-                    ),
-                  ),
                 ),
               ],
             ),

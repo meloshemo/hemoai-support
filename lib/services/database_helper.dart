@@ -1,6 +1,5 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'web_database_helper.dart';
 
@@ -174,6 +173,22 @@ class DatabaseHelper {
         is_read INTEGER DEFAULT 0,
         scheduled_date TEXT NOT NULL,
         created_at TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+      )
+    ''');
+
+    // Hatırlatıcılar tablosu
+    await db.execute('''
+      CREATE TABLE reminders(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        title TEXT NOT NULL,
+        description TEXT NOT NULL,
+        scheduled_time INTEGER NOT NULL,
+        type INTEGER NOT NULL,
+        repeat_type INTEGER DEFAULT 0,
+        is_active INTEGER DEFAULT 1,
+        created_at INTEGER NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
       )
     ''');
@@ -683,6 +698,125 @@ class DatabaseHelper {
       });
     }
   }
+
+  // Hatırlatıcı yönetimi
+  Future<int> createReminder(Map<String, dynamic> reminderData) async {
+    if (kIsWeb) {
+      // Web için local storage kullan
+      return DateTime.now().millisecondsSinceEpoch; // Fake ID
+    } else {
+      final db = await database;
+      return await db.insert('reminders', reminderData);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getAllReminders([int? userId]) async {
+    if (kIsWeb) {
+      // Web için boş liste döndür (şimdilik)
+      return [];
+    } else {
+      final db = await database;
+      if (userId != null) {
+        return await db.query(
+          'reminders',
+          where: 'user_id = ?',
+          whereArgs: [userId],
+          orderBy: 'scheduled_time ASC',
+        );
+      } else {
+        return await db.query('reminders', orderBy: 'scheduled_time ASC');
+      }
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getActiveReminders([int? userId]) async {
+    if (kIsWeb) {
+      return [];
+    } else {
+      final db = await database;
+      String whereClause = 'is_active = 1';
+      List<dynamic> whereArgs = [];
+      
+      if (userId != null) {
+        whereClause += ' AND user_id = ?';
+        whereArgs.add(userId);
+      }
+
+      return await db.query(
+        'reminders',
+        where: whereClause,
+        whereArgs: whereArgs.isEmpty ? null : whereArgs,
+        orderBy: 'scheduled_time ASC',
+      );
+    }
+  }
+
+  Future<int> updateReminder(int id, Map<String, dynamic> reminderData) async {
+    if (kIsWeb) {
+      return 1;
+    } else {
+      final db = await database;
+      return await db.update(
+        'reminders',
+        reminderData,
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    }
+  }
+
+  Future<int> deleteReminder(int id) async {
+    if (kIsWeb) {
+      return 1;
+    } else {
+      final db = await database;
+      return await db.delete(
+        'reminders',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    }
+  }
+
+  Future<int> toggleReminderStatus(int id) async {
+    if (kIsWeb) {
+      return 1;
+    } else {
+      final db = await database;
+      final reminder = await db.query(
+        'reminders',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      
+      if (reminder.isNotEmpty) {
+        final isActive = reminder.first['is_active'] as int;
+        return await db.update(
+          'reminders',
+          {'is_active': isActive == 1 ? 0 : 1},
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+      }
+      return 0;
+    }
+  }
+
+  // Advanced Analytics metodları
+  Future<List<Map<String, dynamic>>> getHemogramTestsByUser(int userId) async {
+    if (kIsWeb) {
+      final webDb = await database;
+      return await webDb.getHemogramTestsByUser(userId);
+    } else {
+      final db = await database;
+      return await db.query(
+        'hemogram_tests',
+        where: 'user_id = ?',
+        whereArgs: [userId],
+        orderBy: 'test_date DESC',
+      );
+    }
+  }
 }
 
 // Hemogram değerleri için yardımcı sınıf
@@ -713,12 +847,52 @@ class HemogramValues {
     
     userValues.forEach((key, value) {
       String? columnName = columnNames[key];
+      // If not found in legacy display-label mapping, try canonical keys
+      columnName ??= _mapCanonicalKeyToDbColumn(key);
       if (columnName != null) {
         dbValues[columnName] = value;
       }
     });
     
     return dbValues;
+  }
+
+  // Support mapping from canonical parameter keys used in new UI to DB column names
+  static String? _mapCanonicalKeyToDbColumn(String key) {
+    switch (key) {
+      case 'hemoglobin':
+        return 'hemoglobin';
+      case 'iron':
+        return 'iron';
+      case 'white_blood_cells':
+        return 'leukocyte';
+      case 'red_blood_cells':
+        return 'erythrocyte';
+      case 'hematocrit':
+        return 'hematocrit';
+      case 'platelets':
+        return 'platelet';
+      case 'mcv':
+        return 'mcv';
+      case 'mch':
+        return 'mch';
+      case 'mchc':
+        return 'mchc';
+      case 'rdw':
+        return 'rdw';
+      case 'neutrophil':
+        return 'neutrophil';
+      case 'lymphocyte':
+        return 'lymphocyte';
+      case 'monocyte':
+        return 'monocyte';
+      case 'eosinophil':
+        return 'eosinophil';
+      case 'basophil':
+        return 'basophil';
+      default:
+        return null;
+    }
   }
 
   static Map<String, double> mapFromDatabase(Map<String, dynamic> dbValues) {
@@ -734,4 +908,5 @@ class HemogramValues {
     
     return userValues;
   }
+
 }

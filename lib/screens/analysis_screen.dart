@@ -1,1141 +1,1452 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/web_database_helper.dart';
 import '../services/database_helper.dart';
+import '../services/audit_log_service.dart';
 import '../services/preferences_service.dart';
+import '../services/export_service.dart';
+import '../services/localization_service.dart';
+import '../widgets/app_drawer.dart';
+import 'export_options_screen.dart';
 
 class AnalysisScreen extends StatefulWidget {
+  final Map<String, double> hemogramValues;
+
+  const AnalysisScreen({
+    Key? key,
+    required this.hemogramValues,
+  }) : super(key: key);
+
   @override
   _AnalysisScreenState createState() => _AnalysisScreenState();
 }
 
 class _AnalysisScreenState extends State<AnalysisScreen> {
-  final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
-  final PreferencesService _preferencesService = PreferencesService();
+  late final WebDatabaseHelper _dbHelper;
+  final PreferencesService _prefsService = PreferencesService();
+  final ExportService _exportService = ExportService();
+  
   Map<String, double> currentValues = {};
   List<Map<String, dynamic>> testHistory = [];
-  bool isLoading = true;
-  
-  final Map<String, double> exampleValues = {
-    'Demir (mcg/dL)': 50,
-    'Hemoglobin (g/dL)': 11.5,
-    'Lökosit (K/uL)': 8.0,
-    'Eritrosit (M/uL)': 5.0,
-    'Hematokrit (%)': 40.0,
-    'Trombosit (K/uL)': 200.0,
-    'MCV (fL)': 85.0,
-    'MCH (pg)': 29.0,
-    'MCHC (g/dL)': 34.0,
-    'RDW (%)': 13.0,
-    'Nötrofil (%)': 60.0,
-    'Lenfosit (%)': 30.0,
-    'Monosit (%)': 5.0,
-    'Eozinofil (%)': 2.0,
-    'Bazofil (%)': 1.0,
+  bool _isExporting = false;
+
+  // Reference ranges keyed by canonical parameter codes
+  final Map<String, Map<String, double>> referenceRanges = {
+    'hemoglobin': {'min': 12.0, 'max': 17.0},
+    'iron': {'min': 60.0, 'max': 170.0},
+    'white_blood_cells': {'min': 4.0, 'max': 11.0},
+    'platelets': {'min': 150.0, 'max': 450.0},
+    'hematocrit': {'min': 35.0, 'max': 50.0},
+    'mcv': {'min': 80.0, 'max': 100.0},
+    'mch': {'min': 27.0, 'max': 32.0},
+    'mchc': {'min': 32.0, 'max': 36.0},
+    'rdw': {'min': 11.5, 'max': 14.5},
+    'ferritin': {'min': 15.0, 'max': 150.0},
   };
-
-  // Detaylı tavsiye sistemi - Anormal değerler için
-  final Map<String, Map<String, dynamic>> detailedAdvice = {
-    'Demir (mcg/dL)': {
-      'low_symptoms': 'Yorgunluk, solgun cilt, nefes darlığı, saç dökülmesi',
-      'high_symptoms': 'Karın ağrısı, kalp ritmi bozukluğu, eklem ağrıları',
-      'herbal_remedies': 'Kuru üzüm, pekmez, ısırgan otu çayı, bitkisel demir takviyeleri, kekik çayı',
-      'foods_increase': 'Kırmızı et, karaciğer, ıspanak, nohut, mercimek, susam, kabak çekirdeği',
-      'foods_avoid': 'Çay, kahve (yemekten sonra), süt ürünleri (demir ile birlikte)',
-      'lifestyle': 'C vitamini ile birlikte alım, demir tava kullanımı, düzenli egzersiz',
-      'warning': 'Düşük demir anemiye, yüksek demir organ hasarına yol açabilir',
-    },
-    'Hemoglobin (g/dL)': {
-      'low_symptoms': 'Şiddetli yorgunluk, baş dönmesi, kalp çarpıntısı, solgun görünüm',
-      'high_symptoms': 'Baş ağrısı, görme bulanıklığı, kırmızı cilt, tromboz riski',
-      'herbal_remedies': 'Isırgan otu, keçiboynuzu, nar suyu, bitkisel karışımlar, defne yaprağı',
-      'foods_increase': 'Kırmızı et, tavuk ciğeri, balık, yumurta, koyu yeşil sebzeler',
-      'foods_avoid': 'Alkol, aşırı kafein, işlenmiş gıdalar',
-      'lifestyle': 'Yeterli uyku, stres yönetimi, düzenli kan kontrolü',
-      'warning': 'Anemi veya polisitemi belirtisi olabilir, doktor kontrolü şart',
-    },
-    'Lökosit (K/uL)': {
-      'low_symptoms': 'Sık enfeksiyon, yavaş iyileşme, ateş, halsizlik',
-      'high_symptoms': 'Ateş, enfeksiyon belirtileri, yorgunluk, gece terlemesi',
-      'herbal_remedies': 'Propolis, ekinezya, zencefil, sarımsak, yeşil çay',
-      'foods_increase': 'Probiyotik yoğurt, sarımsak, zencefil, zerdeçal, mantar',
-      'foods_avoid': 'Şeker, işlenmiş gıdalar, aşırı alkol',
-      'lifestyle': 'El hijyeni, yeterli uyku, stresten kaçınma, düzenli egzersiz',
-      'warning': 'Enfeksiyon veya immün sistem sorunu işareti olabilir',
-    },
-    'Trombosit (K/uL)': {
-      'low_symptoms': 'Kolay morarma, sık burun kanaması, diş eti kanaması',
-      'high_symptoms': 'Tromboz riski, baş ağrısı, göğüs ağrısı',
-      'herbal_remedies': 'C vitamini, papaya yaprağı çayı, nar suyu, ginkgo biloba',
-      'foods_increase': 'Papaya, kiwi, portakal, brokkoli, yeşil sebzeler',
-      'foods_avoid': 'Alkol, çiğ balık, aşırı E vitamini',
-      'lifestyle': 'Yaralanmalardan kaçınma, düzenli kontrol',
-      'warning': 'Kanama bozukluğu veya tromboz riski, acil doktor kontrolü',
-    },
-  };
-
-  final Map<String, String> altTipAdvice = {
-    'Demir (mcg/dL)': 'Kuru üzüm, pekmez, ısırgan otu çayı, bitkisel demir takviyeleri.',
-    'Hemoglobin (g/dL)': 'Isırgan otu, keçiboynuzu, nar suyu, bitkisel karışımlar.',
-    'Lökosit (K/uL)': 'Propolis, ekinezya, zencefil, sarımsak.',
-    'Trombosit (K/uL)': 'C vitamini, papaya yaprağı çayı, nar suyu.',
-    'MCV (fL)': 'B12 ve folik asit içeren bitkisel takviyeler.',
-    'MCH (pg)': 'Kırmızı pancar, ısırgan otu.',
-    'MCHC (g/dL)': 'C vitamini ve demir içeren bitkisel karışımlar.',
-    'RDW (%)': 'Demir ve B12 takviyeli bitkisel ürünler.',
-    'Nötrofil (%)': 'Zencefil, sarımsak, ekinezya.',
-    'Lenfosit (%)': 'Propolis, zerdeçal.',
-    'Monosit (%)': 'Dengeli bitkisel beslenme.',
-    'Eozinofil (%)': 'Alerjiye karşı bitkisel çaylar.',
-    'Bazofil (%)': 'Alerjiye karşı bitkisel karışımlar.',
-  };
-
-  final Map<String, String> dietPrograms = {
-    'Demir (mcg/dL)': 'Demir diyeti: Kırmızı et, yumurta, baklagil, yeşil sebze ağırlıklı beslenme.',
-    'Hemoglobin (g/dL)': 'Hemoglobin diyeti: Demir ve B12 içeren gıdalar, nar, ıspanak.',
-    'Lökosit (K/uL)': 'Bağışıklık diyeti: C vitamini, probiyotik, zencefil, sarımsak.',
-    'Trombosit (K/uL)': 'Trombosit diyeti: Folik asit, B12, nar, papaya.',
-    'MCV (fL)': 'B12 ve folik asit diyeti: Yumurta, süt, yeşil yapraklı sebzeler.',
-    'MCH (pg)': 'Demir ve protein diyeti: Kırmızı et, balık, baklagil.',
-    'MCHC (g/dL)': 'Demir ve C vitamini diyeti: Portakal, kırmızı et.',
-    'RDW (%)': 'Demir ve B12 diyeti: Yumurta, kırmızı et, süt.',
-    'Nötrofil (%)': 'Protein ve vitamin diyeti: Tavuk, balık, yumurta.',
-    'Lenfosit (%)': 'Bağışıklık diyeti: Yoğurt, kefir, zerdeçal.',
-    'Monosit (%)': 'Dengeli diyet: Sebze, meyve, tam tahıl.',
-    'Eozinofil (%)': 'Alerjiye uygun diyet: Gluten ve süt ürünlerinden kaçınma.',
-    'Bazofil (%)': 'Alerjiye uygun diyet: Bitkisel ağırlıklı beslenme.',
-  };
-
-  final Map<String, List<double>> referenceRanges = {
-    'Demir (mcg/dL)': [60, 170],
-    'Hemoglobin (g/dL)': [12, 17],
-    'Lökosit (K/uL)': [4, 10],
-    'Eritrosit (M/uL)': [4.5, 6],
-    'Hematokrit (%)': [38, 50],
-    'Trombosit (K/uL)': [150, 400],
-    'MCV (fL)': [80, 100],
-    'MCH (pg)': [27, 33],
-    'MCHC (g/dL)': [32, 36],
-    'RDW (%)': [11.5, 14.5],
-    'Nötrofil (%)': [40, 75],
-    'Lenfosit (%)': [20, 45],
-    'Monosit (%)': [2, 10],
-    'Eozinofil (%)': [1, 6],
-    'Bazofil (%)': [0, 2],
-  };
-
-  final Map<String, String> doctorAdvice = {
-    'Demir (mcg/dL)': 'Düşükse: Kırmızı et, deniz ürünleri, yumurta tüketin.',
-    'Hemoglobin (g/dL)': 'Düşükse: Demir takviyesi ve yeşil yapraklı sebzeler önerilir.',
-    'Lökosit (K/uL)': 'Düşükse: Bağışıklık güçlendirici besinler alın.',
-    'Trombosit (K/uL)': 'Düşükse: Folik asit ve B12 içeren gıdalar tüketin.',
-    'MCV (fL)': 'Düşükse: B12 ve folik asit takviyesi alın.',
-    'MCH (pg)': 'Düşükse: Demir ve protein ağırlıklı beslenin.',
-    'MCHC (g/dL)': 'Düşükse: Demir ve C vitamini alın.',
-    'RDW (%)': 'Yüksekse: Demir eksikliği araştırılmalı.',
-    'Nötrofil (%)': 'Düşükse: Protein ve vitamin desteği alın.',
-    'Lenfosit (%)': 'Düşükse: Bağışıklık sistemini destekleyin.',
-    'Monosit (%)': 'Düşükse: Dengeli beslenme önerilir.',
-    'Eozinofil (%)': 'Yüksekse: Alerji ve enfeksiyon kontrolü.',
-    'Bazofil (%)': 'Yüksekse: Alerjiye dikkat edin.',
-  };
-
-  Color getScaleColor(double value, double low, double high) {
-    if (value < low) return Colors.red;
-    if (value > high) return Colors.green;
-    return Colors.yellow;
-  }
-
-  String getScaleText(Color color) {
-    if (color == Colors.green) return 'İyi';
-    if (color == Colors.yellow) return 'Normal';
-    return 'Risk';
-  }
 
   @override
   void initState() {
     super.initState();
-    _loadHemogramData();
+    _dbHelper = WebDatabaseHelper.instance;
+    currentValues = Map.from(widget.hemogramValues);
+    _loadTestHistory();
+    // Background audit: analysis viewed
+    AuditLogService().logAction('analysis_viewed', data: {
+      'params_count': currentValues.length,
+    });
   }
 
-  Future<void> _loadHemogramData() async {
+  Future<void> _loadTestHistory() async {
     try {
-      // Kullanıcı ID'sini al
-      int? userId = await _preferencesService.getUserId();
-      if (userId == null) {
+      int? userId = await _prefsService.getCurrentUserId();
+      if (userId != null) {
+        // Prefer unified DatabaseHelper for cross-platform storage
+        final db = DatabaseHelper.instance;
+        final rows = await db.getHemogramTests(userId);
         setState(() {
-          currentValues = exampleValues; // Fallback to example values
-          isLoading = false;
+          testHistory = rows;
         });
-        return;
-      }
-
-      // Son hemogram testini al
-      List<Map<String, dynamic>> tests = await _databaseHelper.getHemogramTests(userId);
-      
-      if (tests.isNotEmpty) {
-        // En son testin verilerini al
-        Map<String, dynamic> latestTest = tests.first;
-        currentValues = HemogramValues.mapFromDatabase(latestTest);
-        testHistory = tests.take(5).toList(); // Son 5 test
-      } else {
-        // Eğer test yoksa örnek değerleri kullan
-        currentValues = exampleValues;
       }
     } catch (e) {
-      print('Hemogram verileri yüklenirken hata: $e');
-      currentValues = exampleValues; // Fallback
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
-    }
-  }
-
-  Widget _buildTrendIndicator(String parameter) {
-    if (testHistory.length < 2) return Container();
-    
-    // Son iki testin değerlerini karşılaştır
-    double currentVal = currentValues[parameter] ?? 0;
-    Map<String, double> previousValues = HemogramValues.mapFromDatabase(testHistory[1]);
-    double previousVal = previousValues[parameter] ?? 0;
-    
-    if (currentVal == previousVal) {
-      return Icon(Icons.trending_flat, color: Colors.grey, size: 16);
-    } else if (currentVal > previousVal) {
-      return Icon(Icons.trending_up, color: Colors.green, size: 16);
-    } else {
-      return Icon(Icons.trending_down, color: Colors.red, size: 16);
+      print('Error loading test history: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-          title: const Text('AI Hemogram Analizi'),
-          backgroundColor: Colors.white,
-          foregroundColor: const Color(0xFFE53E3E),
-          elevation: 0,
-        ),
-        body: const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(color: Color(0xFFE53E3E)),
-              SizedBox(height: 16),
-              Text('Hemogram verileriniz yükleniyor...'),
-            ],
+    final localizationService = Provider.of<LocalizationService>(context);
+    return Scaffold(
+      backgroundColor: Theme.of(context).brightness == Brightness.dark 
+        ? const Color(0xFF0D1117) 
+        : Colors.grey[50],
+      drawer: const AppDrawer(currentRoute: '/analysis'),
+      appBar: AppBar(
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: Icon(
+              Icons.menu,
+              color: Colors.white,
+              size: 24,
+            ),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+            tooltip: localizationService.getString('menu'),
+            splashColor: Colors.white.withValues(alpha: 0.2),
+            highlightColor: Colors.white.withValues(alpha: 0.1),
           ),
         ),
-      );
-    }
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('AI Hemogram Analizi'),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFFE53E3E),
+        title: Text(
+          localizationService.getString('analysis_results'),
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: Theme.of(context).brightness == Brightness.dark 
+          ? const Color(0xFF161B22) 
+          : const Color(0xFFE53E3E),
         elevation: 0,
+        iconTheme: const IconThemeData(
+          color: Colors.white,
+          size: 24,
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: () {
+              setState(() {
+                _loadTestHistory();
+              });
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              // AI Analiz Başlık
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFFE53E3E), Color(0xFFFF6B6B)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            // Ana Analiz Başlığı
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFE53E3E), Color(0xFFFF6B6B)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFE53E3E).withValues(alpha: 0.3),
+                    spreadRadius: 2,
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  children: [
-                    const Icon(Icons.psychology, color: Colors.white, size: 40),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'AI Destekli Hemogram Analizi',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Yapay zeka ile kan değerlerinizi analiz ediyoruz',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white70,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
+                ],
               ),
-              const SizedBox(height: 24),
-              // Test Geçmişi Butonu
-              if (testHistory.isNotEmpty) ...[
-                Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  child: ElevatedButton.icon(
-                    onPressed: () => _showTestHistory(context),
-                    icon: const Icon(Icons.history),
-                    label: Text('Test Geçmişi (${testHistory.length} test)'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFFE53E3E),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: const BorderSide(color: Color(0xFFE53E3E), width: 1),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.analytics, color: Colors.white, size: 32),
+                      const SizedBox(width: 12),
+                      Text(
+                        localizationService.getString('hemogram_analysis'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _getOverallAssessment(),
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 16,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Builder(builder: (context) {
+                    final rl = _getRiskLevel();
+                    Color c = Colors.green;
+                    if (rl == Provider.of<LocalizationService>(context, listen: false).getString('risk_level_medium')) {
+                      c = Colors.orange;
+                    } else if (rl == Provider.of<LocalizationService>(context, listen: false).getString('risk_level_high')) {
+                      c = Colors.red;
+                    } else if (rl == Provider.of<LocalizationService>(context, listen: false).getString('risk_level_very_high')) {
+                      c = Colors.red.shade900;
+                    }
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: c.withValues(alpha: 0.9), width: 1.2),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.speed, color: c, size: 18),
+                          const SizedBox(width: 6),
+                          Text(
+                            rl,
+                            style: TextStyle(color: c, fontWeight: FontWeight.w700),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 24),
+            
+            // Hemogram Değerleri Listesi
+            _buildParametersList(localizationService),
+            
+            const SizedBox(height: 24),
+            
+            // Genel Değerlendirme
+            _buildOverallEvaluation(localizationService),
+            
+            const SizedBox(height: 24),
+            
+            // Öneriler
+            _buildRecommendations(localizationService),
+            
+            const SizedBox(height: 24),
+            
+            // Test Geçmişi
+            if (testHistory.isNotEmpty) _buildTestHistory(localizationService),
+            
+            const SizedBox(height: 24),
+            
+            // Alt Butonlar
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.info_outline),
+                    label: Text(localizationService.getString('detailed_recommendations')),
+                    onPressed: () {
+                      _showDetailedAdvice(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFE53E3E),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.share),
+                    label: Text(localizationService.getString('share_report_button')),
+                    onPressed: () {
+                      _shareReport(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue[600],
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                 ),
               ],
-              
-              // Analiz Sonuçları
-              ...currentValues.keys.map((param) {
-                double value = currentValues[param]!;
-                double low = referenceRanges[param]![0];
-                double high = referenceRanges[param]![1];
-                Color color = getScaleColor(value, low, high);
-                String advice = '';
-                String altTip = '';
-                String diet = '';
-                if ((color == Colors.red || color == Colors.yellow) && doctorAdvice[param] != null) {
-                  advice = doctorAdvice[param]!;
-                  altTip = altTipAdvice[param] ?? '';
-                  diet = dietPrograms[param] ?? '';
-                }
-                
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: color == Colors.red ? Colors.red[300]! : 
-                             color == Colors.yellow ? Colors.orange[300]! : 
-                             Colors.green[300]!,
-                      width: 2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
-                        spreadRadius: 1,
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Row(
-                              children: [
-                                Text(
-                                  param,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFFE53E3E),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                _buildTrendIndicator(param),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: color,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              getScaleText(color),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Değer: ${value.toStringAsFixed(1)} (Normal: ${low.toStringAsFixed(1)}-${high.toStringAsFixed(1)})',
-                        style: const TextStyle(fontSize: 14, color: Colors.black87),
-                      ),
-                      
-                      if (advice.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.blue[50],
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.blue[200]!),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.medical_services, color: Colors.blue, size: 16),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Doktor Tavsiyesi: $advice',
-                                  style: const TextStyle(color: Colors.blue, fontSize: 13),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                      
-                      if (altTip.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.green[50],
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.green[200]!),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.local_florist, color: Colors.green, size: 16),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Bitkisel Çözüm: $altTip',
-                                  style: const TextStyle(color: Colors.green, fontSize: 13),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                      
-                      if (diet.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.orange[50],
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.orange[200]!),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.restaurant, color: Colors.deepOrange, size: 16),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Beslenme: $diet',
-                                  style: const TextStyle(color: Colors.deepOrange, fontSize: 13),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                );
-              }).toList(),
-              const SizedBox(height: 24),
-              
-              // Alt Butonlar
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.info_outline),
-                      label: const Text('Detaylı Tavsiyeler'),
-                      onPressed: () {
-                        _showDetailedAdvice(context);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE53E3E),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.restaurant_menu),
-                      label: const Text('Diyet Programı'),
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/diet_program');
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFFE53E3E),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: const BorderSide(color: Color(0xFFE53E3E), width: 1),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.family_restroom),
-                      label: const Text('Aile Paneli'),
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/family_panel');
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFFE53E3E),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: const BorderSide(color: Color(0xFFE53E3E), width: 1),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              
-              // AI Özet
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.grey[100]!, Colors.grey[50]!],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE53E3E), width: 1),
-                ),
-                child: Column(
-                  children: [
-                    const Icon(Icons.summarize, color: Color(0xFFE53E3E), size: 30),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'AI Genel Değerlendirme',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFE53E3E),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Hemogram sonuçlarınız genel olarak dikkat gerektiren bazı değerler içermektedir. Özellikle demir ve hemoglobin seviyeleriniz normalin altında. Kişiselleştirilmiş diyet programınızı inceleyerek beslenme düzeninizi iyileştirebilirsiniz.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 14, color: Colors.black87),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.notifications),
-                      label: const Text('Hatırlatıcıları Ayarla'),
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/notifications');
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE53E3E),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Professional Export Options
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Theme.of(context).brightness == Brightness.dark 
+                        ? const Color(0xFF238636)
+                        : const Color(0xFF2E7D32),
+                    Theme.of(context).brightness == Brightness.dark 
+                        ? const Color(0xFF1F6A2E)
+                        : const Color(0xFF388E3C),
                   ],
                 ),
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showDetailedAdvice(BuildContext context) {
-    List<String> abnormalParams = _getAbnormalParameters();
-    
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.health_and_safety, color: Color(0xFFE53E3E), size: 28),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'Detaylı Sağlık Tavsiyeleri',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFE53E3E),
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              const Divider(),
-              const SizedBox(height: 16),
-              
-              if (abnormalParams.isEmpty) 
-                const Expanded(
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.check_circle, color: Colors.green, size: 64),
-                        SizedBox(height: 16),
-                        Text(
-                          'Tebrikler! Tüm değerleriniz normal aralıkta',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Sağlıklı yaşam tarzınızı sürdürmeye devam edin.',
-                          style: TextStyle(color: Colors.grey),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: abnormalParams.length,
-                    itemBuilder: (context, index) {
-                      String param = abnormalParams[index];
-                      Map<String, dynamic>? advice = detailedAdvice[param];
-                      
-                      if (advice == null) return const SizedBox.shrink();
-                      
-                      double value = exampleValues[param] ?? 0;
-                      String status = _getParameterStatus(param, value);
-                      Color statusColor = _getStatusColor(param, value);
-                      
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 16),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: statusColor.withOpacity(0.3)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Parametre başlığı
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: statusColor,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Icon(
-                                    status == 'Düşük' ? Icons.arrow_downward : Icons.arrow_upward,
-                                    color: Colors.white,
-                                    size: 16,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        param,
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      Text(
-                                        '$status - ${value.toStringAsFixed(1)}',
-                                        style: TextStyle(
-                                          color: statusColor,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            
-                            const SizedBox(height: 16),
-                            
-                            // Semptomlar
-                            _buildAdviceSection(
-                              'Belirtiler',
-                              status == 'Düşük' ? advice['low_symptoms'] : advice['high_symptoms'],
-                              Icons.warning,
-                              Colors.orange,
-                            ),
-                            
-                            const SizedBox(height: 12),
-                            
-                            // Bitkisel çözümler
-                            _buildAdviceSection(
-                              'Bitkisel Çözümler',
-                              advice['herbal_remedies'],
-                              Icons.local_florist,
-                              Colors.green,
-                            ),
-                            
-                            const SizedBox(height: 12),
-                            
-                            // Beslenme önerileri
-                            _buildAdviceSection(
-                              'Önerilen Gıdalar',
-                              advice['foods_increase'],
-                              Icons.restaurant,
-                              Colors.blue,
-                            ),
-                            
-                            if (advice['foods_avoid'] != null) ...[
-                              const SizedBox(height: 12),
-                              _buildAdviceSection(
-                                'Kaçınılacak Gıdalar',
-                                advice['foods_avoid'],
-                                Icons.block,
-                                Colors.red,
-                              ),
-                            ],
-                            
-                            const SizedBox(height: 12),
-                            
-                            // Yaşam tarzı
-                            _buildAdviceSection(
-                              'Yaşam Tarzı Önerileri',
-                              advice['lifestyle'],
-                              Icons.fitness_center,
-                              Colors.purple,
-                            ),
-                            
-                            if (advice['warning'] != null) ...[
-                              const SizedBox(height: 12),
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.red.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.red.withOpacity(0.3)),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.priority_high, color: Colors.red, size: 20),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        '⚠️ Uyarı: ${advice['warning']}',
-                                        style: const TextStyle(
-                                          color: Colors.red,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              
-              // Alt butonlar
-              const SizedBox(height: 16),
-              Row(
+              child: Column(
                 children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        Navigator.pushNamed(context, '/diet_program');
-                      },
-                      icon: const Icon(Icons.restaurant_menu),
-                      label: const Text('Kişisel Diyet'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE53E3E),
-                        foregroundColor: Colors.white,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.file_download, color: Colors.white, size: 28),
+                      const SizedBox(width: 12),
+                      Text(
+                        localizationService.getString('export_options_title'),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
+                  const SizedBox(height: 8),
+                  Text(
+                    localizationService.getString('export_options_subtitle'),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.white70,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        Navigator.pushNamed(context, '/notifications');
-                      },
-                      icon: const Icon(Icons.notifications),
-                      label: const Text('Hatırlatıcı'),
+                      onPressed: () => _navigateToExportOptions(context),
+                      icon: const Icon(Icons.launch, size: 20),
+                      label: Text(
+                        localizationService.getString('export_options_go'),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFFE53E3E),
-                        side: const BorderSide(color: Color(0xFFE53E3E)),
+                        foregroundColor: const Color(0xFF2E7D32),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
                       ),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.picture_as_pdf, size: 18),
+                          label: Text(localizationService.getString('quick_pdf')),
+                          onPressed: () => _quickExportPDF(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white.withValues(alpha: 0.9),
+                            foregroundColor: Colors.red[700],
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.table_chart, size: 18),
+                          label: Text(localizationService.getString('quick_excel')),
+                          onPressed: () => _quickExportExcel(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white.withValues(alpha: 0.9),
+                            foregroundColor: Colors.green[700],
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildAdviceSection(String title, String content, IconData icon, Color color) {
+  Widget _buildParametersList(LocalizationService localizationService) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.list_alt, color: Color(0xFFE53E3E)),
+                const SizedBox(width: 8),
+                Text(
+                  localizationService.getString('hemogram_values'),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFE53E3E),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...currentValues.entries.map((entry) {
+              return _buildParameterRow(entry.key, entry.value);
+            }).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildParameterRow(String parameter, double value) {
+    final loc = Provider.of<LocalizationService>(context, listen: false);
+    final range = referenceRanges[parameter];
+    Color statusColor = Colors.green;
+    String statusKey = 'status_normal';
+
+    if (range != null) {
+      if (value < range['min']!) {
+        statusColor = Colors.orange;
+        statusKey = 'status_low';
+      } else if (value > range['max']!) {
+        // Detect extremely high values as "very high" (e.g., > 1.5x upper bound)
+        final max = range['max']!;
+        if (value > max * 1.5) {
+          statusColor = Colors.red.shade900;
+          statusKey = 'status_very_high';
+        } else {
+          statusColor = Colors.red;
+          statusKey = 'status_high';
+        }
+      }
+    }
+
     return Container(
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: Colors.grey[50],
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border(left: BorderSide(width: 4, color: statusColor)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Icon(icon, color: color, size: 16),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                  fontSize: 14,
+          Expanded(
+            flex: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _localizedParamName(parameter),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
                 ),
-              ),
-            ],
+                if (range != null)
+                  Text(
+                    loc.getStringWithParams('normal_range_template', {
+                      'min': range['min']!.toStringAsFixed(1),
+                      'max': range['max']!.toStringAsFixed(1),
+                    }),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            content,
-            style: const TextStyle(fontSize: 13, height: 1.4),
+          Expanded(
+            flex: 1,
+            child: Text(
+              value.toStringAsFixed(1),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          Expanded(
+            flex: 1,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                loc.getString(statusKey),
+                style: TextStyle(
+                  color: statusColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  List<String> _getAbnormalParameters() {
-    List<String> abnormal = [];
+  Widget _buildOverallEvaluation(LocalizationService localizationService) {
+    List<String> abnormalValues = [];
+    List<String> normalValues = [];
     
-    final Map<String, List<double>> normalRanges = {
-      'Demir (mcg/dL)': [60, 170],
-      'Hemoglobin (g/dL)': [12.0, 17.0],
-      'Lökosit (K/uL)': [4.0, 10.0],
-      'Trombosit (K/uL)': [150, 400],
-    };
-    
-    normalRanges.forEach((param, range) {
-      double? value = exampleValues[param];
-      if (value != null && (value < range[0] || value > range[1])) {
-        abnormal.add(param);
+    currentValues.forEach((parameter, value) {
+      final range = referenceRanges[parameter];
+      if (range != null) {
+        if (value < range['min']! || value > range['max']!) {
+          abnormalValues.add(parameter);
+        } else {
+          normalValues.add(parameter);
+        }
       }
     });
-    
-    return abnormal;
-  }
 
-  String _getParameterStatus(String param, double value) {
-    final Map<String, List<double>> normalRanges = {
-      'Demir (mcg/dL)': [60, 170],
-      'Hemoglobin (g/dL)': [12.0, 17.0],
-      'Lökosit (K/uL)': [4.0, 10.0],
-      'Trombosit (K/uL)': [150, 400],
-    };
-    
-    List<double>? range = normalRanges[param];
-    if (range == null) return 'Normal';
-    
-    if (value < range[0]) return 'Düşük';
-    if (value > range[1]) return 'Yüksek';
-    return 'Normal';
-  }
+    Color cardColor = abnormalValues.isEmpty ? Colors.green : Colors.orange;
+    IconData cardIcon = abnormalValues.isEmpty ? Icons.check_circle : Icons.warning;
+    String title = abnormalValues.isEmpty ? localizationService.getString('general_status_good') : localizationService.getString('attention_required');
 
-  Color _getStatusColor(String param, double value) {
-    String status = _getParameterStatus(param, value);
-    switch (status) {
-      case 'Düşük': return Colors.blue;
-      case 'Yüksek': return Colors.red;
-      default: return Colors.green;
-    }
-  }
-
-  void _showTestHistory(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 700, maxHeight: 600),
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.timeline, color: Color(0xFFE53E3E), size: 28),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'Hemogram Test Geçmişi',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFE53E3E),
-                      ),
-                    ),
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: cardColor.withValues(alpha: 0.1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(cardIcon, color: cardColor, size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: cardColor,
                   ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-              const Divider(),
-              const SizedBox(height: 16),
-              
-              Expanded(
-                child: ListView.builder(
-                  itemCount: testHistory.length,
-                  itemBuilder: (context, index) {
-                    Map<String, dynamic> test = testHistory[index];
-                    DateTime testDate = DateTime.parse(test['created_at']);
-                    Map<String, double> values = HemogramValues.mapFromDatabase(test);
-                    
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: index == 0 ? const Color(0xFFE53E3E).withOpacity(0.1) : Colors.grey[50],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: index == 0 ? const Color(0xFFE53E3E) : Colors.grey[300]!,
-                          width: index == 0 ? 2 : 1,
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                index == 0 ? Icons.fiber_new : Icons.history,
-                                color: index == 0 ? const Color(0xFFE53E3E) : Colors.grey[600],
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                index == 0 ? 'En Son Test' : 'Test ${index + 1}',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: index == 0 ? const Color(0xFFE53E3E) : Colors.grey[700],
-                                ),
-                              ),
-                              const Spacer(),
-                              Text(
-                                '${testDate.day}/${testDate.month}/${testDate.year}',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          
-                          // Önemli değerlerin özeti
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              'Hemoglobin (g/dL)',
-                              'Demir (mcg/dL)',
-                              'Lökosit (K/uL)',
-                              'Trombosit (K/uL)',
-                            ].map((param) {
-                              double? value = values[param];
-                              if (value == null) return const SizedBox.shrink();
-                              
-                              List<double> range = referenceRanges[param]!;
-                              Color statusColor = getScaleColor(value, range[0], range[1]);
-                              
-                              return Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: statusColor.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: statusColor.withOpacity(0.5)),
-                                ),
-                                child: Text(
-                                  '${param.split(' ')[0]}: ${value.toStringAsFixed(1)}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: statusColor == Colors.yellow ? Colors.orange[800] : statusColor,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                          
-                          if (index < testHistory.length - 1) ...[
-                            const SizedBox(height: 12),
-                            _buildComparisonWithPrevious(index),
-                          ],
-                        ],
-                      ),
-                    );
-                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (abnormalValues.isNotEmpty) ...[
+              Text(
+                localizationService.getString('abnormal_values_heading'),
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[700],
                 ),
               ),
-              
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        Navigator.pushNamed(context, '/hemogram_entry');
-                      },
-                      icon: const Icon(Icons.add),
-                      label: const Text('Yeni Test Ekle'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE53E3E),
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
-                      label: const Text('Kapat'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFFE53E3E),
-                        side: const BorderSide(color: Color(0xFFE53E3E)),
-                      ),
-                    ),
-                  ),
-                ],
+              const SizedBox(height: 8),
+              ...abnormalValues.map((param) => Padding(
+                padding: const EdgeInsets.only(left: 16, bottom: 4),
+                child: Text('• ' + _localizedParamName(param), style: TextStyle(color: Colors.grey[700])),
+              )).toList(),
+            ] else ...[
+              Text(
+                localizationService.getString('all_values_normal_message'),
+                style: TextStyle(
+                  color: Colors.grey[700],
+                  fontSize: 14,
+                ),
               ),
             ],
-          ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildComparisonWithPrevious(int currentIndex) {
-    if (currentIndex >= testHistory.length - 1) return const SizedBox.shrink();
+  Widget _buildRecommendations(LocalizationService localizationService) {
+    List<String> recommendations = _generateRecommendations();
     
-    Map<String, double> currentValues = HemogramValues.mapFromDatabase(testHistory[currentIndex]);
-    Map<String, double> previousValues = HemogramValues.mapFromDatabase(testHistory[currentIndex + 1]);
-    
-    List<Widget> changes = [];
-    
-    ['Hemoglobin (g/dL)', 'Demir (mcg/dL)', 'Lökosit (K/uL)'].forEach((param) {
-      double? current = currentValues[param];
-      double? previous = previousValues[param];
-      
-      if (current != null && previous != null && current != previous) {
-        double difference = current - previous;
-        bool isIncrease = difference > 0;
-        
-        changes.add(
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: isIncrease ? Colors.green[100] : Colors.red[100],
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Icon(
-                  isIncrease ? Icons.arrow_upward : Icons.arrow_downward,
-                  size: 12,
-                  color: isIncrease ? Colors.green[700] : Colors.red[700],
-                ),
-                const SizedBox(width: 2),
+                const Icon(Icons.lightbulb_outline, color: Color(0xFFE53E3E)),
+                const SizedBox(width: 8),
                 Text(
-                  '${param.split(' ')[0]}: ${difference > 0 ? '+' : ''}${difference.toStringAsFixed(1)}',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: isIncrease ? Colors.green[700] : Colors.red[700],
-                    fontWeight: FontWeight.w500,
+                  localizationService.getString('recommendations'),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFE53E3E),
                   ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 16),
+                ...recommendations.map((recommendation) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.arrow_right, color: Color(0xFFE53E3E), size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          recommendation,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _localizedParamName(String raw) {
+    final loc = Provider.of<LocalizationService>(context, listen: false);
+    // If already canonical key, translate directly
+    const canonicalKeys = {
+      'hemoglobin',
+      'iron',
+      'white_blood_cells',
+      'red_blood_cells',
+      'hematocrit',
+      'platelets',
+      'mcv',
+      'mch',
+      'mchc',
+      'rdw',
+      'ferritin',
+      'neutrophil',
+      'lymphocyte',
+      'monocyte',
+      'eosinophil',
+      'basophil',
+    };
+    if (canonicalKeys.contains(raw)) return loc.getString(raw);
+
+    final lower = raw.toLowerCase();
+    if (lower.contains('hemoglobin')) return loc.getString('hemoglobin');
+    if (lower.contains('demir') || lower.contains('iron')) return loc.getString('iron');
+    if (lower.contains('lökosit') || lower.contains('lokosit') || lower.contains('wbc')) return loc.getString('white_blood_cells');
+    if (lower.contains('eritrosit') || lower.contains('rbc') || lower.contains('red blood')) return loc.getString('red_blood_cells');
+    if (lower.contains('trombosit') || lower.contains('platelet') || lower.contains('plt')) return loc.getString('platelets');
+    if (lower.contains('hematokrit') || lower.contains('hct')) return loc.getString('hematocrit');
+    if (lower.contains('mcv')) return loc.getString('mcv');
+    if (lower.contains('mchc')) return loc.getString('mchc');
+    if (lower.contains('mch')) return loc.getString('mch');
+    if (lower.contains('rdw')) return loc.getString('rdw');
+    if (lower.contains('ferritin')) return loc.getString('ferritin');
+    return raw;
+  }
+
+  Widget _buildTestHistory(LocalizationService localizationService) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.history, color: Color(0xFFE53E3E)),
+                const SizedBox(width: 8),
+                Text(
+                  localizationService.getString('test_history'),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFE53E3E),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (testHistory.isNotEmpty) ...[
+              Text(
+                localizationService.getStringWithParams(
+                  'test_history_count',
+                  {'count': testHistory.length.toString()},
+                ),
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[700],
+                ),
+              ),
+              const SizedBox(height: 12),
+              ...testHistory.map((test) => _buildHistoryItem(test)).toList(),
+            ] else ...[
+              Text(
+                localizationService.getString('first_test_message'),
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHistoryItem(Map<String, dynamic> test) {
+    final rawDate = test['test_date'] as String? ?? DateTime.now().toIso8601String();
+    DateTime testDate = DateTime.tryParse(rawDate) ?? DateTime.now();
+    String riskLevel = (test['risk_level'] ?? 'low').toString();
+    final loc = Provider.of<LocalizationService>(context, listen: false);
+    // Normalize any stored label/code and derive color + localized label
+    final rl = riskLevel.toLowerCase();
+    Color riskColor;
+    if (rl == 'yüksek' || rl == 'yuksek' || rl == 'high') {
+      riskColor = Colors.red;
+    } else if (rl == 'orta' || rl == 'medium') {
+      riskColor = Colors.orange;
+    } else {
+      riskColor = Colors.green;
+    }
+    String riskLabel;
+    if (rl == 'yüksek' || rl == 'yuksek' || rl == 'high') {
+      riskLabel = loc.getString('risk_level_high');
+    } else if (rl == 'orta' || rl == 'medium') {
+      riskLabel = loc.getString('risk_level_medium');
+    } else {
+      riskLabel = loc.getString('risk_level_low');
+    }
+
+    // Build expandable item showing full parameters for that test
+    final paramWidgets = <Widget>[];
+    final keys = [
+      'hemoglobin','iron','leukocyte','erythrocyte','hematocrit','platelet','mcv','mch','mchc','rdw','neutrophil','lymphocyte','monocyte','eosinophil','basophil'
+    ];
+    for (final k in keys) {
+      final v = test[k];
+      if (v != null) {
+        final displayKey = _mapDbKeyToCanonical(k);
+        paramWidgets.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _localizedParamName(displayKey),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                Text((v as num).toStringAsFixed(1), style: const TextStyle(fontSize: 13)),
               ],
             ),
           ),
         );
       }
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border(left: BorderSide(width: 3, color: riskColor)),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${testDate.day}/${testDate.month}/${testDate.year}',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: riskColor.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  riskLabel,
+                  style: TextStyle(
+                    color: riskColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          children: [
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: paramWidgets),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _mapDbKeyToCanonical(String dbKey) {
+    switch (dbKey) {
+      case 'leukocyte':
+        return 'white_blood_cells';
+      case 'erythrocyte':
+        return 'red_blood_cells';
+      case 'platelet':
+        return 'platelets';
+      default:
+        return dbKey;
+    }
+  }
+
+  String _getOverallAssessment() {
+    List<String> abnormalValues = [];
+    
+    currentValues.forEach((parameter, value) {
+      final range = referenceRanges[parameter];
+      if (range != null) {
+        if (value < range['min']! || value > range['max']!) {
+          abnormalValues.add(parameter);
+        }
+      }
+    });
+
+    final loc = Provider.of<LocalizationService>(context, listen: false);
+    if (abnormalValues.isEmpty) {
+      return loc.getString('overall_assessment_normal');
+    } else if (abnormalValues.length <= 2) {
+      return loc.getString('overall_assessment_some_abnormal');
+    } else {
+      return loc.getString('overall_assessment_many_abnormal');
+    }
+  }
+
+  List<String> _generateRecommendations() {
+    List<String> recommendations = [];
+    
+  // Hemoglobin kontrolü
+  double? hb = currentValues['hemoglobin'];
+    if (hb != null && hb < 12.0) {
+      recommendations.add(Provider.of<LocalizationService>(context, listen: false).getString('hemoglobin_low_recommendation'));
+    }
+    
+  // Demir kontrolü
+  double? iron = currentValues['iron'];
+    if (iron != null && iron < 60.0) {
+      recommendations.add(Provider.of<LocalizationService>(context, listen: false).getString('iron_low_recommendation'));
+    }
+    
+  // Lökosit kontrolü
+  double? wbc = currentValues['white_blood_cells'];
+    if (wbc != null && wbc > 11.0) {
+      recommendations.add(Provider.of<LocalizationService>(context, listen: false).getString('wbc_high_recommendation'));
+    }
+    
+    // Genel öneriler
+    if (recommendations.isEmpty) {
+      final loc = Provider.of<LocalizationService>(context, listen: false);
+      recommendations.addAll([
+        loc.getString('recommendation_default_1'),
+        loc.getString('recommendation_default_2'),
+        loc.getString('recommendation_default_3'),
+      ]);
+    } else {
+      recommendations.add(Provider.of<LocalizationService>(context, listen: false).getString('recommendation_follow_up_doctor'));
+    }
+    
+    return recommendations;
+  }
+
+  void _showDetailedAdvice(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(Provider.of<LocalizationService>(context, listen: false).getString('detailed_health_advice_title')),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  Provider.of<LocalizationService>(context, listen: false).getString('general_health_tips_heading'),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('tip_water_intake')),
+                Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('tip_exercise')),
+                Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('tip_balanced_diet')),
+                Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('tip_sleep')),
+                Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('tip_stress_management')),
+                const SizedBox(height: 12),
+                Text(
+                  Provider.of<LocalizationService>(context, listen: false).getString('checks_heading'),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('check_semiannual_hemogram')),
+                Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('check_annual_general')),
+                Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('check_follow_abnormal')),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(Provider.of<LocalizationService>(context, listen: false).getString('ok')),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _shareReport(BuildContext context) {
+    String report = _generateTextReport();
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(Provider.of<LocalizationService>(context, listen: false).getString('report_share_dialog_title')),
+          content: SingleChildScrollView(
+            child: Text(report),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(Provider.of<LocalizationService>(context, listen: false).getString('cancel')),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // Burada paylaşım işlevi olacak
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(Provider.of<LocalizationService>(context, listen: false).getString('report_copied'))),
+                );
+              },
+              child: Text(Provider.of<LocalizationService>(context, listen: false).getString('copy')),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String _generateTextReport() {
+  final loc = Provider.of<LocalizationService>(context, listen: false);
+  StringBuffer report = StringBuffer();
+  report.writeln(loc.getString('report_header'));
+  report.writeln('${loc.getString('date_label')}: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}');
+    report.writeln('');
+  report.writeln(loc.getString('report_section_values'));
+    report.writeln('==================');
+    
+    currentValues.forEach((parameter, value) {
+      final range = referenceRanges[parameter];
+      String status = 'status_normal';
+      if (range != null) {
+        if (value < range['min']!) status = 'status_low';
+        if (value > range['max']!) {
+          final max = range['max']!;
+          status = (value > max * 1.5) ? 'status_very_high' : 'status_high';
+        }
+      }
+      report.writeln('${_localizedParamName(parameter)}: ${value.toStringAsFixed(1)} [${loc.getString(status)}]');
     });
     
-    if (changes.isEmpty) return const SizedBox.shrink();
+    report.writeln('');
+  report.writeln(loc.getString('report_section_evaluation'));
+    report.writeln(_getOverallAssessment());
     
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Önceki teste göre değişimler:',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-            fontWeight: FontWeight.w500,
+    return report.toString();
+  }
+
+  // ===== RAPOR VE DIŞA AKTARMA ÖZELLİKLERİ =====
+  
+  void _generatePDFReport(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.picture_as_pdf, color: Colors.red[600]),
+              const SizedBox(width: 8),
+              Text(Provider.of<LocalizationService>(context, listen: false).getString('pdf_report_dialog_title')),
+            ],
           ),
-        ),
-        const SizedBox(height: 4),
-        Wrap(
-          spacing: 4,
-          runSpacing: 4,
-          children: changes,
-        ),
-      ],
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(Provider.of<LocalizationService>(context, listen: false).getString('pdf_report_intro')),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(Provider.of<LocalizationService>(context, listen: false).getString('report_content_heading'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('report_content_item_values')),
+                    Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('report_content_item_ai_analysis')),
+                    Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('report_content_item_health_tips')),
+                    Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('report_content_item_risk_assessment')),
+                    Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('report_content_item_date') + ': ' + Provider.of<LocalizationService>(context, listen: false).formatDate(DateTime.now())),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(Provider.of<LocalizationService>(context, listen: false).getString('cancel')),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _simulatePDFGeneration(context);
+              },
+              icon: const Icon(Icons.download),
+              label: Text(Provider.of<LocalizationService>(context, listen: false).getString('create_pdf_button')),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red[600],
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        );
+      },
     );
+  }
+
+  void _simulatePDFGeneration(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text(Provider.of<LocalizationService>(context, listen: false).getString('pdf_generating')),
+            ],
+          ),
+        );
+      },
+    );
+
+    // 2 saniye sonra tamamlandı mesajı
+    Future.delayed(const Duration(seconds: 2), () {
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 8),
+              Text(Provider.of<LocalizationService>(context, listen: false).getString('pdf_generated_success')),
+            ],
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    });
+  }
+
+  void _exportToExcel(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.table_chart, color: Colors.green[600]),
+              const SizedBox(width: 8),
+              Text(Provider.of<LocalizationService>(context, listen: false).getString('excel_export_title')),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(Provider.of<LocalizationService>(context, listen: false).getString('excel_export_intro')),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green[200]!),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(Provider.of<LocalizationService>(context, listen: false).getString('excel_content_heading'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('excel_content_item_all_params')),
+                    Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('excel_content_item_normal_ranges')),
+                    Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('excel_content_item_status_analysis')),
+                    Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('excel_content_item_test_history')),
+                    Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('excel_content_item_charts')),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(Provider.of<LocalizationService>(context, listen: false).getString('cancel')),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _simulateExcelExport(context);
+              },
+              icon: const Icon(Icons.download),
+              label: Text(Provider.of<LocalizationService>(context, listen: false).getString('create_excel_button')),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green[600],
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _simulateExcelExport(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(color: Colors.green),
+              SizedBox(height: 16),
+              Text(Provider.of<LocalizationService>(context, listen: false).getString('excel_generating')),
+            ],
+          ),
+        );
+      },
+    );
+
+    Future.delayed(const Duration(seconds: 2), () {
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 8),
+              Text(Provider.of<LocalizationService>(context, listen: false).getString('excel_generated_success')),
+            ],
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    });
+  }
+
+  void _sendEmail(BuildContext context) {
+    final TextEditingController emailController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.email, color: Colors.blue[600]),
+              const SizedBox(width: 8),
+              Text(Provider.of<LocalizationService>(context, listen: false).getString('email_send_title')),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(Provider.of<LocalizationService>(context, listen: false).getString('email_send_intro')),
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailController,
+                decoration: InputDecoration(
+                  labelText: Provider.of<LocalizationService>(context, listen: false).getString('email_address_label'),
+                  hintText: Provider.of<LocalizationService>(context, listen: false).getString('email_address_hint'),
+                  prefixIcon: const Icon(Icons.email),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue[200]!),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(Provider.of<LocalizationService>(context, listen: false).getString('email_content_heading'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('email_content_item_pdf')),
+                    Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('email_content_item_analysis_summary')),
+                    Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('email_content_item_health_tips')),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(Provider.of<LocalizationService>(context, listen: false).getString('cancel')),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                if (emailController.text.isNotEmpty) {
+                  Navigator.of(context).pop();
+                  _simulateEmailSend(context, emailController.text);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(Provider.of<LocalizationService>(context, listen: false).getString('email_invalid')),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              icon: const Icon(Icons.send),
+              label: Text(Provider.of<LocalizationService>(context, listen: false).getString('email_send_button')),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue[600],
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _simulateEmailSend(BuildContext context, String email) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(color: Colors.blue),
+              SizedBox(height: 16),
+              Text(Provider.of<LocalizationService>(context, listen: false).getString('email_sending')),
+            ],
+          ),
+        );
+      },
+    );
+
+    Future.delayed(const Duration(seconds: 3), () {
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(child: Text(Provider.of<LocalizationService>(context, listen: false).getStringWithParams('email_sent_success', {'email': email}))),
+            ],
+          ),
+          backgroundColor: Colors.blue,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    });
+  }
+
+  // Navigate to Export Options Screen
+  void _navigateToExportOptions(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ExportOptionsScreen(
+          patientName: Provider.of<LocalizationService>(context, listen: false).getString('patient_placeholder'), // TODO: Get from user profile
+          hemogramValues: currentValues,
+          analysisResult: _getOverallAssessment(),
+          recommendations: _generateRecommendations(),
+          riskLevel: _getRiskLevel(),
+        ),
+      ),
+    );
+  }
+
+  // Quick Export PDF
+  Future<void> _quickExportPDF(BuildContext context) async {
+    if (currentValues.isEmpty || _isExporting) return;
+
+    setState(() => _isExporting = true);
+
+    try {
+      final success = await _exportService.exportHemogramToPdf(
+        hemogramValues: currentValues,
+  patientName: Provider.of<LocalizationService>(context, listen: false).getString('patient_placeholder'),
+  testDate: DateTime.now().toString().split(' ')[0],
+  doctorNotes: Provider.of<LocalizationService>(context, listen: false).getString('doctor_notes_generated_by_hemoai'),
+      );
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Text(Provider.of<LocalizationService>(context, listen: false).getString('pdf_download_success')),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        throw Exception('PDF export failed');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(Provider.of<LocalizationService>(context, listen: false).getString('pdf_export_error_prefix') + e.toString()),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      setState(() => _isExporting = false);
+    }
+  }
+
+  // Quick Export Excel
+  Future<void> _quickExportExcel(BuildContext context) async {
+    if (currentValues.isEmpty || _isExporting) return;
+
+    setState(() => _isExporting = true);
+
+    try {
+      final success = await _exportService.exportHemogramToExcel(
+        hemogramValues: currentValues,
+  patientName: Provider.of<LocalizationService>(context, listen: false).getString('patient_placeholder'),
+        testDate: DateTime.now().toString().split(' ')[0],
+        historicalData: testHistory,
+      );
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Text(Provider.of<LocalizationService>(context, listen: false).getString('excel_download_success')),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        throw Exception('Excel export failed');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(Provider.of<LocalizationService>(context, listen: false).getString('excel_export_error_prefix') + e.toString()),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      setState(() => _isExporting = false);
+    }
+  }
+
+  String _getRiskLevel() {
+    List<String> abnormalValues = [];
+    bool hasVeryHigh = false;
+    
+    currentValues.forEach((parameter, value) {
+      final range = referenceRanges[parameter];
+      if (range != null) {
+        if (value < range['min']! || value > range['max']!) {
+          abnormalValues.add(parameter);
+          if (value > range['max']!) {
+            final max = range['max']!;
+            if (value > max * 1.5) hasVeryHigh = true;
+          }
+        }
+      }
+    });
+
+    if (abnormalValues.isEmpty) {
+      return Provider.of<LocalizationService>(context, listen: false).getString('risk_level_low');
+    } else if (hasVeryHigh) {
+      return Provider.of<LocalizationService>(context, listen: false).getString('risk_level_very_high');
+    } else if (abnormalValues.length <= 2) {
+      return Provider.of<LocalizationService>(context, listen: false).getString('risk_level_medium');
+    } else {
+      return Provider.of<LocalizationService>(context, listen: false).getString('risk_level_high');
+    }
   }
 }
