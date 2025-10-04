@@ -8,7 +8,7 @@ import '../services/audit_log_service.dart';
 import '../widgets/app_drawer.dart';
 
 class AddReminderScreen extends StatefulWidget {
-  const AddReminderScreen({Key? key}) : super(key: key);
+  const AddReminderScreen({super.key});
 
   @override
   State<AddReminderScreen> createState() => _AddReminderScreenState();
@@ -40,14 +40,10 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (context, child) {
+        final scheme = Theme.of(context).colorScheme;
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: const Color(0xFFE53E3E),
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Colors.black,
-            ),
+            colorScheme: scheme,
           ),
           child: child!,
         );
@@ -66,13 +62,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       context: context,
       initialTime: _selectedTime,
       builder: (context, child) {
+        final scheme = Theme.of(context).colorScheme;
         return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: const Color(0xFFE53E3E),
-              onPrimary: Colors.white,
-            ),
-          ),
+          data: Theme.of(context).copyWith(colorScheme: scheme),
           child: child!,
         );
       },
@@ -133,6 +125,12 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       return;
     }
 
+    // Capture context-dependent objects before any awaits
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final loc = Provider.of<LocalizationService>(context, listen: false);
+    final notificationService = Provider.of<NotificationService>(context, listen: false);
+
     setState(() {
       _isLoading = true;
     });
@@ -162,10 +160,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
         });
       }
 
-      // NotificationService'e ekle (DB'den dönen ID ile)
-      final notificationService = Provider.of<NotificationService>(context, listen: false);
       final notification = NotificationItem(
-        id: newId, // guest ise null olabilir; service içinde atanacak
+  id: newId, // guest ise null olabilir; service icinde atanacak
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
         scheduledTime: scheduledDateTime,
@@ -184,30 +180,32 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       });
 
       // Success feedback
-      final loc = Provider.of<LocalizationService>(context, listen: false);
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!mounted) return;
+      messenger.showSnackBar(
         SnackBar(
           content: Text(loc.getString('reminder_added_success')),
-          backgroundColor: const Color(0xFFE53E3E),
+          backgroundColor: Theme.of(context).colorScheme.primary,
           behavior: SnackBarBehavior.floating,
         ),
       );
-
-      Navigator.pop(context);
+      if (!mounted) return;
+      navigator.pop();
 
     } catch (e) {
-      final loc = Provider.of<LocalizationService>(context, listen: false);
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!mounted) return;
+      messenger.showSnackBar(
         SnackBar(
           content: Text('${loc.getString('error_prefix')}${e.toString()}'),
-          backgroundColor: Colors.red,
+          backgroundColor: Theme.of(context).colorScheme.error,
           behavior: SnackBarBehavior.floating,
         ),
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -215,16 +213,13 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   Widget build(BuildContext context) {
     final localizationService = Provider.of<LocalizationService>(context);
     return Scaffold(
-      backgroundColor: Theme.of(context).brightness == Brightness.dark 
-        ? const Color(0xFF0D1117) 
-        : Colors.grey[50],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       drawer: const AppDrawer(currentRoute: '/add_reminder'),
       appBar: AppBar(
         leading: Builder(
           builder: (context) => IconButton(
             icon: const Icon(
               Icons.menu,
-              color: Colors.white,
               size: 24,
             ),
             onPressed: () => Scaffold.of(context).openDrawer(),
@@ -235,14 +230,9 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
           localizationService.getString('add_reminder'),
           style: const TextStyle(
             fontWeight: FontWeight.bold,
-            color: Colors.white,
           ),
         ),
-        backgroundColor: Theme.of(context).brightness == Brightness.dark 
-          ? const Color(0xFF161B22) 
-          : const Color(0xFFE53E3E),
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
@@ -261,14 +251,14 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                       Icon(
                         Icons.alarm_add,
                         size: 48,
-                        color: const Color(0xFFE53E3E),
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                       const SizedBox(height: 16),
                       Text(
                         localizationService.getString('new_reminder'),
                         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFFE53E3E),
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -276,7 +266,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                         localizationService.getString('reminder_header_description'),
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Colors.grey[600],
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.75),
                           fontSize: 14,
                         ),
                       ),
@@ -301,13 +291,13 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                         decoration: InputDecoration(
                           labelText: localizationService.getString('reminder_title_label'),
                           hintText: localizationService.getString('reminder_title_hint'),
-                          prefixIcon: const Icon(Icons.title, color: Color(0xFFE53E3E)),
+                          prefixIcon: Icon(Icons.title, color: Theme.of(context).colorScheme.primary),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFE53E3E)),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
                           ),
                         ),
                         validator: (value) {
@@ -327,13 +317,13 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                         decoration: InputDecoration(
                           labelText: localizationService.getString('reminder_description_label'),
                           hintText: localizationService.getString('reminder_description_hint'),
-                          prefixIcon: const Icon(Icons.description, color: Color(0xFFE53E3E)),
+                          prefixIcon: Icon(Icons.description, color: Theme.of(context).colorScheme.primary),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFE53E3E)),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
                           ),
                         ),
                         validator: (value) {
@@ -348,16 +338,16 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
                       // Type Selector
                       DropdownButtonFormField<NotificationType>(
-                        value: _selectedType,
+                        initialValue: _selectedType,
                         decoration: InputDecoration(
                           labelText: localizationService.getString('reminder_type_label'),
-                          prefixIcon: Icon(_getTypeIcon(_selectedType), color: const Color(0xFFE53E3E)),
+                          prefixIcon: Icon(_getTypeIcon(_selectedType), color: Theme.of(context).colorScheme.primary),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFE53E3E)),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
                           ),
                         ),
                         items: NotificationType.values.map((type) {
@@ -383,7 +373,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
                       // Date Selector
                       ListTile(
-                        leading: const Icon(Icons.calendar_today, color: Color(0xFFE53E3E)),
+                        leading: Icon(Icons.calendar_today, color: Theme.of(context).colorScheme.primary),
                         title: Text(localizationService.getString('date_label')),
                         subtitle: Text(
                           localizationService.formatDate(_selectedDate),
@@ -396,7 +386,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                         onTap: _selectDate,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: Colors.grey.shade300),
+                          side: BorderSide(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3)),
                         ),
                       ),
 
@@ -404,7 +394,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
                       // Time Selector
                       ListTile(
-                        leading: const Icon(Icons.access_time, color: Color(0xFFE53E3E)),
+                        leading: Icon(Icons.access_time, color: Theme.of(context).colorScheme.primary),
                         title: Text(localizationService.getString('time_label')),
                         subtitle: Text(
                           localizationService.formatTime(DateTime(
@@ -423,7 +413,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
                         onTap: _selectTime,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: Colors.grey.shade300),
+                          side: BorderSide(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3)),
                         ),
                       ),
 
@@ -431,16 +421,16 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
                       // Repeat Selector
                       DropdownButtonFormField<RepeatType>(
-                        value: _selectedRepeat,
+                        initialValue: _selectedRepeat,
                         decoration: InputDecoration(
                           labelText: localizationService.getString('repeat_label'),
-                          prefixIcon: const Icon(Icons.repeat, color: Color(0xFFE53E3E)),
+                          prefixIcon: Icon(Icons.repeat, color: Theme.of(context).colorScheme.primary),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFE53E3E)),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
                           ),
                         ),
                         items: RepeatType.values.map((type) {
@@ -466,8 +456,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
               ElevatedButton(
                 onPressed: _isLoading ? null : _saveReminder,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE53E3E),
-                  foregroundColor: Colors.white,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),

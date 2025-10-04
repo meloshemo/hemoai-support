@@ -3,16 +3,19 @@ import 'package:provider/provider.dart';
 import '../services/theme_service.dart';
 import '../services/localization_service.dart';
 import '../utils/responsive_helper.dart';
+import '../services/active_profile_service.dart';
 
 class AppDrawer extends StatelessWidget {
   final String? currentRoute;
 
-  const AppDrawer({Key? key, this.currentRoute}) : super(key: key);
+  const AppDrawer({super.key, this.currentRoute});
 
   @override
   Widget build(BuildContext context) {
     return Consumer<LocalizationService>(
       builder: (context, localizationService, child) {
+        final theme = Theme.of(context);
+        final scheme = theme.colorScheme;
         return Drawer(
           width: ResponsiveHelper.getDrawerWidth(context),
           child: Column(
@@ -22,10 +25,10 @@ class AppDrawer extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  const Color(0xFFE53E3E), 
-                  Theme.of(context).brightness == Brightness.dark 
-                    ? const Color(0xFFD32F2F)
-                    : const Color(0xFFFF6B6B)
+                  scheme.primary,
+                  theme.brightness == Brightness.dark 
+                    ? Color.alphaBlend(scheme.primary.withValues(alpha: 0.4), scheme.surface)
+                    : scheme.primary.withValues(alpha: 0.8),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -37,11 +40,11 @@ class AppDrawer extends StatelessWidget {
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: scheme.onPrimary,
                     borderRadius: BorderRadius.circular(30),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
+                        color: theme.shadowColor.withValues(alpha: 0.1),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -55,9 +58,10 @@ class AppDrawer extends StatelessWidget {
                       height: 60,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
-                        return const Icon(
+                        final scheme = Theme.of(context).colorScheme;
+                        return Icon(
                           Icons.local_hospital,
-                          color: Color(0xFFE53E3E),
+                          color: scheme.error,
                           size: 30,
                         );
                       },
@@ -69,18 +73,18 @@ class AppDrawer extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
+                    Text(
                       'HemoAI',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: scheme.onPrimary,
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Text(
                       LocalizationService.translate('health_assistant'),
-                      style: const TextStyle(
-                        color: Colors.white70,
+                      style: TextStyle(
+                        color: scheme.onPrimary.withValues(alpha: 0.7),
                         fontSize: 14,
                       ),
                     ),
@@ -116,6 +120,13 @@ class AppDrawer extends StatelessWidget {
                   route: '/analysis',
                   isSelected: currentRoute == '/analysis',
                 ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.view_list,
+                  title: LocalizationService.translate('full_results_title'),
+                  route: '/full_results',
+                  isSelected: currentRoute == '/full_results',
+                ),
                 const Divider(),
                 _buildDrawerItem(
                   context,
@@ -138,6 +149,13 @@ class AppDrawer extends StatelessWidget {
                   route: '/alternative_medicine',
                   isSelected: currentRoute == '/alternative_medicine',
                 ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.language,
+                  title: LocalizationService.translate('language_settings'),
+                  route: '/language_settings',
+                  isSelected: currentRoute == '/language_settings',
+                ),
                 const Divider(),
                 _buildDrawerItem(
                   context,
@@ -148,10 +166,31 @@ class AppDrawer extends StatelessWidget {
                 ),
                 _buildDrawerItem(
                   context,
+                  icon: Icons.login,
+                  title: LocalizationService.translate('login'),
+                  route: '/login',
+                  isSelected: currentRoute == '/login',
+                ),
+                _buildDrawerItem(
+                  context,
                   icon: Icons.notifications,
                   title: LocalizationService.translate('notifications'),
                   route: '/notifications',
                   isSelected: currentRoute == '/notifications',
+                ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.new_releases,
+                  title: LocalizationService.translate('enhanced_notifications'),
+                  route: '/enhanced_notifications',
+                  isSelected: currentRoute == '/enhanced_notifications',
+                ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.query_stats,
+                  title: LocalizationService.translate('stats_overview_title'),
+                  route: '/stats',
+                  isSelected: currentRoute == '/stats',
                 ),
                 _buildDrawerItem(
                   context,
@@ -167,6 +206,42 @@ class AppDrawer extends StatelessWidget {
                   route: '/add_reminder',
                   isSelected: currentRoute == '/add_reminder',
                 ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.find_in_page,
+                  title: LocalizationService.translate('ocr_reader'),
+                  route: '/ocr_reader',
+                  isSelected: currentRoute == '/ocr_reader',
+                ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.file_download,
+                  title: LocalizationService.translate('export_options'),
+                  route: '/export_options',
+                  isSelected: currentRoute == '/export_options',
+                ),
+                const Divider(),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.settings,
+                  title: LocalizationService.translate('settings'),
+                  route: '/settings',
+                  isSelected: currentRoute == '/settings',
+                ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.speed,
+                  title: LocalizationService.translate('performance_settings'),
+                  route: '/performance',
+                  isSelected: currentRoute == '/performance',
+                ),
+                _buildDrawerItem(
+                  context,
+                  icon: Icons.info_outline,
+                  title: LocalizationService.translate('about'),
+                  route: '/about',
+                  isSelected: currentRoute == '/about',
+                ),
               ],
             ),
           ),
@@ -177,6 +252,55 @@ class AppDrawer extends StatelessWidget {
             child: Column(
               children: [
                 const Divider(),
+                // Active Profile Indicator / Switcher
+                Consumer<ActiveProfileService>(
+                  builder: (context, profile, _) {
+                    final title = LocalizationService.translate('switch_profile');
+                    final subtitle = profile.displayName;
+                    return ListTile(
+                      leading: Icon(Icons.switch_account, color: scheme.primary),
+                      title: Text(title),
+                      subtitle: Text(subtitle),
+                      onTap: () async {
+                        // Minimal switcher: prompt for a numeric user id
+                        final controller = TextEditingController();
+                        showDialog(
+                          context: context,
+                          builder: (context) {
+                            return AlertDialog(
+                              title: Text(LocalizationService.translate('select_profile')),
+                              content: TextField(
+                                controller: controller,
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  labelText: LocalizationService.translate('user_id'),
+                                  hintText: '1',
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  child: Text(LocalizationService.translate('cancel')),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    final id = int.tryParse(controller.text);
+                                    if (id != null) {
+                                      await profile.setActiveUser(id);
+                                      // ignore: use_build_context_synchronously
+                                      Navigator.of(context).pop();
+                                    }
+                                  },
+                                  child: Text(LocalizationService.translate('ok')),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      },
+                    );
+                  },
+                ),
                 
                 // Dark Mode Toggle
                 Consumer<ThemeService>(
@@ -184,7 +308,7 @@ class AppDrawer extends StatelessWidget {
                     return ListTile(
                       leading: Icon(
                         themeService.isDarkMode ? Icons.light_mode : Icons.dark_mode,
-                        color: const Color(0xFFE53E3E),
+                        color: scheme.primary,
                       ),
                       title: Text(themeService.isDarkMode ? LocalizationService.translate('light_theme') : LocalizationService.translate('dark_theme')),
                       trailing: Switch(
@@ -192,7 +316,8 @@ class AppDrawer extends StatelessWidget {
                         onChanged: (value) {
                           themeService.toggleTheme();
                         },
-                        activeThumbColor: const Color(0xFFE53E3E),
+                        activeThumbColor: scheme.primary,
+                        activeTrackColor: scheme.primary.withValues(alpha: 0.3),
                       ),
                       onTap: () {
                         themeService.toggleTheme();
@@ -202,7 +327,7 @@ class AppDrawer extends StatelessWidget {
                 ),
                 
                 ListTile(
-                  leading: const Icon(Icons.info_outline, color: Color(0xFFE53E3E)),
+                  leading: Icon(Icons.info_outline, color: scheme.primary),
                   title: Text(LocalizationService.translate('about')),
                   onTap: () {
                     Navigator.pop(context);
@@ -210,7 +335,7 @@ class AppDrawer extends StatelessWidget {
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.logout, color: Colors.red),
+                  leading: Icon(Icons.logout, color: scheme.error),
                   title: Text(LocalizationService.translate('logout')),
                   onTap: () {
                     Navigator.pop(context);
@@ -234,29 +359,26 @@ class AppDrawer extends StatelessWidget {
     required String route,
     bool isSelected = false,
   }) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-  color: isSelected ? const Color(0xFFE53E3E).withValues(alpha: 0.1) : null,
+  color: isSelected ? scheme.primary.withValues(alpha: 0.12) : null,
         borderRadius: BorderRadius.circular(8),
       ),
       child: ListTile(
         leading: Icon(
           icon,
           color: isSelected 
-            ? const Color(0xFFE53E3E) 
-            : (Theme.of(context).brightness == Brightness.dark 
-                ? Colors.grey[300] 
-                : Colors.grey[600]),
+            ? scheme.primary 
+            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.75),
         ),
         title: Text(
           title,
           style: TextStyle(
             color: isSelected 
-              ? const Color(0xFFE53E3E) 
-              : (Theme.of(context).brightness == Brightness.dark 
-                  ? Colors.white.withValues(alpha: 0.87) 
-                  : Colors.black.withValues(alpha: 0.87)),
+              ? scheme.primary 
+              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.87),
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
@@ -275,11 +397,12 @@ class AppDrawer extends StatelessWidget {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final scheme = Theme.of(context).colorScheme;
         return AlertDialog(
           title: Consumer<LocalizationService>(
             builder: (context, localizationService, _) => Row(
               children: [
-                Icon(Icons.local_hospital, color: const Color(0xFFE53E3E)),
+                Icon(Icons.local_hospital, color: scheme.primary),
                 const SizedBox(width: 8),
                 Text(localizationService.getString('about_hemoai_title')),
               ],
@@ -306,10 +429,7 @@ class AppDrawer extends StatelessWidget {
                     const SizedBox(height: 12),
                     Text(
                       localizationService.getString('medical_disclaimer_short'),
-                      style: TextStyle(
-                        color: Colors.orange[700],
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: TextStyle(color: scheme.tertiary, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
@@ -333,6 +453,7 @@ class AppDrawer extends StatelessWidget {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final scheme = Theme.of(context).colorScheme;
         return AlertDialog(
           title: Text(LocalizationService.translate('logout')),
           content: Text(LocalizationService.translate('logout_confirmation')),
@@ -351,8 +472,8 @@ class AppDrawer extends StatelessWidget {
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
+                backgroundColor: scheme.error,
+                foregroundColor: scheme.onError,
               ),
               child: Text(LocalizationService.translate('logout')),
             ),

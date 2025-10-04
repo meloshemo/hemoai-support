@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/notification_service.dart';
+import '../services/notification_service.dart' as ns;
 import '../widgets/app_drawer.dart';
 import '../services/localization_service.dart';
 import 'add_reminder_screen.dart';
 import '../services/audit_log_service.dart';
 import '../services/web_database_helper.dart';
 import '../services/preferences_service.dart';
+import '../services/push_notification_service.dart' as ps;
 
 class ReminderListScreen extends StatefulWidget {
-  const ReminderListScreen({Key? key}) : super(key: key);
+  const ReminderListScreen({super.key});
 
   @override
   State<ReminderListScreen> createState() => _ReminderListScreenState();
@@ -17,7 +18,7 @@ class ReminderListScreen extends StatefulWidget {
 
 class _ReminderListScreenState extends State<ReminderListScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  List<NotificationItem> _allReminders = [];
+  List<ns.NotificationItem> _allReminders = [];
   bool _isLoading = true;
 
   @override
@@ -39,7 +40,7 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
     });
 
     try {
-      final notificationService = Provider.of<NotificationService>(context, listen: false);
+      final notificationService = Provider.of<ns.NotificationService>(context, listen: false);
       setState(() {
         _allReminders = notificationService.notifications;
         _isLoading = false;
@@ -51,7 +52,7 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
     }
   }
 
-  List<NotificationItem> get _upcomingReminders {
+  List<ns.NotificationItem> get _upcomingReminders {
     final now = DateTime.now();
     return _allReminders
         .where((r) => r.isActive && r.scheduledTime.isAfter(now))
@@ -59,7 +60,7 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
       ..sort((a, b) => a.scheduledTime.compareTo(b.scheduledTime));
   }
 
-  List<NotificationItem> get _overdueReminders {
+  List<ns.NotificationItem> get _overdueReminders {
     final now = DateTime.now();
     return _allReminders
         .where((r) => r.isActive && r.scheduledTime.isBefore(now))
@@ -67,54 +68,54 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
       ..sort((a, b) => b.scheduledTime.compareTo(a.scheduledTime));
   }
 
-  List<NotificationItem> get _completedReminders {
+  List<ns.NotificationItem> get _completedReminders {
     return _allReminders
         .where((r) => !r.isActive)
         .toList()
       ..sort((a, b) => b.scheduledTime.compareTo(a.scheduledTime));
   }
 
-  String _getTypeDisplayName(NotificationType type) {
+  String _getTypeDisplayName(ns.NotificationType type) {
     switch (type) {
-      case NotificationType.medication:
+      case ns.NotificationType.medication:
         return Provider.of<LocalizationService>(context, listen: false).getString('reminder_type_medication');
-      case NotificationType.test:
+      case ns.NotificationType.test:
         return Provider.of<LocalizationService>(context, listen: false).getString('reminder_type_test');
-      case NotificationType.appointment:
+      case ns.NotificationType.appointment:
         return Provider.of<LocalizationService>(context, listen: false).getString('reminder_type_appointment');
-      case NotificationType.reminder:
+      case ns.NotificationType.reminder:
         return Provider.of<LocalizationService>(context, listen: false).getString('reminder_type_general_reminder');
-      case NotificationType.general:
+      case ns.NotificationType.general:
         return Provider.of<LocalizationService>(context, listen: false).getString('reminder_type_general');
     }
   }
 
-  IconData _getTypeIcon(NotificationType type) {
+  IconData _getTypeIcon(ns.NotificationType type) {
     switch (type) {
-      case NotificationType.medication:
+      case ns.NotificationType.medication:
         return Icons.medication;
-      case NotificationType.test:
+      case ns.NotificationType.test:
         return Icons.science;
-      case NotificationType.appointment:
+      case ns.NotificationType.appointment:
         return Icons.event;
-      case NotificationType.reminder:
+      case ns.NotificationType.reminder:
         return Icons.alarm;
-      case NotificationType.general:
+      case ns.NotificationType.general:
         return Icons.notifications;
     }
   }
 
-  Color _getTypeColor(NotificationType type) {
+  Color _getTypeColor(ns.NotificationType type) {
     switch (type) {
-      case NotificationType.medication:
+      case ns.NotificationType.medication:
         return Colors.green;
-      case NotificationType.test:
+      case ns.NotificationType.test:
         return Colors.blue;
-      case NotificationType.appointment:
+      case ns.NotificationType.appointment:
         return Colors.orange;
-      case NotificationType.reminder:
+      case ns.NotificationType.reminder:
         return const Color(0xFFE53E3E);
-      case NotificationType.general:
+      case ns.NotificationType.general:
         return Colors.grey;
     }
   }
@@ -135,7 +136,7 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
     }
   }
 
-  void _showReminderDetails(NotificationItem reminder) {
+  void _showReminderDetails(ns.NotificationItem reminder) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -143,7 +144,7 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.7,
         decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
@@ -153,7 +154,7 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
               height: 4,
               margin: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -168,7 +169,7 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: _getTypeColor(reminder.type).withValues(alpha: 0.1),
+                            color: _getTypeColor(reminder.type).withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(
@@ -184,10 +185,7 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
                             children: [
                               Text(
                                 reminder.title,
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(height: 4),
                               Text(
@@ -207,7 +205,7 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.grey[100],
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Column(
@@ -221,7 +219,7 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
                                 Provider.of<LocalizationService>(context, listen: false).getString('reminder_time_label'),
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.grey[700],
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
                                 ),
                               ),
                             ],
@@ -229,10 +227,7 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
                           const SizedBox(height: 8),
                           Text(
                             _formatDateTime(reminder.scheduledTime),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                           ),
                         ],
                       ),
@@ -245,13 +240,13 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.grey[800],
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.9),
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       reminder.description,
-                      style: const TextStyle(fontSize: 16),
+                      style: Theme.of(context).textTheme.bodyLarge,
                     ),
                     
                     const Spacer(),
@@ -283,8 +278,8 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
                             icon: const Icon(Icons.delete),
                             label: Text(Provider.of<LocalizationService>(context, listen: false).getString('delete')),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
+                              backgroundColor: Theme.of(context).colorScheme.error,
+                              foregroundColor: Theme.of(context).colorScheme.onError,
                               padding: const EdgeInsets.symmetric(vertical: 12),
                             ),
                           ),
@@ -301,9 +296,10 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
     );
   }
 
-  Future<void> _toggleReminder(NotificationItem reminder) async {
+  Future<void> _toggleReminder(ns.NotificationItem reminder) async {
     try {
-      final notificationService = Provider.of<NotificationService>(context, listen: false);
+      final notificationService = Provider.of<ns.NotificationService>(context, listen: false);
+      final push = Provider.of<ps.PushNotificationService>(context, listen: false);
       if (reminder.id != null) {
         await notificationService.toggleNotification(reminder.id!);
         // Persist to DB if logged in
@@ -311,6 +307,42 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
         final userId = prefs.getCurrentUserId();
         if (userId != null) {
           await WebDatabaseHelper.instance.updateReminderStatus(userId, reminder.id!, !reminder.isActive);
+        }
+        // Cancel or schedule based on new active state
+        if (reminder.isActive) {
+          // It was active, now will be inactive -> cancel schedules
+          await push.cancelSchedulesForReminder(reminder.id!);
+        } else {
+          // It was inactive, now will be active -> schedule
+          final dt = reminder.scheduledTime;
+          String repeatStr = 'none';
+          switch (reminder.repeatType) {
+            case ns.RepeatType.daily:
+              repeatStr = 'daily';
+              break;
+            case ns.RepeatType.weekly:
+              repeatStr = 'weekly';
+              break;
+            case ns.RepeatType.monthly:
+              repeatStr = 'monthly';
+              break;
+            case ns.RepeatType.none:
+              repeatStr = 'none';
+              break;
+          }
+          await push.scheduleNotification(
+            title: reminder.title,
+            body: reminder.description,
+            scheduledTime: dt,
+            type: _mapReminderTypeToPush(reminder.type),
+            data: {
+              'repeat': repeatStr,
+              'hour': dt.hour,
+              'minute': dt.minute,
+              'reminder_id': reminder.id,
+              'source': 'toggle_on',
+            },
+          );
         }
         AuditLogService().logAction('reminder_toggled', data: {
           'id': reminder.id,
@@ -328,9 +360,10 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
     }
   }
 
-  Future<void> _deleteReminder(NotificationItem reminder) async {
+  Future<void> _deleteReminder(ns.NotificationItem reminder) async {
     try {
-      final notificationService = Provider.of<NotificationService>(context, listen: false);
+      final notificationService = Provider.of<ns.NotificationService>(context, listen: false);
+      final push = Provider.of<ps.PushNotificationService>(context, listen: false);
       if (reminder.id != null) {
         await notificationService.removeNotification(reminder.id!);
         // Persist deletion if logged in
@@ -339,6 +372,8 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
         if (userId != null) {
           await WebDatabaseHelper.instance.deleteReminder(userId, reminder.id!);
         }
+        // Cancel any scheduled notifications for this reminder
+        await push.cancelSchedulesForReminder(reminder.id!);
         AuditLogService().logAction('reminder_deleted', data: {'id': reminder.id});
         if (!mounted) return;
         _loadReminders();
@@ -356,7 +391,23 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
     }
   }
 
-  Widget _buildReminderCard(NotificationItem reminder) {
+  // Map local NotificationType to PushNotificationService.NotificationType
+  ps.NotificationType _mapReminderTypeToPush(ns.NotificationType type) {
+    switch (type) {
+      case ns.NotificationType.medication:
+        return ps.NotificationType.medication;
+      case ns.NotificationType.appointment:
+        return ps.NotificationType.appointment;
+      case ns.NotificationType.test:
+        return ps.NotificationType.test;
+      case ns.NotificationType.reminder:
+        return ps.NotificationType.reminder;
+      case ns.NotificationType.general:
+        return ps.NotificationType.general;
+    }
+  }
+
+  Widget _buildReminderCard(ns.NotificationItem reminder) {
     final isOverdue = reminder.scheduledTime.isBefore(DateTime.now()) && reminder.isActive;
     
     return Card(
@@ -369,14 +420,14 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: isOverdue ? Border.all(color: Colors.red, width: 2) : null,
+            border: isOverdue ? Border.all(color: Theme.of(context).colorScheme.error, width: 2) : null,
           ),
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: _getTypeColor(reminder.type).withValues(alpha: 0.1),
+                  color: _getTypeColor(reminder.type).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
@@ -392,16 +443,13 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
                   children: [
                     Text(
                       reminder.title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       reminder.description,
-                      style: TextStyle(
-                        color: Colors.grey[600],
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.75),
                         fontSize: 14,
                       ),
                       maxLines: 2,
@@ -413,14 +461,14 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
                         Icon(
                           Icons.schedule,
                           size: 16,
-                          color: isOverdue ? Colors.red : Colors.grey[600],
+                          color: isOverdue ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.75),
                         ),
                         const SizedBox(width: 4),
                         Text(
                           _formatDateTime(reminder.scheduledTime),
                           style: TextStyle(
                             fontSize: 12,
-                            color: isOverdue ? Colors.red : Colors.grey[600],
+                            color: isOverdue ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.75),
                             fontWeight: isOverdue ? FontWeight.w600 : FontWeight.normal,
                           ),
                         ),
@@ -433,13 +481,13 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.red,
+                    color: Theme.of(context).colorScheme.error,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     Provider.of<LocalizationService>(context, listen: false).getString('reminder_badge_overdue'),
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onError,
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                     ),
@@ -453,6 +501,7 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
   }
 
   Widget _buildEmptyState(String message, IconData icon) {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -460,14 +509,14 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
           Icon(
             icon,
             size: 64,
-            color: Colors.grey[400],
+            color: scheme.onSurface.withValues(alpha: 0.4),
           ),
           const SizedBox(height: 16),
           Text(
             message,
             style: TextStyle(
               fontSize: 16,
-              color: Colors.grey[600],
+              color: scheme.onSurface.withValues(alpha: 0.65),
             ),
             textAlign: TextAlign.center,
           ),
@@ -478,17 +527,16 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Scaffold(
-      backgroundColor: Theme.of(context).brightness == Brightness.dark 
-        ? const Color(0xFF0D1117) 
-        : Colors.grey[50],
+      backgroundColor: theme.scaffoldBackgroundColor,
       drawer: const AppDrawer(currentRoute: '/reminders'),
       appBar: AppBar(
         leading: Builder(
           builder: (context) => IconButton(
             icon: const Icon(
               Icons.menu,
-              color: Colors.white,
               size: 24,
             ),
             onPressed: () => Scaffold.of(context).openDrawer(),
@@ -499,14 +547,9 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
           Provider.of<LocalizationService>(context).getString('reminders_title'),
           style: const TextStyle(
             fontWeight: FontWeight.bold,
-            color: Colors.white,
           ),
         ),
-        backgroundColor: Theme.of(context).brightness == Brightness.dark 
-          ? const Color(0xFF161B22) 
-          : const Color(0xFFE53E3E),
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
             onPressed: _loadReminders,
@@ -516,9 +559,9 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
         ],
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
+          indicatorColor: scheme.primary,
+          labelColor: scheme.primary,
+          unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.7),
           tabs: [
             Tab(
               text: Provider.of<LocalizationService>(context).getString('reminder_tab_upcoming'),
@@ -598,8 +641,7 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
             ),
           ).then((_) => _loadReminders());
         },
-        backgroundColor: const Color(0xFFE53E3E),
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.add),
       ),
     );
   }

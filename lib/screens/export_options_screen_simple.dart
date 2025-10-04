@@ -25,23 +25,20 @@ class ExportOptionsScreen extends StatelessWidget {
     return Consumer<ThemeService>(
       builder: (context, themeService, child) {
         final isDark = themeService.isDarkMode;
+        final theme = Theme.of(context);
+        final scheme = theme.colorScheme;
         
         return Scaffold(
-          backgroundColor: isDark
-              ? const Color(0xFF0D1117)
-              : const Color(0xFFF6F8FA),
+          backgroundColor: theme.scaffoldBackgroundColor,
           appBar: AppBar(
             title: Consumer<LocalizationService>(
               builder: (context, localization, child) => Text(
                 localization.getString('export_options'),
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 18,
-                ),
+                style: theme.appBarTheme.titleTextStyle ?? theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
               ),
             ),
-            backgroundColor: isDark ? const Color(0xFF161B22) : Colors.white,
-            foregroundColor: isDark ? Colors.white : const Color(0xFF24292F),
+            backgroundColor: theme.appBarTheme.backgroundColor ?? scheme.surface,
+            foregroundColor: theme.appBarTheme.foregroundColor ?? scheme.onSurface,
             elevation: 0,
             centerTitle: true,
           ),
@@ -54,7 +51,7 @@ class ExportOptionsScreen extends StatelessWidget {
                   Icon(
                     Icons.download,
                     size: 80,
-                    color: isDark ? Colors.white70 : const Color(0xFFE53E3E),
+                    color: isDark ? theme.iconTheme.color?.withValues(alpha: 0.7) ?? scheme.onSurface.withValues(alpha: 0.7) : scheme.primary,
                   ),
                   const SizedBox(height: 24),
                   Text(
@@ -62,7 +59,7 @@ class ExportOptionsScreen extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : const Color(0xFF24292F),
+                      color: theme.textTheme.headlineSmall?.color,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -70,7 +67,7 @@ class ExportOptionsScreen extends StatelessWidget {
                     localization.getString('export_description'),
                     style: TextStyle(
                       fontSize: 16,
-                      color: isDark ? Colors.white70 : const Color(0xFF656D76),
+                      color: isDark ? theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7) : const Color(0xFF656D76),
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -118,10 +115,12 @@ class ExportOptionsScreen extends StatelessWidget {
     required VoidCallback onTap,
     required bool isDark,
   }) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF21262D) : Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isDark ? const Color(0xFF30363D) : const Color(0xFFD0D7DE),
@@ -139,7 +138,7 @@ class ExportOptionsScreen extends StatelessWidget {
                 Icon(
                   icon,
                   size: 32,
-                  color: const Color(0xFFE53E3E),
+                  color: scheme.primary,
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -151,7 +150,7 @@ class ExportOptionsScreen extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: isDark ? Colors.white : const Color(0xFF24292F),
+                          color: theme.textTheme.bodyLarge?.color,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -159,7 +158,7 @@ class ExportOptionsScreen extends StatelessWidget {
                         subtitle,
                         style: TextStyle(
                           fontSize: 14,
-                          color: isDark ? Colors.white70 : const Color(0xFF656D76),
+                          color: isDark ? theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7) : const Color(0xFF656D76),
                         ),
                       ),
                     ],
@@ -168,7 +167,7 @@ class ExportOptionsScreen extends StatelessWidget {
                 Icon(
                   Icons.arrow_forward_ios,
                   size: 16,
-                  color: isDark ? Colors.white54 : const Color(0xFF656D76),
+                  color: isDark ? theme.textTheme.bodySmall?.color?.withValues(alpha: 0.6) : const Color(0xFF656D76),
                 ),
               ],
             ),
@@ -184,7 +183,7 @@ class ExportOptionsScreen extends StatelessWidget {
         content: Text(
           localization.getString('coming_soon'),
         ),
-        backgroundColor: const Color(0xFFE53E3E),
+        backgroundColor: Theme.of(context).colorScheme.primary,
         duration: const Duration(seconds: 2),
       ),
     );

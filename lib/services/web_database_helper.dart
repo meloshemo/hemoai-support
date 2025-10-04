@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 
 class WebDatabaseHelper {
@@ -260,7 +261,7 @@ class WebDatabaseHelper {
     int fromUserId = invitation['from_user_id'];
     int toUserId = invitation['to_user_id'];
     
-    // From user'ın aile listesine to user'ı ekle
+  // From user's family list add the other user
     Map<String, dynamic>? toUser = await getUserById(toUserId);
     if (toUser != null) {
       await insertFamilyMember({
@@ -274,7 +275,7 @@ class WebDatabaseHelper {
       });
     }
     
-    // To user'ın aile listesine from user'ı ekle  
+  // To user's family list add the from user  
     Map<String, dynamic>? fromUser = await getUserById(fromUserId);
     if (fromUser != null) {
       String reverseRelation = _getReverseRelationCode(invitation['relation'] as String? ?? 'other');
@@ -291,25 +292,49 @@ class WebDatabaseHelper {
 
   // Normalize human-readable (possibly localized) relation strings to codes
   String _normalizeRelationCode(String relation) {
-    // Map known Turkish labels to codes; fallback to provided code if already code-like
-    const Map<String, String> trToCode = {
-      'Baba': 'father',
-      'Anne': 'mother',
-      'Çocuk': 'child',
-      'Eş': 'spouse',
-      'Kardeş': 'sibling',
-      'Büyükbaba': 'grandfather',
-      'Büyükanne': 'grandmother',
-      'Torun': 'grandchild',
-      'Aile Üyesi': 'other',
-    };
-    final lower = relation.trim();
-    if (trToCode.containsKey(lower)) return trToCode[lower]!;
-    // If it already looks like a code we support, keep it
+    // Accept canonical codes directly
     const allowed = {
-      'father','mother','child','spouse','sibling','grandfather','grandmother','grandchild','other'
+      'father', 'mother', 'child', 'spouse', 'sibling',
+      'grandfather', 'grandmother', 'grandchild', 'parent', 'grandparent', 'other'
     };
-    return allowed.contains(lower) ? lower : 'other';
+    final raw = relation.trim();
+    if (allowed.contains(raw)) return raw;
+
+    // Diacritic-insensitive normalization for some common Turkish inputs (ASCII only here)
+  String ascii = raw
+    .toLowerCase()
+    .replaceAll('\u0131', 'i') // ı
+    .replaceAll('\u011f', 'g') // ğ
+    .replaceAll('\u015f', 's') // ş
+    .replaceAll('\u00f6', 'o') // ö
+    .replaceAll('\u00e7', 'c') // ç
+    .replaceAll('\u00fc', 'u') // ü
+    .replaceAll('\u00e2', 'a') // â
+    .replaceAll('\u00ee', 'i') // î
+    .replaceAll('\u00fb', 'u'); // û
+
+    switch (ascii) {
+      case 'baba':
+        return 'father';
+      case 'anne':
+        return 'mother';
+      case 'cocuk':
+        return 'child';
+      case 'es':
+        return 'spouse';
+      case 'kardes':
+        return 'sibling';
+      case 'buyukbaba':
+        return 'grandfather';
+      case 'buyukanne':
+        return 'grandmother';
+      case 'torun':
+        return 'grandchild';
+      case 'aile uyesi':
+        return 'other';
+      default:
+        return allowed.contains(ascii) ? ascii : 'other';
+    }
   }
 
   // Given a relation (localized or code), return reverse relation code
@@ -359,7 +384,7 @@ class WebDatabaseHelper {
       await _prefs!.setString('medications_$userId', jsonEncode(medications));
       return newId;
     } catch (e) {
-      print('İlaç ekleme hatası: $e');
+      debugPrint('Medication add error: $e');
       return 0;
     }
   }
@@ -373,7 +398,7 @@ class WebDatabaseHelper {
       }
       return [];
     } catch (e) {
-      print('İlaç listesi yükleme hatası: $e');
+      debugPrint('Medication list load error: $e');
       return [];
     }
   }
@@ -398,7 +423,7 @@ class WebDatabaseHelper {
       }
       return 0;
     } catch (e) {
-      print('İlaç durumu güncelleme hatası: $e');
+      debugPrint('Medication status update error: $e');
       return 0;
     }
   }
@@ -423,7 +448,7 @@ class WebDatabaseHelper {
       await _prefs!.setString('notifications_$userId', jsonEncode(notifications));
       return newId;
     } catch (e) {
-      print('Bildirim oluşturma hatası: $e');
+      debugPrint('Notification create error: $e');
       return 0;
     }
   }
@@ -437,7 +462,7 @@ class WebDatabaseHelper {
       }
       return [];
     } catch (e) {
-      print('Bildirim listesi yükleme hatası: $e');
+      debugPrint('Notification list load error: $e');
       return [];
     }
   }
@@ -462,7 +487,7 @@ class WebDatabaseHelper {
       }
       return 0;
     } catch (e) {
-      print('Bildirim okundu işaretleme hatası: $e');
+      debugPrint('Notification mark-read error: $e');
       return 0;
     }
   }
@@ -483,7 +508,7 @@ class WebDatabaseHelper {
       }
       return 0;
     } catch (e) {
-      print('Bildirim silme hatası: $e');
+      debugPrint('Notification delete error: $e');
       return 0;
     }
   }
@@ -510,7 +535,7 @@ class WebDatabaseHelper {
       await _prefs!.setString('reminders_$userId', jsonEncode(reminders));
       return newId;
     } catch (e) {
-      print('Hatırlatıcı oluşturma hatası: $e');
+      debugPrint('Reminder create error: $e');
       return 0;
     }
   }
@@ -525,7 +550,7 @@ class WebDatabaseHelper {
       }
       return [];
     } catch (e) {
-      print('Hatırlatıcı listesi yükleme hatası: $e');
+      debugPrint('Reminder list load error: $e');
       return [];
     }
   }
@@ -549,7 +574,7 @@ class WebDatabaseHelper {
       await _prefs!.setString('reminders_$userId', jsonEncode(reminders));
       return 1;
     } catch (e) {
-      print('Hatırlatıcı durumu güncelleme hatası: $e');
+      debugPrint('Reminder status update error: $e');
       return 0;
     }
   }
@@ -566,7 +591,7 @@ class WebDatabaseHelper {
       await _prefs!.setString('reminders_$userId', jsonEncode(reminders));
       return 1;
     } catch (e) {
-      print('Hatırlatıcı silme hatası: $e');
+      debugPrint('Reminder delete error: $e');
       return 0;
     }
   }
@@ -578,7 +603,7 @@ class WebDatabaseHelper {
       await _prefs!.setInt('water_${userId}_$today', glassCount);
       return 1;
     } catch (e) {
-      print('Su takibi kaydetme hatası: $e');
+      debugPrint('Water log save error: $e');
       return 0;
     }
   }
@@ -588,8 +613,25 @@ class WebDatabaseHelper {
       String today = DateTime.now().toIso8601String().split('T')[0];
       return _prefs!.getInt('water_${userId}_$today') ?? 0;
     } catch (e) {
-      print('Su takibi yükleme hatası: $e');
+      debugPrint('Water log load error: $e');
       return 0;
+    }
+  }
+
+  Future<List<int>> getLast7DaysWaterIntake(int userId) async {
+    try {
+      if (_prefs == null) await init();
+      final now = DateTime.now();
+      final List<int> values = [];
+      for (int i = 6; i >= 0; i--) {
+        final day = now.subtract(Duration(days: i)).toIso8601String().split('T')[0];
+        final v = _prefs!.getInt('water_${userId}_$day') ?? 0;
+        values.add(v);
+      }
+      return values;
+    } catch (e) {
+      debugPrint('Water last7 load error: $e');
+      return List<int>.filled(7, 0);
     }
   }
 
@@ -605,7 +647,7 @@ class WebDatabaseHelper {
       }
       return [];
     } catch (e) {
-      print('Hemogram testleri yükleme hatası: $e');
+      debugPrint('Hemogram tests load error: $e');
       return [];
     }
   }

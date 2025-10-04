@@ -1,3 +1,4 @@
+// ignore_for_file: unused_field, unused_local_variable, use_super_parameters
 import 'package:flutter/material.dart';
 import '../services/preferences_service.dart';
 import '../services/database_helper.dart';
@@ -46,7 +47,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
     familyMembers = [
       {
         'id': '1',
-        'name': 'Ahmet Yılmaz',
+  'name': 'Ahmet Yilmaz',
         'relation': 'father',
         'age': 45,
         'gender': 'male',
@@ -105,7 +106,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
       },
       {
         'id': '2',
-        'name': 'Ayşe Yılmaz',
+  'name': 'Ayse Yilmaz',
         'relation': 'mother',
         'age': 42,
         'gender': 'female',
@@ -164,7 +165,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> with TickerProvid
       },
       {
         'id': '3',
-        'name': 'Zeynep Yılmaz',
+  'name': 'Zeynep Yilmaz',
         'relation': 'child',
         'age': 16,
         'gender': 'female',

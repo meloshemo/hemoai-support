@@ -7,7 +7,7 @@ import 'package:crypto/crypto.dart';
 import 'dart:convert';
 
 class TestLoginScreen extends StatefulWidget {
-  const TestLoginScreen({Key? key}) : super(key: key);
+  const TestLoginScreen({super.key});
 
   @override
   State<TestLoginScreen> createState() => _TestLoginScreenState();
@@ -48,37 +48,48 @@ class _TestLoginScreenState extends State<TestLoginScreen> {
   }
 
   Future<void> _testLogin() async {
+    final navigator = Navigator.of(context);
     if (_prefsService == null) {
-      setState(() {
-        _debugMessage = 'Services not ready';
-      });
+      if (mounted) {
+        setState(() {
+          _debugMessage = 'Services not ready';
+        });
+      }
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-      _debugMessage = 'Starting login process...';
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _debugMessage = 'Starting login process...';
+      });
+    }
 
     try {
       String email = '${phoneController.text.trim()}@hemoai.com';
-      setState(() {
-        _debugMessage = 'Checking user: $email';
-      });
+      if (mounted) {
+        setState(() {
+          _debugMessage = 'Checking user: $email';
+        });
+      }
       
       Map<String, dynamic>? user = await _dbHelper.getUser(email);
       
       if (user != null) {
-        setState(() {
-          _debugMessage = 'User found: ${user['name']}';
-        });
+        if (mounted) {
+          setState(() {
+            _debugMessage = 'User found: ${user['name']}';
+          });
+        }
         
         String hashedPassword = _hashPassword(passwordController.text);
         
         if (user['password_hash'] == hashedPassword) {
-          setState(() {
-            _debugMessage = 'Login successful!';
-          });
+          if (mounted) {
+            setState(() {
+              _debugMessage = 'Login successful!';
+            });
+          }
           
           await _prefsService!.setCurrentUserId(user['id']);
           await _prefsService!.setUserInfo(
@@ -87,40 +98,54 @@ class _TestLoginScreenState extends State<TestLoginScreen> {
             user['phone'],
           );
           
-          Navigator.pushReplacementNamed(context, '/personal_info');
+          if (mounted) {
+            navigator.pushReplacementNamed('/personal_info');
+          }
         } else {
-          setState(() {
-            _debugMessage = 'Wrong password';
-          });
+          if (mounted) {
+            setState(() {
+              _debugMessage = 'Wrong password';
+            });
+          }
         }
       } else {
-        setState(() {
-          _debugMessage = 'User not found - need to register first';
-        });
+        if (mounted) {
+          setState(() {
+            _debugMessage = 'User not found - need to register first';
+          });
+        }
       }
     } catch (e) {
-      setState(() {
-        _debugMessage = 'Login error: $e';
-      });
+      if (mounted) {
+        setState(() {
+          _debugMessage = 'Login error: $e';
+        });
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   Future<void> _testRegister() async {
     if (_prefsService == null) {
-      setState(() {
-        _debugMessage = 'Services not ready';
-      });
+      if (mounted) {
+        setState(() {
+          _debugMessage = 'Services not ready';
+        });
+      }
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-      _debugMessage = 'Starting registration...';
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _debugMessage = 'Starting registration...';
+      });
+    }
 
     try {
       String email = '${phoneController.text.trim()}@hemoai.com';
@@ -141,21 +166,27 @@ class _TestLoginScreenState extends State<TestLoginScreen> {
       int userId = await _dbHelper.insertUser(newUser);
       
       if (userId > 0) {
-        setState(() {
-          _debugMessage = 'Registration successful! User ID: $userId';
-        });
+        if (mounted) {
+          setState(() {
+            _debugMessage = 'Registration successful! User ID: $userId';
+          });
+        }
         
         await _prefsService!.setCurrentUserId(userId);
         await _prefsService!.setUserInfo('Test User', email, phoneController.text.trim());
       }
     } catch (e) {
-      setState(() {
-        _debugMessage = 'Registration error: $e';
-      });
+      if (mounted) {
+        setState(() {
+          _debugMessage = 'Registration error: $e';
+        });
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

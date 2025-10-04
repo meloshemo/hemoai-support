@@ -1,14 +1,14 @@
+// ignore_for_file: unused_field, unused_local_variable, unnecessary_to_list_in_spreads, avoid_print
 import 'dart:convert';
 import 'package:flutter/material.dart';
+// foundation import not needed; keep material only
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/export_service.dart';
 import '../services/notification_service.dart';
 import '../services/theme_service.dart';
 import '../services/web_database_helper.dart';
-import '../services/preferences_service.dart';
 import '../services/localization_service.dart';
-import '../widgets/app_drawer.dart';
 
 class ExportOptionsScreen extends StatefulWidget {
   final String? patientName;
@@ -51,7 +51,7 @@ class _ExportOptionsScreenState extends State<ExportOptionsScreen>
   @override
   void initState() {
     super.initState();
-    _dbHelper = WebDatabaseHelper();
+  _dbHelper = WebDatabaseHelper.instance;
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
@@ -82,7 +82,7 @@ class _ExportOptionsScreenState extends State<ExportOptionsScreen>
     try {
       // Get current user ID
       final prefs = await SharedPreferences.getInstance();
-      final userId = prefs.getInt('userId') ?? 1;
+  final userId = prefs.getInt('userId') ?? 1;
       
       // Get patient information
       final personalInfo = prefs.getString('personalInfo');
@@ -95,7 +95,7 @@ class _ExportOptionsScreenState extends State<ExportOptionsScreen>
 
       // Get latest hemogram data
       try {
-        final hemogramTests = await _dbHelper.getAllHemograms();
+  final hemogramTests = await _dbHelper.getHemogramTests(userId);
         if (hemogramTests.isNotEmpty) {
           final latestTest = hemogramTests.first;
           _hemogramValues = Map<String, double>.from(latestTest['values'] ?? {});
@@ -110,18 +110,18 @@ class _ExportOptionsScreenState extends State<ExportOptionsScreen>
           );
         }
       }
-        
-        // Perform analysis
-        await _performAnalysis();
-      }
+      // Perform analysis
+      await _performAnalysis();
     } catch (e) {
-      print('Error loading user data: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(LocalizationService.translate('error_loading_data')),
-          backgroundColor: Colors.red,
-        ),
-      );
+  debugPrint('Error loading user data: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(LocalizationService.translate('error_loading_data')),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       setState(() {
         _isLoading = false;
@@ -170,7 +170,7 @@ class _ExportOptionsScreenState extends State<ExportOptionsScreen>
           recommendations;
 
     } catch (e) {
-      print('Error performing analysis: $e');
+  debugPrint('Error performing analysis: $e');
       _analysisResult = LocalizationService.translate('analysis_error');
       _riskLevel = LocalizationService.translate('unknown_risk');
       _recommendations = [LocalizationService.translate('consult_healthcare_provider')];
@@ -296,7 +296,7 @@ class _ExportOptionsScreenState extends State<ExportOptionsScreen>
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -449,7 +449,7 @@ class _ExportOptionsScreenState extends State<ExportOptionsScreen>
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -466,7 +466,7 @@ class _ExportOptionsScreenState extends State<ExportOptionsScreen>
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.1),
+                    color: iconColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(

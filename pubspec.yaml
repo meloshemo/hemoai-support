@@ -44,11 +44,18 @@ dependencies:
   convert: ^3.1.1
   # Şifreleme için
   crypto: ^3.0.3
+  cryptography: ^2.5.0
   # Chart kütüphanesi
   fl_chart: ^0.68.0
   # PDF export için
   pdf: ^3.10.7
   printing: ^5.12.0
+  # Sharing & file saving
+  share_plus: ^10.0.2
+  path_provider: ^2.1.4
+  open_filex: ^4.5.0
+  image_picker: ^1.0.8
+  google_mlkit_text_recognition: ^0.13.0
   # Excel export için
   excel: ^4.0.3
   # File picker

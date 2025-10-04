@@ -254,6 +254,33 @@ class PreferencesService {
     return _preferences?.getString('last_app_usage');
   }
 
+  // Favori bitkiler
+  Future<void> saveFavoriteHerbs(List<String> favorites) async {
+    await _preferences!.setStringList('favorite_herbs', favorites);
+  }
+
+  List<String>? getFavoriteHerbs() {
+    return _preferences?.getStringList('favorite_herbs');
+  }
+
+  // Alternative medicine search history
+  Future<void> saveSearchHistory(List<String> history) async {
+    await _preferences!.setStringList('alt_med_search_history', history);
+  }
+
+  List<String>? getSearchHistory() {
+    return _preferences?.getStringList('alt_med_search_history');
+  }
+
+  // User interaction preferences
+  Future<void> saveShowOnlyFavorites(bool value) async {
+    await _preferences!.setBool('show_only_favorites', value);
+  }
+
+  bool getShowOnlyFavorites() {
+    return _preferences?.getBool('show_only_favorites') ?? false;
+  }
+
   // Özel ayarlar
   Future<void> saveCustomSettings(String key, dynamic value) async {
     if (value is String) {

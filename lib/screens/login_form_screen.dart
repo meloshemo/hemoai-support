@@ -7,7 +7,7 @@ import 'package:crypto/crypto.dart';
 import 'dart:convert';
 
 class LoginFormScreen extends StatefulWidget {
-  const LoginFormScreen({Key? key}) : super(key: key);
+  const LoginFormScreen({super.key});
 
   @override
   State<LoginFormScreen> createState() => _LoginFormScreenState();
@@ -16,7 +16,6 @@ class LoginFormScreen extends StatefulWidget {
 class _LoginFormScreenState extends State<LoginFormScreen> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
 
   PreferencesService? _prefsService;
@@ -29,8 +28,9 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
   }
 
   Future<void> _initServices() async {
-    _prefsService = await PreferencesService.getInstance();
-    setState(() {});
+  _prefsService = await PreferencesService.getInstance();
+  if (!mounted) return;
+  setState(() {});
   }
 
   String _hashPassword(String password) {
@@ -67,21 +67,21 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
     });
 
     try {
-      // Test kullanıcısı kontrolü (kolaylık için)
+      // Test user check (for convenience)
       if (phoneController.text == '5551234567' && passwordController.text == '1234') {
         // Test kullanıcısını oluştur (eğer yoksa)
         String email = '${phoneController.text}@hemoai.com';
-        Map<String, dynamic>? existingUser = await _dbHelper.getUser(email);
+  Map<String, dynamic>? existingUser = await _dbHelper.getUser(email);
         
         if (existingUser == null) {
           // Test kullanıcısı yoksa oluştur
           Map<String, dynamic> testUser = {
-            'name': 'Test Kullanıcısı',
+            'name': 'Test User',
             'email': email,
             'phone': phoneController.text,
             'password_hash': _hashPassword(passwordController.text),
             'age': 25,
-            'gender': 'Erkek',
+            'gender': 'male',
             'height': 175.0,
             'weight': 70.0,
             'bmi': 22.86,
@@ -95,6 +95,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
           await _prefsService!.setUserInfo(existingUser['name'], existingUser['email'], existingUser['phone']);
         }
         
+          if (!mounted) return;
           final loc = Provider.of<LocalizationService>(context, listen: false);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -103,6 +104,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
             ),
           );
         
+        if (!mounted) return;
         Navigator.pushReplacementNamed(context, '/personal_info');
         return;
       }
@@ -125,6 +127,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
             user['phone'],
           );
           
+            if (!mounted) return;
             final loc = Provider.of<LocalizationService>(context, listen: false);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -133,8 +136,10 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
               ),
             );
           
+          if (!mounted) return;
           Navigator.pushReplacementNamed(context, '/personal_info');
         } else {
+            if (!mounted) return;
             final loc = Provider.of<LocalizationService>(context, listen: false);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -144,6 +149,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
             );
         }
       } else {
+          if (!mounted) return;
           final loc = Provider.of<LocalizationService>(context, listen: false);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -153,6 +159,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
           );
       }
     } catch (e) {
+        if (!mounted) return;
         final loc = Provider.of<LocalizationService>(context, listen: false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -161,9 +168,11 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
           ),
         );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -177,8 +186,10 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
   @override
   Widget build(BuildContext context) {
     // We will access localization via Provider in Builders where needed
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Builder(
           builder: (context) {
@@ -186,8 +197,8 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
             return Text(loc.getString('login'));
           },
         ),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFFE53E3E),
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        foregroundColor: theme.appBarTheme.foregroundColor,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -213,9 +224,9 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                         width: 120,
                         height: 120,
                         decoration: BoxDecoration(
-                          color: Colors.grey[200],
+                          color: theme.cardColor,
                           borderRadius: BorderRadius.circular(60),
-                          border: Border.all(color: const Color(0xFFE53E3E), width: 2),
+                          border: Border.all(color: scheme.primary, width: 2),
                         ),
                         child: const Icon(
                           Icons.local_hospital,
@@ -231,9 +242,9 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.grey[50],
+                    color: scheme.surface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey[300]!),
+                    border: Border.all(color: scheme.outline),
                   ),
                   child: Column(
                     children: [
@@ -244,13 +255,13 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                         controller: phoneController,
                         decoration: InputDecoration(
                             labelText: loc.getString('phone_number_label'),
-                          prefixIcon: const Icon(Icons.phone, color: Color(0xFFE53E3E)),
+                          prefixIcon: Icon(Icons.phone, color: scheme.primary),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFE53E3E), width: 2),
+                            borderSide: BorderSide(color: scheme.primary, width: 2),
                           ),
                         ),
                         keyboardType: TextInputType.phone,
@@ -265,13 +276,13 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                         controller: passwordController,
                         decoration: InputDecoration(
                             labelText: loc.getString('password_label'),
-                          prefixIcon: const Icon(Icons.lock, color: Color(0xFFE53E3E)),
+                          prefixIcon: Icon(Icons.lock, color: scheme.primary),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFE53E3E), width: 2),
+                            borderSide: BorderSide(color: scheme.primary, width: 2),
                           ),
                         ),
                         obscureText: true,
@@ -284,9 +295,9 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.blue[50],
+                          color: scheme.primary.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.blue[200]!),
+                          border: Border.all(color: scheme.primary.withValues(alpha: 0.4)),
                         ),
                           child: Builder(
                             builder: (context) {
@@ -295,7 +306,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                                 loc.getString('test_credentials_hint'),
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.blue,
+                            color: scheme.primary,
                           ),
                           textAlign: TextAlign.center,
                               );
@@ -312,8 +323,8 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _login,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFE53E3E),
-                            foregroundColor: Colors.white,
+                            backgroundColor: scheme.primary,
+                            foregroundColor: scheme.onPrimary,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -352,14 +363,14 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(loc.getString('forgot_password_coming_soon')),
-                            backgroundColor: const Color(0xFFE53E3E),
+                            backgroundColor: scheme.primary,
                           ),
                         );
                       },
                       child: Text(
                         loc.getString('forgot_password'),
-                        style: const TextStyle(
-                          color: Color(0xFFE53E3E),
+                        style: TextStyle(
+                          color: scheme.primary,
                           fontSize: 16,
                           decoration: TextDecoration.underline,
                         ),

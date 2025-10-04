@@ -8,7 +8,7 @@ import '../widgets/app_drawer.dart';
 import '../utils/responsive_helper.dart';
 
 class AdvancedAnalyticsScreen extends StatefulWidget {
-  const AdvancedAnalyticsScreen({Key? key}) : super(key: key);
+  const AdvancedAnalyticsScreen({super.key});
 
   @override
   State<AdvancedAnalyticsScreen> createState() => _AdvancedAnalyticsScreenState();
@@ -61,7 +61,7 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> with 
         }
       }
     } catch (e) {
-      print('Error loading analytics data: $e');
+  debugPrint('Error loading analytics data: $e');
     } finally {
       setState(() {
         _isLoading = false;
@@ -73,8 +73,7 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> with 
     if (_latestTest == null) return;
     
     // Simple health score calculation based on normal ranges
-    double score = 100.0;
-    int abnormalCount = 0;
+  double score = 100.0;
     
     // Check each parameter
     Map<String, List<double>> normalRanges = {
@@ -89,7 +88,6 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> with 
       double? value = _latestTest![key]?.toDouble();
       if (value != null) {
         if (value < range[0] || value > range[1]) {
-          abnormalCount++;
           score -= 15.0; // Decrease score for each abnormal value
         }
       }
@@ -222,14 +220,14 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> with 
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [_healthColor, _healthColor.withOpacity(0.7)],
+                colors: [_healthColor, _healthColor.withValues(alpha: 0.7)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: _healthColor.withOpacity(0.3),
+                  color: _healthColor.withValues(alpha: 0.3),
                   spreadRadius: 2,
                   blurRadius: 10,
                   offset: const Offset(0, 4),
@@ -274,7 +272,7 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> with 
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -384,7 +382,7 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> with 
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 3,
             offset: const Offset(0, 2),
@@ -433,7 +431,7 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> with 
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 2,
             blurRadius: 8,
             offset: const Offset(0, 4),
@@ -500,7 +498,7 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> with 
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
+                      color: statusColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: statusColor),
                     ),
@@ -516,7 +514,7 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> with 
                 ],
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );
@@ -578,7 +576,7 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> with 
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
+              color: Colors.grey.withValues(alpha: 0.1),
               spreadRadius: 2,
               blurRadius: 8,
               offset: const Offset(0, 4),
@@ -602,9 +600,9 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> with 
           ? const Color(0xFF21262D)
           : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 2,
             blurRadius: 8,
             offset: const Offset(0, 4),
@@ -643,7 +641,7 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> with 
           ),
           borderData: FlBorderData(
             show: true,
-            border: Border.all(color: Colors.grey.withOpacity(0.3)),
+            border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
           ),
           lineBarsData: [
             LineChartBarData(
@@ -654,7 +652,7 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> with 
               dotData: const FlDotData(show: true),
               belowBarData: BarAreaData(
                 show: true,
-                color: const Color(0xFFE53E3E).withOpacity(0.1),
+                color: const Color(0xFFE53E3E).withValues(alpha: 0.1),
               ),
             ),
           ],
@@ -708,7 +706,7 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> with 
           
           ..._generateInsights(localizationService).map((insight) => 
             _buildInsightCard(insight, localizationService)
-          ).toList(),
+          ),
         ],
       ),
     );
@@ -724,10 +722,10 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> with 
           ? const Color(0xFF21262D)
           : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: insight['color'].withOpacity(0.3)),
+        border: Border.all(color: insight['color'].withValues(alpha: 0.3)),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 3,
             offset: const Offset(0, 2),
@@ -739,7 +737,7 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> with 
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: insight['color'].withOpacity(0.1),
+              color: insight['color'].withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(

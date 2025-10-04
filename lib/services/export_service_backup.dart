@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/localization_service.dart';
 
 class ExportService {
   static final ExportService _instance = ExportService._internal();
@@ -13,17 +15,19 @@ class ExportService {
     String? doctorNotes,
   }) async {
     try {
-      // For now, show a message that PDF export is available
+      // For now, show a message that PDF export is available (localized)
+      final loc = Provider.of<LocalizationService>(context, listen: false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('PDF export feature is being updated...'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(loc.getString('pdf_generating')),
+          duration: const Duration(seconds: 2),
         ),
       );
     } catch (e) {
+      final loc = Provider.of<LocalizationService>(context, listen: false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('PDF export error: $e'),
+          content: Text('${loc.getString('pdf_export_error_prefix')}$e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -38,17 +42,19 @@ class ExportService {
     String? doctorNotes,
   }) async {
     try {
-      // For now, show a message that Excel export is available
+      // For now, show a message that Excel export is available (localized)
+      final loc = Provider.of<LocalizationService>(context, listen: false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Excel export feature is being updated...'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(loc.getString('excel_generating')),
+          duration: const Duration(seconds: 2),
         ),
       );
     } catch (e) {
+      final loc = Provider.of<LocalizationService>(context, listen: false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Excel export error: $e'),
+          content: Text('${loc.getString('excel_export_error_prefix')}$e'),
           backgroundColor: Colors.red,
         ),
       );

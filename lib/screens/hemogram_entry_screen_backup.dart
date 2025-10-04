@@ -1,3 +1,4 @@
+// ignore_for_file: unnecessary_to_list_in_spreads
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/preferences_service.dart';
@@ -6,7 +7,7 @@ import '../services/localization_service.dart';
 import '../widgets/app_drawer.dart';
 
 class HemogramEntryScreen extends StatefulWidget {
-  const HemogramEntryScreen({Key? key}) : super(key: key);
+  const HemogramEntryScreen({super.key});
 
   @override
   State<HemogramEntryScreen> createState() => _HemogramEntryScreenState();
@@ -115,7 +116,7 @@ class _HemogramEntryScreenState extends State<HemogramEntryScreen> {
               children: [
                 ElevatedButton.icon(
                   onPressed: () {
-                    // Burada OCR entegrasyonu yapılacak
+                    // Burada OCR entegrasyonu yapilacak
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text(Provider.of<LocalizationService>(context, listen: false).getString('ocr_feature_coming_soon'))),
                     );
@@ -201,7 +202,7 @@ class _HemogramEntryScreenState extends State<HemogramEntryScreen> {
   }
 
   Future<void> _saveAndAnalyze() async {
-    // Boş alanları kontrol et
+  // Bos alanlari kontrol et
     final loc = Provider.of<LocalizationService>(context, listen: false);
     Map<String, double> values = {};
     bool hasValues = false;
@@ -245,10 +246,10 @@ class _HemogramEntryScreenState extends State<HemogramEntryScreen> {
       // Risk seviyesini hesapla (her zaman)
       final String riskLevel = _calculateRiskLevel(values);
 
-      // UI anahtarlarını DB şemasına map et
+  // UI anahtarlarini DB semasina map et
       final Map<String, double> dbValues = HemogramValues.mapToDatabase(values);
 
-      // Giriş yapılmışsa veritabanına yaz
+  // Giris yapilmissa veritabanina yaz
       final int? userId = _prefsService?.getCurrentUserId();
       if (userId != null) {
         final Map<String, dynamic> testData = {
@@ -260,13 +261,13 @@ class _HemogramEntryScreenState extends State<HemogramEntryScreen> {
         await _dbHelper.insertHemogramTest(testData);
       }
 
-      // Oturum durumundan bağımsız olarak Preferences'a yaz
+  // Oturum durumundan bagimsiz olarak Preferences'a yaz
       if (_prefsService != null) {
         await _prefsService!.setHemogramValues(values);
       }
 
       if (!mounted) return;
-      // Başarılı bilgilendirme
+  // Basarili bilgilendirme
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(loc.getString('hemogram_values_saved')),
@@ -274,7 +275,7 @@ class _HemogramEntryScreenState extends State<HemogramEntryScreen> {
         ),
       );
 
-      // Analiz sayfasına git (misafir dahil)
+  // Analiz sayfasina git (misafir dahil)
       Navigator.pushNamed(context, '/analysis', arguments: values);
     } catch (e) {
       if (!mounted) return;

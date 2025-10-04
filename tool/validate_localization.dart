@@ -12,7 +12,7 @@ void main(List<String> args) async {
   final libDir = Directory(p.join(repoRoot, 'lib'));
   final locFile = File(p.join(libDir.path, 'services', 'localization_service.dart'));
   if (!libDir.existsSync() || !locFile.existsSync()) {
-    print('ERROR: lib/ or localization_service.dart not found.');
+    stdout.writeln('ERROR: lib/ or localization_service.dart not found.');
     exitCode = 1;
     return;
   }
@@ -85,11 +85,11 @@ void main(List<String> args) async {
   }
 
   if (issues.isEmpty) {
-    print('Localization validation passed: no issues found.');
+    stdout.writeln('Localization validation passed: no issues found.');
   } else {
-    print('Localization validation found ${issues.length} issue(s):');
+    stdout.writeln('Localization validation found ${issues.length} issue(s):');
     for (final i in issues) {
-      print(' - ' + i);
+      stdout.writeln(' - $i');
     }
     exitCode = 2;
   }

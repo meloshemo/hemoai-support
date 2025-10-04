@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../widgets/app_drawer.dart';
 import '../services/push_notification_service.dart';
-import '../services/database_helper.dart';
 import '../services/preferences_service.dart';
 import '../services/localization_service.dart';
 import '../services/audit_log_service.dart';
 
 class EnhancedNotificationScreen extends StatefulWidget {
-  const EnhancedNotificationScreen({Key? key}) : super(key: key);
+  const EnhancedNotificationScreen({super.key});
 
   @override
   State<EnhancedNotificationScreen> createState() => _EnhancedNotificationScreenState();
@@ -36,16 +35,18 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
   }
 
   Future<void> _initializeNotifications() async {
-    setState(() {
-      _isLoading = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
     
     // Initialize push notification service if not already done
     final pushService = Provider.of<PushNotificationService>(context, listen: false);
     if (!pushService.isInitialized) {
       await pushService.initialize();
     }
-    
+    if (!mounted) return;
     setState(() {
       _isLoading = false;
     });
@@ -78,23 +79,28 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
 
   Future<void> _pickDailyMotivationTime() async {
     final loc = LocalizationService();
+    final messenger = ScaffoldMessenger.of(context);
+    final localizations = MaterialLocalizations.of(context);
+    // Pre-capture services before awaits
+    final push = Provider.of<PushNotificationService>(context, listen: false);
     final prefs = await PreferencesService.getInstance();
+    if (!mounted) return;
     final picked = await showTimePicker(
       context: context,
       initialTime: _dailyMotivationTime ?? TimeOfDay.now(),
     );
+  if (!mounted) return;
     if (picked != null) {
       setState(() => _dailyMotivationTime = picked);
       await prefs.saveCustomSettings('daily_motivation_hour', picked.hour);
       await prefs.saveCustomSettings('daily_motivation_minute', picked.minute);
 
-      // Schedule via push service
-      final push = Provider.of<PushNotificationService>(context, listen: false);
       await push.scheduleDailyMotivation(hour: picked.hour, minute: picked.minute, quote: _currentQuote);
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${loc.getString('daily_motivation_time')}: ${picked.format(context)}')),
+      final formatted = localizations.formatTimeOfDay(picked, alwaysUse24HourFormat: true);
+      messenger.showSnackBar(
+        SnackBar(content: Text('${loc.getString('daily_motivation_time')}: $formatted')),
       );
       AuditLogService().logAction('daily_motivation_scheduled', data: {
         'hour': picked.hour,
@@ -142,9 +148,10 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
                 ElevatedButton.icon(
                   onPressed: () async {
                     // Simple share via clipboard-like feedback
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(loc.getString('quote_copied'))),
+                    final messenger = ScaffoldMessenger.of(context);
+                    final text = loc.getString('quote_copied');
+                    messenger.showSnackBar(
+                      SnackBar(content: Text(text)),
                     );
                     AuditLogService().logAction('motivation_shared');
                   },
@@ -244,7 +251,7 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
 
   Widget _buildNotificationCard(NotificationMessage notification) {
     final typeColor = _getTypeColor(notification.type);
-    
+    final loc = LocalizationService();
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: notification.isRead ? 1 : 3,
@@ -331,6 +338,41 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
                         fontSize: 12,
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            final svc = Provider.of<PushNotificationService>(context, listen: false);
+                            final messenger = ScaffoldMessenger.of(context);
+                            await svc.snoozeReceived(message: notification, delay: const Duration(minutes: 30));
+                            messenger.showSnackBar(
+                              SnackBar(content: Text(loc.getString('snoozed_for_30'))),
+                            );
+                          },
+                          icon: const Icon(Icons.snooze),
+                          label: Text(loc.getString('snooze_30m')),
+                        ),
+                        const SizedBox(width: 8),
+                        OutlinedButton(
+                          onPressed: () async {
+                            final svc = Provider.of<PushNotificationService>(context, listen: false);
+                            final messenger = ScaffoldMessenger.of(context);
+                            await svc.snoozeReceived(message: notification, delay: const Duration(hours: 1));
+                            messenger.showSnackBar(
+                              SnackBar(content: Text(loc.getString('snoozed_for_60'))),
+                            );
+                          },
+                          child: Text(loc.getString('snooze_60m')),
+                        ),
+                        const SizedBox(width: 8),
+                        OutlinedButton.icon(
+                          onPressed: () => _showCustomSnoozePicker(received: notification),
+                          icon: const Icon(Icons.more_time),
+                          label: Text(loc.getString('custom_snooze')),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -338,6 +380,159 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _showCustomSnoozePicker({NotificationMessage? received, ScheduledNotification? scheduled}) async {
+    final loc = LocalizationService();
+    final push = Provider.of<PushNotificationService>(context, listen: false);
+    final messenger = ScaffoldMessenger.of(context);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    int customMinutes = 15;
+    await showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.more_time),
+                  const SizedBox(width: 8),
+                  Text(loc.getString('custom_snooze'), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ActionChip(
+                    label: Text(loc.getString('snooze_15m')),
+                    onPressed: () async {
+                      Navigator.pop(ctx);
+                      if (received != null) {
+                        await push.snoozeReceived(message: received, delay: const Duration(minutes: 15));
+                      } else if (scheduled != null) {
+                        await push.snoozeScheduled(scheduled: scheduled, delay: const Duration(minutes: 15));
+                      }
+                      messenger.showSnackBar(SnackBar(content: Text(loc.getString('snoozed_for_n_minutes').replaceFirst('{minutes}', '15'))));
+                    },
+                  ),
+                  ActionChip(
+                    label: Text(loc.getString('snooze_30m')),
+                    onPressed: () async {
+                      Navigator.pop(ctx);
+                      if (received != null) {
+                        await push.snoozeReceived(message: received, delay: const Duration(minutes: 30));
+                      } else if (scheduled != null) {
+                        await push.snoozeScheduled(scheduled: scheduled, delay: const Duration(minutes: 30));
+                      }
+                      messenger.showSnackBar(SnackBar(content: Text(loc.getString('snoozed_for_n_minutes').replaceFirst('{minutes}', '30'))));
+                    },
+                  ),
+                  ActionChip(
+                    label: Text(loc.getString('snooze_60m')),
+                    onPressed: () async {
+                      Navigator.pop(ctx);
+                      if (received != null) {
+                        await push.snoozeReceived(message: received, delay: const Duration(minutes: 60));
+                      } else if (scheduled != null) {
+                        await push.snoozeScheduled(scheduled: scheduled, delay: const Duration(minutes: 60));
+                      }
+                      messenger.showSnackBar(SnackBar(content: Text(loc.getString('snoozed_for_n_minutes').replaceFirst('{minutes}', '60'))));
+                    },
+                  ),
+                  ActionChip(
+                    label: Text(loc.getString('snooze_2h')),
+                    onPressed: () async {
+                      Navigator.pop(ctx);
+                      if (received != null) {
+                        await push.snoozeReceived(message: received, delay: const Duration(hours: 2));
+                      } else if (scheduled != null) {
+                        await push.snoozeScheduled(scheduled: scheduled, delay: const Duration(hours: 2));
+                      }
+                      messenger.showSnackBar(SnackBar(content: Text(loc.getString('snoozed_for_n_minutes').replaceFirst('{minutes}', '120'))));
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: loc.getString('enter_minutes'),
+                        border: const OutlineInputBorder(),
+                      ),
+                      onChanged: (v) {
+                        final parsed = int.tryParse(v);
+                        if (parsed != null) customMinutes = parsed;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: () async {
+                      if (customMinutes < 1 || customMinutes > 1440) {
+                        messenger.showSnackBar(SnackBar(content: Text(loc.getString('invalid_minutes'))));
+                        return;
+                      }
+                      Navigator.pop(ctx);
+                      if (received != null) {
+                        await push.snoozeReceived(message: received, delay: Duration(minutes: customMinutes));
+                      } else if (scheduled != null) {
+                        await push.snoozeScheduled(scheduled: scheduled, delay: Duration(minutes: customMinutes));
+                      }
+                      messenger.showSnackBar(SnackBar(content: Text(loc.getString('snoozed_for_n_minutes').replaceFirst('{minutes}', '$customMinutes'))));
+                    },
+                    style: ElevatedButton.styleFrom(backgroundColor: scheme.primary, foregroundColor: scheme.onPrimary),
+                    child: Text(loc.getString('ok')),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextButton.icon(
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  final now = DateTime.now();
+                  DateTime next = DateTime(now.year, now.month, now.day, 9, 0);
+                  if (!next.isAfter(now)) next = next.add(const Duration(days: 1));
+                  if (received != null) {
+                    await push.scheduleNotification(
+                      title: received.title,
+                      body: received.body,
+                      scheduledTime: next,
+                      data: {...received.data, 'repeat': 'none'},
+                      type: received.type,
+                    );
+                  } else if (scheduled != null) {
+                    await push.scheduleNotification(
+                      title: scheduled.title,
+                      body: scheduled.body,
+                      scheduledTime: next,
+                      data: {...scheduled.data, 'repeat': 'none'},
+                      type: scheduled.type,
+                    );
+                    await push.cancelNotification(scheduled.id);
+                  }
+                  messenger.showSnackBar(SnackBar(content: Text(loc.getString('snoozed_for_tomorrow'))));
+                },
+                icon: const Icon(Icons.wb_sunny_outlined),
+                label: Text(loc.getString('tomorrow_morning')),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -609,7 +804,9 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
 
   void _scheduleQuickReminder(String type) {
     final now = DateTime.now();
+    // Pre-capture without async gap inside this sync method
     final pushService = Provider.of<PushNotificationService>(context, listen: false);
+    final messenger = ScaffoldMessenger.of(context);
 
     switch (type) {
       case 'medication':
@@ -632,7 +829,7 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
         break;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       SnackBar(
         content: Text(LocalizationService.translate('reminder_scheduled').replaceFirst('{type}', type)),
         backgroundColor: const Color(0xFFE53E3E),
@@ -670,7 +867,7 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
       builder: (context, pushService, child) {
         final allNotifications = pushService.receivedNotifications;
         final unreadNotifications = allNotifications.where((n) => !n.isRead).toList();
-        final readNotifications = allNotifications.where((n) => n.isRead).toList();
+  // Note: read notifications are shown under the "All" tab; no separate list needed here.
         final scheduledNotifications = pushService.scheduledNotifications;
 
         return Scaffold(
@@ -706,8 +903,9 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
               if (allNotifications.isNotEmpty)
                 IconButton(
                   onPressed: () {
+                    final messenger = ScaffoldMessenger.of(context);
                     pushService.clearAllNotifications();
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    messenger.showSnackBar(
                       SnackBar(content: Text(LocalizationService.translate('all_notifications_cleared'))),
                     );
                   },
@@ -815,7 +1013,7 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
                                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                 child: ListTile(
                                   leading: CircleAvatar(
-                                    backgroundColor: _getTypeColor(scheduled.type).withOpacity(0.1),
+                                    backgroundColor: _getTypeColor(scheduled.type).withValues(alpha: 0.1),
                                     child: Icon(
                                       _getTypeIcon(scheduled.type),
                                       color: _getTypeColor(scheduled.type),
@@ -836,14 +1034,39 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
                                       ),
                                     ],
                                   ),
-                                  trailing: IconButton(
-                                    icon: const Icon(Icons.cancel),
-                                    onPressed: () {
-                                      pushService.cancelNotification(scheduled.id);
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text(LocalizationService.translate('notification_cancelled'))),
-                                      );
-                                    },
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.snooze),
+                                        tooltip: LocalizationService.translate('snooze_30m'),
+                                        onPressed: () async {
+                                          final messenger = ScaffoldMessenger.of(context);
+                                          await pushService.snoozeScheduled(
+                                            scheduled: scheduled,
+                                            delay: const Duration(minutes: 30),
+                                          );
+                                          messenger.showSnackBar(
+                                            SnackBar(content: Text(LocalizationService.translate('snoozed_for_30'))),
+                                          );
+                                        },
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.more_time),
+                                        tooltip: LocalizationService.translate('custom_snooze'),
+                                        onPressed: () => _showCustomSnoozePicker(scheduled: scheduled),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.cancel),
+                                        tooltip: LocalizationService.translate('cancel'),
+                                        onPressed: () {
+                                          pushService.cancelNotification(scheduled.id);
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text(LocalizationService.translate('notification_cancelled'))),
+                                          );
+                                        },
+                                      ),
+                                    ],
                                   ),
                                 ),
                               );

@@ -5,6 +5,7 @@ import 'package:hemoai/services/theme_service.dart';
 import 'package:hemoai/services/notification_service.dart';
 import 'package:hemoai/services/push_notification_service.dart';
 import 'package:hemoai/services/localization_service.dart';
+import 'package:hemoai/services/analytics_service.dart';
 import 'package:hemoai/main.dart';
 
 void main() {
@@ -17,6 +18,7 @@ void main() {
           ChangeNotifierProvider(create: (_) => NotificationService()),
           ChangeNotifierProvider(create: (_) => PushNotificationService()),
           ChangeNotifierProvider(create: (_) => LocalizationService()),
+          ChangeNotifierProvider(create: (_) => AnalyticsService()..initialize()),
         ],
         child: HemoAIApp(),
       ),

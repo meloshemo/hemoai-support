@@ -6,7 +6,7 @@ import '../services/localization_service.dart';
 import '../widgets/app_drawer.dart';
 
 class PersonalInfoScreen extends StatefulWidget {
-  const PersonalInfoScreen({Key? key}) : super(key: key);
+  const PersonalInfoScreen({super.key});
 
   @override
   State<PersonalInfoScreen> createState() => _PersonalInfoScreenState();
@@ -54,6 +54,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
       if (userId != null) {
         Map<String, dynamic>? user = await _dbHelper.getUserById(userId);
         if (user != null) {
+          if (!mounted) return;
           setState(() {
             ageController.text = user['age'].toString();
             weightController.text = user['weight'].toString();
@@ -67,9 +68,10 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
         }
       }
     } catch (e) {
-      print('Error loading user data: $e');
+  debugPrint('Error loading user data: $e');
     }
     
+    if (!mounted) return;
     setState(() {
       _isLoading = false;
     });
@@ -121,11 +123,13 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           );
         }
 
+        if (!mounted) return;
         setState(() {
           bmi = calculatedBmi;
           riskColor = getRiskColor(bmi);
         });
 
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(localizationService.getString('info_saved_successfully')),
@@ -134,6 +138,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${localizationService.getString('error')}: $e'),
@@ -141,9 +146,11 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
         ),
       );
     } finally {
-      setState(() {
-        _isSaving = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
     }
   }
 
@@ -151,21 +158,19 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   Widget build(BuildContext context) {
     return Consumer<LocalizationService>(
       builder: (context, localizationService, child) {
+        final theme = Theme.of(context);
+        final scheme = theme.colorScheme;
         return Directionality(
           textDirection: localizationService.textDirection,
           child: Scaffold(
-            backgroundColor: Theme.of(context).brightness == Brightness.dark 
-              ? const Color(0xFF0D1117) 
-              : Colors.white,
+            backgroundColor: theme.scaffoldBackgroundColor,
             drawer: const AppDrawer(currentRoute: '/personal_info'),
             appBar: AppBar(
               leading: Builder(
                 builder: (context) => IconButton(
                   icon: Icon(
                     Icons.menu,
-                    color: Theme.of(context).brightness == Brightness.dark 
-                      ? const Color(0xFFF0F6FC) 
-                      : const Color(0xFFE53E3E),
+                    color: theme.appBarTheme.foregroundColor ?? scheme.onSurface,
                     size: 24,
                   ),
                   onPressed: () => Scaffold.of(context).openDrawer(),
@@ -173,12 +178,8 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                 ),
               ),
               title: Text(localizationService.getString('personal_info')),
-              backgroundColor: Theme.of(context).brightness == Brightness.dark 
-                ? const Color(0xFF161B22) 
-                : Colors.white,
-              foregroundColor: Theme.of(context).brightness == Brightness.dark 
-                ? Colors.white 
-                : const Color(0xFFE53E3E),
+              backgroundColor: theme.appBarTheme.backgroundColor ?? scheme.surface,
+              foregroundColor: theme.appBarTheme.foregroundColor ?? scheme.onSurface,
               elevation: 0,
             ),
             body: _isLoading 
@@ -216,9 +217,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                   width: 100,
                                   height: 100,
                                   decoration: BoxDecoration(
-                                    color: Colors.grey[200],
+                                    color: theme.cardColor,
                                     borderRadius: BorderRadius.circular(50),
-                                    border: Border.all(color: const Color(0xFFE53E3E), width: 2),
+                                    border: Border.all(color: scheme.primary, width: 2),
                                   ),
                                   child: const Icon(
                                     Icons.local_hospital,
@@ -232,10 +233,10 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                           
                           Text(
                             localizationService.getString('enter_personal_info'),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFFE53E3E),
+                              color: scheme.primary,
                             ),
                           ),
                           const SizedBox(height: 32),
@@ -244,14 +245,10 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                           Container(
                             padding: const EdgeInsets.all(24),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).brightness == Brightness.dark
-                                ? const Color(0xFF21262D)
-                                : Colors.grey[50],
+                              color: scheme.surface,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: Theme.of(context).brightness == Brightness.dark
-                                  ? const Color(0xFF30363D)
-                                  : Colors.grey[300]!,
+                                color: scheme.outline,
                               ),
                             ),
                             child: Column(
@@ -261,17 +258,17 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                   keyboardType: TextInputType.number,
                                   decoration: InputDecoration(
                                     labelText: localizationService.getString('age'),
-                                    prefixIcon: const Icon(Icons.cake, color: Color(0xFFE53E3E)),
+                                    prefixIcon: Icon(Icons.cake, color: scheme.primary),
                                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                                     focusedBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(color: Color(0xFFE53E3E), width: 2),
+                                      borderSide: BorderSide(color: scheme.primary, width: 2),
                                     ),
                                   ),
                                 ),
                                 const SizedBox(height: 16),
                                 DropdownButtonFormField<String>(
-                                  value: gender,
+                                  initialValue: gender,
                                   items: [
                                     DropdownMenuItem(
                                       value: 'male',
@@ -289,11 +286,11 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                   },
                                   decoration: InputDecoration(
                                     labelText: localizationService.getString('gender'),
-                                    prefixIcon: const Icon(Icons.person, color: Color(0xFFE53E3E)),
+                                    prefixIcon: Icon(Icons.person, color: scheme.primary),
                                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                                     focusedBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(color: Color(0xFFE53E3E), width: 2),
+                                      borderSide: BorderSide(color: scheme.primary, width: 2),
                                     ),
                                   ),
                                 ),
@@ -303,11 +300,11 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                   keyboardType: TextInputType.number,
                                   decoration: InputDecoration(
                                     labelText: '${localizationService.getString('weight')} (kg)',
-                                    prefixIcon: const Icon(Icons.monitor_weight, color: Color(0xFFE53E3E)),
+                                    prefixIcon: Icon(Icons.monitor_weight, color: scheme.primary),
                                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                                     focusedBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(color: Color(0xFFE53E3E), width: 2),
+                                      borderSide: BorderSide(color: scheme.primary, width: 2),
                                     ),
                                   ),
                                 ),
@@ -317,11 +314,11 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                   keyboardType: TextInputType.number,
                                   decoration: InputDecoration(
                                     labelText: '${localizationService.getString('height')} (cm)',
-                                    prefixIcon: const Icon(Icons.height, color: Color(0xFFE53E3E)),
+                                    prefixIcon: Icon(Icons.height, color: scheme.primary),
                                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                                     focusedBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(color: Color(0xFFE53E3E), width: 2),
+                                      borderSide: BorderSide(color: scheme.primary, width: 2),
                                     ),
                                   ),
                                 ),
@@ -340,8 +337,8 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                       });
                                     },
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFFE53E3E),
-                                      foregroundColor: Colors.white,
+                                      backgroundColor: scheme.primary,
+                                      foregroundColor: scheme.onPrimary,
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                     ),
                                     child: Text(
@@ -388,8 +385,8 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                   child: ElevatedButton(
                                     onPressed: _isSaving ? null : _saveUserData,
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFFE53E3E),
-                                      foregroundColor: Colors.white,
+                                      backgroundColor: scheme.primary,
+                                      foregroundColor: scheme.onPrimary,
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                     ),
                                     child: _isSaving

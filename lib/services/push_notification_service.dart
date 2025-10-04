@@ -16,6 +16,11 @@ class PushNotificationService extends ChangeNotifier {
   
   final List<ScheduledNotification> _scheduledNotifications = [];
   final List<NotificationMessage> _receivedNotifications = [];
+  // In-memory debug log (for Notification Debug screen)
+  final List<NotificationLogEntry> _debugLogs = [];
+  // Mapping between reminders and scheduled notifications
+  final Map<int, Set<String>> _reminderSchedules = {};
+  final Map<String, int> _scheduleToReminder = {};
 
   // Getters
   bool get isInitialized => _isInitialized;
@@ -23,6 +28,25 @@ class PushNotificationService extends ChangeNotifier {
   String? get deviceToken => _deviceToken;
   List<ScheduledNotification> get scheduledNotifications => List.unmodifiable(_scheduledNotifications);
   List<NotificationMessage> get receivedNotifications => List.unmodifiable(_receivedNotifications);
+  List<NotificationLogEntry> get debugLogs => List.unmodifiable(_debugLogs);
+
+  void _log(String message) {
+    // keep last 300 entries
+    _debugLogs.add(NotificationLogEntry(DateTime.now(), message));
+    if (_debugLogs.length > 300) {
+      _debugLogs.removeRange(0, _debugLogs.length - 300);
+    }
+    // Notify listeners so debug UI can update
+    notifyListeners();
+  }
+
+  // Safely coerce dynamic to int
+  int? _coerceInt(dynamic v) {
+    if (v is int) return v;
+    if (v is String) return int.tryParse(v);
+    if (v is num) return v.toInt();
+    return null;
+  }
 
   // Initialize the push notification service
   Future<void> initialize() async {
@@ -35,11 +59,13 @@ class PushNotificationService extends ChangeNotifier {
       _isInitialized = true;
       
       if (kDebugMode) {
-        print('✅ PushNotificationService initialized successfully');
+  debugPrint('✅ PushNotificationService initialized successfully');
+        _log('Initialized successfully');
       }
     } catch (e) {
       if (kDebugMode) {
-        print('❌ Failed to initialize PushNotificationService: $e');
+  debugPrint('❌ Failed to initialize PushNotificationService: $e');
+        _log('Init failed: $e');
       }
     }
   }
@@ -51,20 +77,23 @@ class PushNotificationService extends ChangeNotifier {
       try {
         _permissionGranted = true; // Simulated for web
         if (kDebugMode) {
-          print('📱 Web notification permission granted (simulated)');
+          debugPrint('📱 Web notification permission granted (simulated)');
         }
+        _log('Permission granted (web simulated)');
       } catch (e) {
         _permissionGranted = false;
         if (kDebugMode) {
-          print('❌ Web notification permission denied: $e');
+          debugPrint('❌ Web notification permission denied: $e');
         }
+        _log('Permission denied (web): $e');
       }
     } else {
       // Mobile notification permission (would use flutter_local_notifications)
       _permissionGranted = true; // Simulated for now
       if (kDebugMode) {
-        print('📱 Mobile notification permission granted (simulated)');
+  debugPrint('📱 Mobile notification permission granted (simulated)');
       }
+      _log('Permission granted (mobile simulated)');
     }
   }
 
@@ -79,8 +108,9 @@ class PushNotificationService extends ChangeNotifier {
     }
     
     if (kDebugMode) {
-      print('🔑 Device token: $_deviceToken');
+  debugPrint('🔑 Device token: $_deviceToken');
     }
+    _log('Device token set: $_deviceToken');
   }
 
   // Start checking for scheduled notifications
@@ -99,18 +129,44 @@ class PushNotificationService extends ChangeNotifier {
              notification.scheduledTime.isAtSameMomentAs(now);
     }).toList();
 
-    for (final notification in toTrigger) {
-      _triggerNotification(notification);
-      _scheduledNotifications.remove(notification);
-    }
-
-    if (toTrigger.isNotEmpty) {
-      notifyListeners();
+    try {
+      for (final notification in toTrigger) {
+        try {
+          _triggerNotification(notification);
+          _scheduledNotifications.remove(notification);
+          _log('Notification triggered successfully: ${notification.id}');
+        } catch (e) {
+          _log('Error triggering notification ${notification.id}: $e');
+          // Keep the notification for retry, but mark it as failed
+          notification.metadata['last_error'] = e.toString();
+          notification.metadata['error_count'] = (notification.metadata['error_count'] ?? 0) + 1;
+          
+          // Remove after 3 failed attempts
+          if ((notification.metadata['error_count'] as int) >= 3) {
+            _scheduledNotifications.remove(notification);
+            _log('Notification ${notification.id} removed after 3 failed attempts');
+          }
+        }
+      }
+      if (toTrigger.isNotEmpty) {
+        notifyListeners();
+      }
+    } catch (e) {
+      _log('Critical error in notification checker: $e');
     }
   }
 
   // Trigger a notification
   void _triggerNotification(ScheduledNotification notification) {
+    // Drop mapping for this schedule id if any
+    final rid = _scheduleToReminder.remove(notification.id);
+    if (rid != null) {
+      final set = _reminderSchedules[rid];
+      set?.remove(notification.id);
+      if (set != null && set.isEmpty) {
+        _reminderSchedules.remove(rid);
+      }
+    }
     final message = NotificationMessage(
       id: notification.id,
       title: notification.title,
@@ -126,8 +182,9 @@ class PushNotificationService extends ChangeNotifier {
     _showSystemNotification(message);
     
     if (kDebugMode) {
-      print('🔔 Notification triggered: ${message.title}');
+  debugPrint('🔔 Notification triggered: ${message.title}');
     }
+    _log('Triggered: ${message.title} (${message.id})');
 
     // Auto-reschedule daily motivation notifications for the next day
     try {
@@ -160,11 +217,41 @@ class PushNotificationService extends ChangeNotifier {
             if (quote != null) 'quote': quote,
           },
         );
+      } else if (repeat == 'daily' || repeat == 'weekly' || repeat == 'monthly') {
+        final int hour = (message.data['hour'] is String)
+            ? int.tryParse(message.data['hour']) ?? DateTime.now().hour
+            : (message.data['hour'] as int? ?? DateTime.now().hour);
+        final int minute = (message.data['minute'] is String)
+            ? int.tryParse(message.data['minute']) ?? DateTime.now().minute
+            : (message.data['minute'] as int? ?? DateTime.now().minute);
+        final now = DateTime.now();
+        DateTime next = DateTime(now.year, now.month, now.day, hour, minute);
+        if (repeat == 'daily') {
+          next = next.add(const Duration(days: 1));
+        } else if (repeat == 'weekly') {
+          next = next.add(const Duration(days: 7));
+        } else if (repeat == 'monthly') {
+          next = DateTime(next.year, next.month + 1, next.day, next.hour, next.minute);
+        }
+        // Schedule same title/body/type from message
+        scheduleNotification(
+          title: message.title,
+          body: message.body,
+          scheduledTime: next,
+          type: message.type,
+          data: {
+            ...message.data,
+            'hour': hour,
+            'minute': minute,
+          },
+        );
+  _log('Auto-rescheduled ($repeat) for ${next.toIso8601String()}');
       }
     } catch (e) {
       if (kDebugMode) {
-        print('⚠️ Auto-reschedule daily motivation failed: $e');
+  debugPrint('⚠️ Auto-reschedule daily motivation failed: $e');
       }
+      _log('Auto-reschedule failed: $e');
     }
 
     notifyListeners();
@@ -177,6 +264,43 @@ class PushNotificationService extends ChangeNotifier {
     } else {
       _showMobileNotification(message);
     }
+  }
+
+  // Reason/metadata for "Why did I get this?" detail view
+  Map<String, Object?> getNotificationReason(String id) {
+    final scheduled = _scheduledNotifications.firstWhere(
+      (n) => n.id == id,
+      orElse: () => ScheduledNotification(
+        id: id,
+        title: '',
+        body: '',
+        scheduledTime: DateTime.fromMillisecondsSinceEpoch(0),
+        data: const {},
+        type: NotificationType.general,
+      ),
+    );
+    final received = _receivedNotifications.firstWhere(
+      (m) => m.id == id,
+      orElse: () => NotificationMessage(
+        id: id,
+        title: '',
+        body: '',
+        data: const {},
+        receivedAt: DateTime.fromMillisecondsSinceEpoch(0),
+        type: NotificationType.general,
+      ),
+    );
+    return {
+      'scheduled_time': scheduled.scheduledTime.toIso8601String(),
+      'received_at': received.receivedAt.toIso8601String(),
+      'repeat': received.data['repeat'] ?? scheduled.data['repeat'] ?? 'none',
+      'reminder_id': received.data['reminder_id'] ?? scheduled.data['reminder_id'],
+      'category': received.data['category'] ?? scheduled.data['category'],
+      'hour': received.data['hour'] ?? scheduled.data['hour'],
+      'minute': received.data['minute'] ?? scheduled.data['minute'],
+      'device_token': _deviceToken,
+      'permission_granted': _permissionGranted,
+    };
   }
 
   // Schedule daily motivational notification at specific time
@@ -211,19 +335,86 @@ class PushNotificationService extends ChangeNotifier {
     );
   }
 
+  // Schedule a daily diet reminder at a chosen time
+  Future<String> scheduleDailyDietReminder({
+    required int hour,
+    required int minute,
+  }) async {
+    final now = DateTime.now();
+    DateTime scheduled = DateTime(now.year, now.month, now.day, hour, minute);
+    if (scheduled.isBefore(now)) {
+      scheduled = scheduled.add(const Duration(days: 1));
+    }
+    final loc = LocalizationService();
+    final title = loc.getString('diet_program');
+    final body = loc.getString('weekly_plan');
+    return await scheduleNotification(
+      title: title,
+      body: body,
+      scheduledTime: scheduled,
+      type: NotificationType.general,
+      data: {
+        'repeat': 'daily',
+        'category': 'diet',
+        'hour': hour,
+        'minute': minute,
+      },
+    );
+  }
+
+  // Schedule weekly diet reminders for 7 days at the same time
+  // dayTitles: label of the day (localized) to show; planTitles: diet program title per day
+  Future<List<String>> scheduleWeeklyDietReminders({
+    required int hour,
+    required int minute,
+    required List<String> dayTitles, // length 7, starting Sunday
+    required List<String> planTitles, // length 7
+  }) async {
+    assert(dayTitles.length == 7 && planTitles.length == 7);
+    final now = DateTime.now();
+    final List<String> ids = [];
+    for (int i = 0; i < 7; i++) {
+      // 0=Sun..6=Sat; compute next occurrence of that weekday at hour:minute
+      final int targetWeekday = (i == 0) ? DateTime.sunday : i; // 1=Mon..7=Sun
+      DateTime scheduled = DateTime(now.year, now.month, now.day, hour, minute);
+      int deltaDays = (targetWeekday - now.weekday) % 7;
+      if (deltaDays < 0) deltaDays += 7;
+      scheduled = scheduled.add(Duration(days: deltaDays));
+      if (scheduled.isBefore(now)) scheduled = scheduled.add(const Duration(days: 7));
+
+      final id = await scheduleNotification(
+        title: dayTitles[i],
+        body: planTitles[i],
+        scheduledTime: scheduled,
+        type: NotificationType.general,
+        data: {
+          'repeat': 'weekly',
+          'category': 'diet',
+          'hour': hour,
+          'minute': minute,
+          'weekdayIndex0Sun': i,
+        },
+      );
+      ids.add(id);
+    }
+    return ids;
+  }
+
   // Web notification
   void _showWebNotification(NotificationMessage message) {
     if (kDebugMode) {
-      print('🌐 Web notification: ${message.title} - ${message.body}');
+  debugPrint('🌐 Web notification: ${message.title} - ${message.body}');
     }
+    _log('Show web notification: ${message.title}');
     // In a real implementation, you would use js interop for web notifications
   }
 
   // Mobile notification
   void _showMobileNotification(NotificationMessage message) {
     if (kDebugMode) {
-      print('📱 Mobile notification: ${message.title} - ${message.body}');
+  debugPrint('📱 Mobile notification: ${message.title} - ${message.body}');
     }
+    _log('Show mobile notification: ${message.title}');
     // In a real implementation, you would use flutter_local_notifications
   }
 
@@ -235,37 +426,184 @@ class PushNotificationService extends ChangeNotifier {
     Map<String, dynamic>? data,
     NotificationType type = NotificationType.general,
   }) async {
-    final id = 'notification_${DateTime.now().millisecondsSinceEpoch}';
-    
-    final notification = ScheduledNotification(
-      id: id,
-      title: title,
-      body: body,
-      scheduledTime: scheduledTime,
-      data: data ?? {},
-      type: type,
-    );
+    try {
+      // Validate readiness and permissions
+      if (!_isInitialized) {
+        // Attempt lazy init once
+        try { await initialize(); } catch (_) {}
+      }
+      if (!_permissionGranted) {
+        _log('Schedule blocked: permission not granted');
+        throw Exception('notification_permission_denied');
+      }
 
-    _scheduledNotifications.add(notification);
-    _scheduledNotifications.sort((a, b) => a.scheduledTime.compareTo(b.scheduledTime));
-    
-    notifyListeners();
-    
-    if (kDebugMode) {
-      print('⏰ Notification scheduled: $title for ${scheduledTime.toString()}');
+      // Normalize times in the past to a near-future time to avoid immediate flood
+      final now = DateTime.now();
+      DateTime targetTime = scheduledTime;
+      if (!targetTime.isAfter(now)) {
+        targetTime = now.add(const Duration(seconds: 5));
+        _log('Adjusted past scheduledTime to ${targetTime.toIso8601String()}');
+      }
+
+      // Prepare and sanitize data
+      final Map<String, dynamic> payload = {...(data ?? {})};
+      final repeat = payload['repeat'];
+      // Ensure hour/minute present for repeatable notifications to enable auto-reschedule
+      if (repeat == 'daily' || repeat == 'weekly' || repeat == 'monthly' || repeat == 'daily_motivation') {
+        payload['hour'] = _coerceInt(payload['hour']) ?? targetTime.hour;
+        payload['minute'] = _coerceInt(payload['minute']) ?? targetTime.minute;
+      }
+
+      final id = 'notification_${DateTime.now().millisecondsSinceEpoch}';
+      final notification = ScheduledNotification(
+        id: id,
+        title: title,
+        body: body,
+        scheduledTime: targetTime,
+        data: payload,
+        type: type,
+      );
+
+      _scheduledNotifications.add(notification);
+      _scheduledNotifications.sort((a, b) => a.scheduledTime.compareTo(b.scheduledTime));
+
+      // If linked to a reminder, register mapping
+      final reminderIdRaw = notification.data['reminder_id'];
+      int? reminderId;
+      if (reminderIdRaw is int) {
+        reminderId = reminderIdRaw;
+      } else if (reminderIdRaw is String) {
+        reminderId = int.tryParse(reminderIdRaw);
+      }
+      if (reminderId != null) {
+        _scheduleToReminder[id] = reminderId;
+        _reminderSchedules.putIfAbsent(reminderId, () => <String>{}).add(id);
+      }
+
+      notifyListeners();
+      if (kDebugMode) {
+        debugPrint('⏰ Notification scheduled: $title for ${targetTime.toString()}');
+      }
+      _log('Scheduled: $title at ${targetTime.toIso8601String()} (id=$id)');
+
+      return id;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ scheduleNotification failed: $e');
+      }
+      _log('Schedule failed: $e');
+      rethrow;
     }
-
-    return id;
   }
 
   // Cancel a scheduled notification
   Future<void> cancelNotification(String id) async {
-    _scheduledNotifications.removeWhere((notification) => notification.id == id);
-    notifyListeners();
-    
-    if (kDebugMode) {
-      print('❌ Notification cancelled: $id');
+    try {
+      final before = _scheduledNotifications.length;
+      _scheduledNotifications.removeWhere((notification) => notification.id == id);
+      final removed = before != _scheduledNotifications.length;
+      // Clean mapping
+      final rid = _scheduleToReminder.remove(id);
+      if (rid != null) {
+        final set = _reminderSchedules[rid];
+        set?.remove(id);
+        if (set != null && set.isEmpty) {
+          _reminderSchedules.remove(rid);
+        }
+      }
+      notifyListeners();
+      if (kDebugMode) {
+        debugPrint('❌ Notification cancelled: $id');
+      }
+      _log('Cancelled: $id');
+      if (!removed) {
+        _log('Cancel note: id not found in schedule list');
+      }
+    } catch (e) {
+      _log('Cancel failed for $id: $e');
+      rethrow;
     }
+  }
+
+  // Snooze a received notification by scheduling it again after a delay
+  Future<String> snoozeReceived({
+    required NotificationMessage message,
+    required Duration delay,
+  }) async {
+    try {
+      final DateTime scheduledTime = DateTime.now().add(delay);
+      final minutes = delay.inMinutes;
+      // preserve mapping if any
+      final data = {
+        ...message.data,
+        'repeat': 'none',
+        'snoozed_minutes': minutes,
+        'source': 'snooze_received',
+      };
+      final id = await scheduleNotification(
+        title: message.title,
+        body: message.body,
+        scheduledTime: scheduledTime,
+        type: message.type,
+        data: data,
+      );
+      if (kDebugMode) {
+        debugPrint('😴 Snoozed received notification ${message.id} for $minutes minutes -> $id');
+      }
+      _log('Snoozed received ${message.id} by ${minutes}m -> $id');
+      return id;
+    } catch (e) {
+      _log('Snooze (received) failed: $e');
+      rethrow;
+    }
+  }
+
+  // Snooze an existing scheduled notification by replacing it with a new one at a later time
+  Future<String> snoozeScheduled({
+    required ScheduledNotification scheduled,
+    required Duration delay,
+  }) async {
+    try {
+      // remove original
+      await cancelNotification(scheduled.id);
+      final DateTime newTime = DateTime.now().add(delay);
+      final minutes = delay.inMinutes;
+      final newData = {
+        ...scheduled.data,
+        'repeat': 'none',
+        'snoozed_minutes': minutes,
+        'source': 'snooze_scheduled',
+      };
+      final id = await scheduleNotification(
+        title: scheduled.title,
+        body: scheduled.body,
+        scheduledTime: newTime,
+        type: scheduled.type,
+        data: newData,
+      );
+      if (kDebugMode) {
+        debugPrint('😴 Snoozed scheduled notification ${scheduled.id} for $minutes minutes -> $id');
+      }
+      _log('Snoozed scheduled ${scheduled.id} by ${minutes}m -> $id');
+      return id;
+    } catch (e) {
+      _log('Snooze (scheduled) failed: $e');
+      rethrow;
+    }
+  }
+
+  // Cancel all scheduled notifications for a given reminder id
+  Future<void> cancelSchedulesForReminder(int reminderId) async {
+    final ids = _reminderSchedules.remove(reminderId)?.toList() ?? const <String>[];
+    for (final id in ids) {
+      _scheduleToReminder.remove(id);
+      _scheduledNotifications.removeWhere((n) => n.id == id);
+    }
+    if (ids.isNotEmpty) notifyListeners();
+    if (kDebugMode) {
+  debugPrint('❌ Cancelled ${ids.length} schedules for reminder $reminderId');
+    }
+    _log('Cancelled ${ids.length} schedules for reminder $reminderId');
   }
 
   // Schedule medication reminder
@@ -357,6 +695,7 @@ class PushNotificationService extends ChangeNotifier {
     if (index != -1) {
       _receivedNotifications[index] = _receivedNotifications[index].copyWith(isRead: true);
       notifyListeners();
+      _log('Marked as read: $id');
     }
   }
 
@@ -364,6 +703,7 @@ class PushNotificationService extends ChangeNotifier {
   void clearAllNotifications() {
     _receivedNotifications.clear();
     notifyListeners();
+    _log('Cleared all received notifications');
   }
 
   // Get unread count
@@ -377,6 +717,12 @@ class PushNotificationService extends ChangeNotifier {
   }
 }
 
+class NotificationLogEntry {
+  final DateTime timestamp;
+  final String message;
+  NotificationLogEntry(this.timestamp, this.message);
+}
+
 // Scheduled Notification Model
 class ScheduledNotification {
   final String id;
@@ -385,15 +731,18 @@ class ScheduledNotification {
   final DateTime scheduledTime;
   final Map<String, dynamic> data;
   final NotificationType type;
+  // runtime metadata for retries, diagnostics (not persisted in toMap)
+  final Map<String, dynamic> metadata;
 
-  const ScheduledNotification({
+  ScheduledNotification({
     required this.id,
     required this.title,
     required this.body,
     required this.scheduledTime,
     required this.data,
     required this.type,
-  });
+    Map<String, dynamic>? metadata,
+  }) : metadata = Map<String, dynamic>.from(metadata ?? {});
 
   Map<String, dynamic> toMap() {
     return {
@@ -414,6 +763,7 @@ class ScheduledNotification {
       scheduledTime: DateTime.fromMillisecondsSinceEpoch(map['scheduled_time']),
       data: jsonDecode(map['data']),
       type: NotificationType.values[map['type']],
+      metadata: {},
     );
   }
 }

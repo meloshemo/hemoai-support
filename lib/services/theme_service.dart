@@ -19,7 +19,7 @@ class ThemeService extends ChangeNotifier {
       _isDarkMode = prefs.getBool(_themeKey) ?? false;
       notifyListeners();
     } catch (e) {
-      print('Tema modu yüklenirken hata: $e');
+      debugPrint('Error while loading theme mode: $e');
     }
   }
 
@@ -31,7 +31,7 @@ class ThemeService extends ChangeNotifier {
       await prefs.setBool(_themeKey, _isDarkMode);
       notifyListeners();
     } catch (e) {
-      print('Tema modu kaydedilirken hata: $e');
+  debugPrint('Tema modu kaydedilirken hata: $e');
     }
   }
 
@@ -51,6 +51,7 @@ class ThemeService extends ChangeNotifier {
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onSurface: Colors.black87,
+        outline: Color(0xFFE0E0E0),
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.white,
@@ -68,6 +69,19 @@ class ThemeService extends ChangeNotifier {
         shadowColor: Colors.grey.withValues(alpha: 0.1),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      inputDecorationTheme: const InputDecorationTheme(
+        hintStyle: TextStyle(color: Colors.black54),
+        labelStyle: TextStyle(color: Colors.black87),
+        floatingLabelStyle: TextStyle(color: Color(0xFFE53E3E)),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: Color(0xFFE0E0E0), width: 1),
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: Color(0xFFE53E3E), width: 2),
+          borderRadius: BorderRadius.all(Radius.circular(12)),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -134,6 +148,19 @@ class ThemeService extends ChangeNotifier {
             color: Color(0xFF30363D), // Subtle border
             width: 0.5,
           ),
+        ),
+      ),
+      inputDecorationTheme: const InputDecorationTheme(
+        hintStyle: TextStyle(color: Color(0xFF8B949E)),
+        labelStyle: TextStyle(color: Color(0xFFC9D1D9)),
+        floatingLabelStyle: TextStyle(color: Color(0xFFE53E3E)),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: Color(0xFF30363D), width: 1),
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: Color(0xFFE53E3E), width: 2),
+          borderRadius: BorderRadius.all(Radius.circular(12)),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(

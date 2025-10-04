@@ -1,276 +1,262 @@
+// ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../widgets/app_drawer.dart';
-import '../utils/responsive_helper.dart';
-import '../services/push_notification_service.dart';
-import '../services/localization_service.dart';
 
+import '../services/localization_service.dart';
+import '../services/push_notification_service.dart';
+import '../utils/responsive_helper.dart';
+import '../widgets/app_drawer.dart';
+
+/// Backup version of the Dashboard screen with simplified, valid layout.
 class DashboardScreen extends StatelessWidget {
+  const DashboardScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Consumer<LocalizationService>(
       builder: (context, localizationService, child) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Directionality(
           textDirection: localizationService.textDirection,
           child: Scaffold(
-            backgroundColor: Theme.of(context).brightness == Brightness.dark 
-              ? const Color(0xFF0D1117) 
-              : Colors.grey[50],
-      drawer: const AppDrawer(currentRoute: '/dashboard'),
-      appBar: AppBar(
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: Icon(
-              Icons.menu,
-              color: Theme.of(context).brightness == Brightness.dark 
-                ? const Color(0xFFF0F6FC) 
-                : Colors.white,
-              size: 24,
-            ),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-            tooltip: LocalizationService.translate('menu'),
-          ),
-        ),
-        title: Text(
-          '${localizationService.getString('app_name')} ${localizationService.getString('dashboard')}',
-          style: TextStyle(
-            fontWeight: FontWeight.bold, 
-            color: Theme.of(context).brightness == Brightness.dark 
-              ? Colors.white 
-              : Colors.white,
-          ),
-        ),
-        backgroundColor: Theme.of(context).brightness == Brightness.dark 
-          ? const Color(0xFF161B22) 
-          : const Color(0xFFE53E3E),
-        elevation: 0,
-        actions: [
-          Consumer<PushNotificationService>(
-            builder: (context, pushService, child) {
-              final unreadCount = pushService.unreadCount;
-              return IconButton(
-                icon: Badge(
-                  isLabelVisible: unreadCount > 0,
-                  label: Text(unreadCount.toString()),
-                  child: Icon(
-                    Icons.notifications, 
-                    color: Theme.of(context).brightness == Brightness.dark 
-                      ? const Color(0xFFF0F6FC) 
-                      : Colors.white,
+            backgroundColor: isDark ? const Color(0xFF0D1117) : Colors.grey[50],
+            drawer: const AppDrawer(currentRoute: '/dashboard'),
+            appBar: AppBar(
+              leading: Builder(
+                builder: (context) => IconButton(
+                  icon: Icon(
+                    Icons.menu,
+                    color: isDark ? const Color(0xFFF0F6FC) : Colors.white,
+                    size: 24,
                   ),
-                ),
-                onPressed: () {
-                  Navigator.pushNamed(context, '/notifications');
-                },
-              );
-            },
-          ),
-          IconButton(
-            icon: Icon(
-              Icons.logout, 
-              color: Theme.of(context).brightness == Brightness.dark 
-                ? const Color(0xFFF0F6FC) 
-                : Colors.white,
-            ),
-            onPressed: () {
-              _showLogoutDialog(context);
-            },
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: ResponsiveHelper.getScreenPadding(context),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Welcome card
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(
-                ResponsiveHelper.responsiveValue(
-                  context,
-                  mobile: 16.0,
-                  tablet: 20.0,
-                  desktop: 24.0,
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                  tooltip: LocalizationService.translate('menu'),
                 ),
               ),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFE53E3E), Color(0xFFFF6B6B)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFE53E3E).withOpacity(0.3),
-                    spreadRadius: 2,
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+              title: Text(
+                '${localizationService.getString('app_name')} ${localizationService.getString('dashboard')}',
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
               ),
+              backgroundColor: isDark ? const Color(0xFF161B22) : const Color(0xFFE53E3E),
+              elevation: 0,
+              actions: [
+                Consumer<PushNotificationService>(
+                  builder: (context, pushService, child) {
+                    final unreadCount = pushService.unreadCount;
+                    return IconButton(
+                      icon: Badge(
+                        isLabelVisible: unreadCount > 0,
+                        label: Text(unreadCount.toString()),
+                        child: Icon(
+                          Icons.notifications,
+                          color: isDark ? const Color(0xFFF0F6FC) : Colors.white,
+                        ),
+                      ),
+                      onPressed: () => Navigator.pushNamed(context, '/notifications'),
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: Icon(
+                    Icons.logout,
+                    color: isDark ? const Color(0xFFF0F6FC) : Colors.white,
+                  ),
+                  onPressed: () => _showLogoutDialog(context),
+                ),
+              ],
+            ),
+            body: SingleChildScrollView(
+              padding: ResponsiveHelper.getScreenPadding(context),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.waving_hand, 
-                        color: Colors.white, 
-                        size: ResponsiveHelper.getIconSize(context, 28),
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(
+                      ResponsiveHelper.responsiveValue(
+                        context,
+                        mobile: 16.0,
+                        tablet: 20.0,
+                        desktop: 24.0,
                       ),
-                      const SizedBox(width: 12),
-                      Text(
-                        localizationService.getString('welcome_title_hemoai'),
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: ResponsiveHelper.getFontSize(context, 22),
-                          fontWeight: FontWeight.bold,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFE53E3E), Color(0xFFFF6B6B)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFE53E3E).withValues(alpha: 0.3),
+                          spreadRadius: 2,
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
                         ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.waving_hand,
+                              color: Colors.white,
+                              size: ResponsiveHelper.getIconSize(context, 28),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              localizationService.getString('welcome_title_hemoai'),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: ResponsiveHelper.getFontSize(context, 22),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          localizationService.getString('welcome_subtitle'),
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: ResponsiveHelper.getFontSize(context, 16),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  Text(
+                    localizationService.getString('main_features'),
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getFontSize(context, 20),
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFFE53E3E),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: ResponsiveHelper.getDashboardGridCount(context),
+                    childAspectRatio: ResponsiveHelper.responsiveValue(
+                      context,
+                      mobile: 1.0,
+                      tablet: 1.1,
+                      desktop: 1.2,
+                    ),
+                    crossAxisSpacing: ResponsiveHelper.getCardSpacing(context),
+                    mainAxisSpacing: ResponsiveHelper.getCardSpacing(context),
+                    children: [
+                      _buildFeatureCard(
+                        context,
+                        localizationService.getString('hemogram_entry'),
+                        Icons.bloodtype,
+                        Colors.red[600]!,
+                        '/hemogram_entry',
+                      ),
+                      _buildFeatureCard(
+                        context,
+                        localizationService.getString('ai_analysis'),
+                        Icons.analytics,
+                        Colors.blue[600]!,
+                        '/analysis',
+                      ),
+                      _buildFeatureCard(
+                        context,
+                        localizationService.getString('diet_program'),
+                        Icons.restaurant_menu,
+                        Colors.green[600]!,
+                        '/diet_program',
+                      ),
+                      _buildFeatureCard(
+                        context,
+                        localizationService.getString('family_panel'),
+                        Icons.family_restroom,
+                        Colors.purple[600]!,
+                        '/family_panel',
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+
+                  const SizedBox(height: 32),
+
                   Text(
-                    localizationService.getString('welcome_subtitle'),
+                    localizationService.getString('additional_features'),
                     style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: ResponsiveHelper.getFontSize(context, 16),
+                      fontSize: ResponsiveHelper.getFontSize(context, 20),
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFFE53E3E),
                     ),
                   ),
+                  const SizedBox(height: 16),
+
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: ResponsiveHelper.getDashboardGridCount(context),
+                    childAspectRatio: ResponsiveHelper.responsiveValue(
+                      context,
+                      mobile: 1.0,
+                      tablet: 1.1,
+                      desktop: 1.2,
+                    ),
+                    crossAxisSpacing: ResponsiveHelper.getCardSpacing(context),
+                    mainAxisSpacing: ResponsiveHelper.getCardSpacing(context),
+                    children: [
+                      _buildFeatureCard(
+                        context,
+                        localizationService.getString('alternative_medicine'),
+                        Icons.nature_people,
+                        Colors.teal[600]!,
+                        '/alternative_medicine',
+                      ),
+                      _buildFeatureCard(
+                        context,
+                        localizationService.getString('notifications'),
+                        Icons.notifications,
+                        Colors.orange[600]!,
+                        '/notifications',
+                      ),
+                      _buildFeatureCard(
+                        context,
+                        localizationService.getString('personal_info'),
+                        Icons.person,
+                        Colors.indigo[600]!,
+                        '/personal_info',
+                      ),
+                      _buildFeatureCard(
+                        context,
+                        localizationService.getString('export_options'),
+                        Icons.file_download,
+                        Colors.green[700]!,
+                        '/export_options',
+                      ),
+                      _buildFeatureCard(
+                        context,
+                        localizationService.getString('language_settings'),
+                        Icons.language,
+                        Colors.teal[600]!,
+                        '/language_settings',
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  _buildHealthGoalsWidget(context),
                 ],
               ),
             ),
-            
-            const SizedBox(height: 24),
-            
-            // Main Features
-            Text(
-              localizationService.getString('main_features'),
-              style: TextStyle(
-                fontSize: ResponsiveHelper.getFontSize(context, 20),
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFFE53E3E),
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: ResponsiveHelper.getDashboardGridCount(context),
-              childAspectRatio: ResponsiveHelper.responsiveValue(
-                context,
-                mobile: 1.0,
-                tablet: 1.1,
-                desktop: 1.2,
-              ),
-              crossAxisSpacing: ResponsiveHelper.getCardSpacing(context),
-              mainAxisSpacing: ResponsiveHelper.getCardSpacing(context),
-              children: [
-                _buildFeatureCard(
-                  context,
-                  localizationService.getString('hemogram_entry'),
-                  Icons.bloodtype,
-                  Colors.red[600]!,
-                  '/hemogram_entry',
-                ),
-                _buildFeatureCard(
-                  context,
-                  localizationService.getString('ai_analysis'),
-                  Icons.analytics,
-                  Colors.blue[600]!,
-                  '/analysis',
-                ),
-                _buildFeatureCard(
-                  context,
-                  localizationService.getString('diet_program'),
-                  Icons.restaurant_menu,
-                  Colors.green[600]!,
-                  '/diet_program',
-                ),
-                _buildFeatureCard(
-                  context,
-                  localizationService.getString('family_panel'),
-                  Icons.family_restroom,
-                  Colors.purple[600]!,
-                  '/family_panel',
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 32),
-            
-            // Additional Features
-            Text(
-              localizationService.getString('additional_features'),
-              style: TextStyle(
-                fontSize: ResponsiveHelper.getFontSize(context, 20),
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFFE53E3E),
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: ResponsiveHelper.getDashboardGridCount(context),
-              childAspectRatio: ResponsiveHelper.responsiveValue(
-                context,
-                mobile: 1.0,
-                tablet: 1.1,
-                desktop: 1.2,
-              ),
-              crossAxisSpacing: ResponsiveHelper.getCardSpacing(context),
-              mainAxisSpacing: ResponsiveHelper.getCardSpacing(context),
-              children: [
-                _buildFeatureCard(
-                  context,
-                  localizationService.getString('alternative_medicine'),
-                  Icons.nature_people,
-                  Colors.teal[600]!,
-                  '/alternative_medicine',
-                ),
-                _buildFeatureCard(
-                  context,
-                  localizationService.getString('notifications'),
-                  Icons.notifications,
-                  Colors.orange[600]!,
-                  '/notifications',
-                ),
-                _buildFeatureCard(
-                  context,
-                  localizationService.getString('personal_info'),
-                  Icons.person,
-                  Colors.indigo[600]!,
-                  '/personal_info',
-                ),
-                _buildFeatureCard(
-                  context,
-                  localizationService.getString('export_options'),
-                  Icons.file_download,
-                  Colors.green[700]!,
-                  '/export_options',
-                ),
-                _buildFeatureCard(
-                  context,
-                  localizationService.getString('language_settings'),
-                  Icons.language,
-                  Colors.teal[600]!,
-                  '/language_settings',
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 32),
-            
-            // Health Goals Widget
-            _buildHealthGoalsWidget(context),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -308,7 +294,7 @@ class DashboardScreen extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
+              color: Colors.grey.withValues(alpha: 0.1),
               spreadRadius: 2,
               blurRadius: 8,
               offset: const Offset(0, 4),
@@ -339,7 +325,7 @@ class DashboardScreen extends StatelessWidget {
                       ),
                     ),
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.1),
+                      color: color.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
@@ -348,12 +334,14 @@ class DashboardScreen extends StatelessWidget {
                       color: color,
                     ),
                   ),
-                  SizedBox(height: ResponsiveHelper.responsiveValue(
-                    context,
-                    mobile: 8.0,
-                    tablet: 12.0,
-                    desktop: 16.0,
-                  )),
+                  SizedBox(
+                    height: ResponsiveHelper.responsiveValue(
+                      context,
+                      mobile: 8.0,
+                      tablet: 12.0,
+                      desktop: 16.0,
+                    ),
+                  ),
                   Text(
                     title,
                     textAlign: TextAlign.center,
@@ -378,7 +366,7 @@ class DashboardScreen extends StatelessWidget {
                   ),
                   child: Text(
                     LocalizationService.translate('soon_badge'),
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
@@ -405,8 +393,6 @@ class DashboardScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        
-        // Hedefler Container
         Container(
           padding: EdgeInsets.all(
             ResponsiveHelper.responsiveValue(
@@ -421,7 +407,7 @@ class DashboardScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
+                color: Colors.grey.withValues(alpha: 0.1),
                 spreadRadius: 2,
                 blurRadius: 8,
                 offset: const Offset(0, 4),
@@ -430,7 +416,6 @@ class DashboardScreen extends StatelessWidget {
           ),
           child: Column(
             children: [
-              // Bu Ay Hedefleri
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -444,11 +429,11 @@ class DashboardScreen extends StatelessWidget {
                   TextButton.icon(
                     onPressed: () => _showGoalSettings(context),
                     icon: Icon(
-                      Icons.edit, 
+                      Icons.edit,
                       size: ResponsiveHelper.getIconSize(context, 16),
                     ),
                     label: Text(
-                      LocalizationService.translate('edit'), 
+                      LocalizationService.translate('edit'),
                       style: TextStyle(
                         fontSize: ResponsiveHelper.getFontSize(context, 12),
                       ),
@@ -457,8 +442,6 @@ class DashboardScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              
-              // Hedef 1: Düzenli Test
               _buildGoalProgress(
                 context,
                 LocalizationService.translate('goal_monthly_hemogram'),
@@ -468,8 +451,6 @@ class DashboardScreen extends StatelessWidget {
                 LocalizationService.translate('goal_progress_monthly_test_1'),
               ),
               const SizedBox(height: 12),
-              
-              // Hedef 2: Sağlıklı Beslenme
               _buildGoalProgress(
                 context,
                 LocalizationService.translate('goal_daily_water'),
@@ -479,8 +460,6 @@ class DashboardScreen extends StatelessWidget {
                 LocalizationService.translate('goal_progress_water_avg_2_1l'),
               ),
               const SizedBox(height: 12),
-              
-              // Hedef 3: Egzersiz
               _buildGoalProgress(
                 context,
                 LocalizationService.translate('goal_weekly_exercise'),
@@ -490,15 +469,13 @@ class DashboardScreen extends StatelessWidget {
                 LocalizationService.translate('goal_progress_exercise_3_days'),
               ),
               const SizedBox(height: 16),
-              
-              // Rozetler Bölümü
               const Divider(),
               const SizedBox(height: 12),
               Row(
                 children: [
                   Icon(
-                    Icons.emoji_events, 
-                    color: Colors.amber, 
+                    Icons.emoji_events,
+                    color: Colors.amber,
                     size: ResponsiveHelper.getIconSize(context, 20),
                   ),
                   const SizedBox(width: 8),
@@ -512,8 +489,6 @@ class DashboardScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              
-              // Rozet Grid'i
               SizedBox(
                 height: ResponsiveHelper.responsiveValue(
                   context,
@@ -543,7 +518,14 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildGoalProgress(BuildContext context, String title, IconData icon, Color color, double progress, String description) {
+  Widget _buildGoalProgress(
+    BuildContext context,
+    String title,
+    IconData icon,
+    Color color,
+    double progress,
+    String description,
+  ) {
     return Container(
       padding: EdgeInsets.all(
         ResponsiveHelper.responsiveValue(
@@ -554,9 +536,9 @@ class DashboardScreen extends StatelessWidget {
         ),
       ),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
+        color: color.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Column(
         children: [
@@ -572,12 +554,12 @@ class DashboardScreen extends StatelessWidget {
                   ),
                 ),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
-                  icon, 
-                  color: color, 
+                  icon,
+                  color: color,
                   size: ResponsiveHelper.getIconSize(context, 20),
                 ),
               ),
@@ -624,14 +606,19 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBadge(BuildContext context, String title, IconData icon, Color color, bool earned) {
+  Widget _buildBadge(
+    BuildContext context,
+    String title,
+    IconData icon,
+    Color color,
+    bool earned,
+  ) {
     final badgeSize = ResponsiveHelper.responsiveValue(
       context,
       mobile: 40.0,
       tablet: 50.0,
       desktop: 60.0,
     );
-    
     return Column(
       children: [
         Container(
@@ -640,13 +627,15 @@ class DashboardScreen extends StatelessWidget {
           decoration: BoxDecoration(
             color: earned ? color : Colors.grey[300],
             borderRadius: BorderRadius.circular(badgeSize / 2),
-            boxShadow: earned ? [
-              BoxShadow(
-                color: color.withOpacity(0.3),
-                spreadRadius: 1,
-                blurRadius: 4,
-              ),
-            ] : null,
+            boxShadow: earned
+                ? [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.3),
+                      spreadRadius: 1,
+                      blurRadius: 4,
+                    ),
+                  ]
+                : null,
           ),
           child: Icon(
             icon,
@@ -654,12 +643,14 @@ class DashboardScreen extends StatelessWidget {
             size: ResponsiveHelper.getIconSize(context, 24),
           ),
         ),
-        SizedBox(height: ResponsiveHelper.responsiveValue(
-          context,
-          mobile: 2.0,
-          tablet: 4.0,
-          desktop: 6.0,
-        )),
+        SizedBox(
+          height: ResponsiveHelper.responsiveValue(
+            context,
+            mobile: 2.0,
+            tablet: 4.0,
+            desktop: 6.0,
+          ),
+        ),
         Text(
           title,
           style: TextStyle(
@@ -680,8 +671,8 @@ class DashboardScreen extends StatelessWidget {
         return AlertDialog(
           title: Row(
             children: [
-              Icon(Icons.flag, color: Color(0xFFE53E3E)),
-              SizedBox(width: 8),
+              const Icon(Icons.flag, color: Color(0xFFE53E3E)),
+              const SizedBox(width: 8),
               Text(LocalizationService.translate('goal_settings_title')),
             ],
           ),
@@ -691,7 +682,6 @@ class DashboardScreen extends StatelessWidget {
               children: [
                 Text(LocalizationService.translate('customize_health_goals')),
                 const SizedBox(height: 16),
-                
                 CheckboxListTile(
                   title: Text(LocalizationService.translate('goal_monthly_hemogram')),
                   subtitle: Text(LocalizationService.translate('goal_monthly_hemogram_sub')),
@@ -774,8 +764,6 @@ class DashboardScreen extends StatelessWidget {
               child: Text(LocalizationService.translate('logout')),
             ),
           ],
-            ),
-          ),
         );
       },
     );

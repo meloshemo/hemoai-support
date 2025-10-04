@@ -1,3 +1,45 @@
+# Localization Changelog
+
+## 2025-10-04
+- Completed final i18n sweep for remaining screens and resolved validator findings.
+- Added generic/simple UI keys used across multiple screens:
+  - good, risk, value
+- Guest and onboarding-related additions:
+  - continue_as_guest, guest_mode_description, personal_info, age_label, gender, male, female,
+    weight_kg, height_cm, calculate_bmi, bmi, continue
+- Water tracking and notifications copy:
+  - water_goal_progress, water_intake_logged, log_one_glass, keep_going
+- Register flow:
+  - register_appbar_title, phone_number_label, register, phone_required, register_success (with {phone} param)
+- Fixed malformed i18n map structure and flattened accidentally nested keys; removed duplicates.
+- Refactored screens to remove Turkish literals and use LocalizationService:
+  - diet_program_screen.dart, family_panel_screen.dart, guest_screen.dart,
+    notification_screen.dart, personal_info_screen.dart, register_screen.dart
+- Validator now passes with zero issues. Analyzer down to non-blocking infos/warnings.
+
+## 2025-10-03
+- Added keys for Full Results screen and section titles:
+  - full_results_title, no_results_available, view_full_results
+- Added comprehensive blood test parameter labels for Full Results screen:
+  - CBC parameters: hemoglobin, hematocrit, red_blood_cells, white_blood_cells, platelets, mcv, mch, mchc, rdw, mpv
+  - WBC differential: neutrophils, lymphocytes, monocytes, eosinophils, basophils
+  - Iron studies: iron, ferritin, transferrin, tibc, transferrin_saturation
+  - Liver function: alt, ast, alp, ggt, bilirubin, direct_bilirubin, albumin, total_protein
+  - Kidney function: creatinine, urea, uric_acid, gfr
+  - Lipid profile: total_cholesterol, ldl_cholesterol, hdl_cholesterol, triglycerides, non_hdl_cholesterol
+  - Diabetes markers: glucose, hba1c, fructosamine
+  - Thyroid function: tsh, t3, t4, free_t3, free_t4
+  - Electrolytes: sodium, potassium, chloride, calcium, magnesium, phosphorus
+  - Vitamins: vitamin_b12, vitamin_d, folate, vitamin_a, vitamin_e, vitamin_c
+  - Tumor markers: cea, afp, ca125, ca199, ca153, psa
+  - Cardiac markers: troponin, ck_mb, ldh, bnp
+  - Inflammatory markers: crp, esr, procalcitonin
+  - Hormones: insulin, cortisol, testosterone, estradiol, progesterone, prolactin, fsh, lh
+- Added Full Results screen UI keys: test_results_summary, import_test_results, share_results, share_feature_coming_soon, test_date, laboratory_name, doctor_name, test_type
+  - cbc, wbc_differential, iron_studies, liver_function, kidney_function,
+    lipid_profile, diabetes_markers, thyroid_function, electrolytes,
+    vitamins, tumor_markers, cardiac_markers, inflammatory_markers, hormones
+
 # Localization Changelog (HemoAI)
 
 This document tracks all localization-related work performed so far.
@@ -90,3 +132,11 @@ Last updated: (auto-generated) on 2025-09-26.
   - Translated Turkish comments in `utils/responsive_helper.dart` to English to satisfy Turkish literal scans.
  - Web build fix
    - Removed `const` from three `AlertDialog` constructors in `analysis_screen.dart` where dynamic localized `Text` widgets are used. This resolves "Not a constant expression" compile errors on Web.
+
+## 2025-10-02
+- Notifications screen accessibility
+  - Added tooltip text key `mark_read_long` used on notification cards.
+- OCR review flow
+  - Added keys: `ocr_not_available_web`, `ocr_values_populated`, `ocr_error`, `ocr_processing_error`.
+  - Added OCR review UI keys: `ocr_review_title`, `view_source_image`, `ocr_review_instructions`, `ocr_review_description`, `ocr_review_warnings`, `processing`, `confirm_values`, `enter_value`, `value_outside_normal_range`.
+  - Validator now passes with no missing OCR keys.

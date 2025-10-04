@@ -129,8 +129,8 @@ class NotificationService extends ChangeNotifier {
 
   void _triggerNotification(NotificationItem notification) {
     if (kDebugMode) {
-      print('🔔 Hatırlatıcı: ${notification.title}');
-      print('📝 Açıklama: ${notification.description}');
+      debugPrint('🔔 Reminder: ${notification.title}');
+      debugPrint('📝 Description: ${notification.description}');
     }
     
     // Handle repeat notifications
@@ -177,6 +177,14 @@ class NotificationService extends ChangeNotifier {
         ? notification.copyWith(id: DateTime.now().millisecondsSinceEpoch)
         : notification;
     _notifications.add(item);
+    notifyListeners();
+  }
+
+  // Replace the entire list (used for startup sync from persistence)
+  void replaceAll(List<NotificationItem> items) {
+    _notifications
+      ..clear()
+      ..addAll(items);
     notifyListeners();
   }
 

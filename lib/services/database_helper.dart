@@ -36,7 +36,7 @@ class DatabaseHelper {
   }
 
   Future<void> _onCreate(Database db, int version) async {
-    // Kullanıcılar tablosu
+  // Kullanicilar tablosu
     await db.execute('''
       CREATE TABLE users(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -54,7 +54,7 @@ class DatabaseHelper {
       )
     ''');
 
-    // Hemogram testleri tablosu
+  // Hemogram testleri tablosu
     await db.execute('''
       CREATE TABLE hemogram_tests(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -82,7 +82,7 @@ class DatabaseHelper {
       )
     ''');
 
-    // Aile üyeleri tablosu
+  // Aile uyeleri tablosu
     await db.execute('''
       CREATE TABLE family_members(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -97,7 +97,7 @@ class DatabaseHelper {
       )
     ''');
 
-    // Aile üyeleri hemogram testleri
+  // Aile uyeleri hemogram testleri
     await db.execute('''
       CREATE TABLE family_hemogram_tests(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -125,7 +125,7 @@ class DatabaseHelper {
       )
     ''');
 
-    // İlaçlar tablosu
+  // Ilaclar tablosu
     await db.execute('''
       CREATE TABLE medications(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -144,7 +144,7 @@ class DatabaseHelper {
       )
     ''');
 
-    // İlaç alım kayıtları
+  // Ilac alim kayitlari
     await db.execute('''
       CREATE TABLE medication_logs(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -158,7 +158,7 @@ class DatabaseHelper {
       )
     ''');
 
-    // Bildirimler tablosu
+  // Bildirimler tablosu
     await db.execute('''
       CREATE TABLE notifications(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -177,7 +177,7 @@ class DatabaseHelper {
       )
     ''');
 
-    // Hatırlatıcılar tablosu
+  // Hatirlaticilar tablosu
     await db.execute('''
       CREATE TABLE reminders(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -193,7 +193,7 @@ class DatabaseHelper {
       )
     ''');
 
-    // Su takibi
+  // Su takibi
     await db.execute('''
       CREATE TABLE water_tracking(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -207,7 +207,7 @@ class DatabaseHelper {
     ''');
   }
 
-  // Kullanıcı işlemleri
+  // Kullanici islemleri
   Future<int> insertUser(Map<String, dynamic> user) async {
     final db = await database;
     if (kIsWeb) {
@@ -262,14 +262,63 @@ class DatabaseHelper {
     }
   }
 
-  // Hemogram test işlemleri
+  // Hemogram test islemleri
   Future<int> insertHemogramTest(Map<String, dynamic> test) async {
     final db = await database;
     if (kIsWeb) {
       return await (db as WebDatabaseHelper).insertHemogramTest(test);
     } else {
-      test['created_at'] = DateTime.now().toIso8601String();
-      return await (db as Database).insert('hemogram_tests', test);
+      // Sanitize map to only include columns that exist in hemogram_tests
+      final allowedColumns = <String>{
+        'user_id',
+        'test_date',
+        'hemoglobin',
+        'iron',
+        'leukocyte',
+        'erythrocyte',
+        'hematocrit',
+        'platelet',
+        'mcv',
+        'mch',
+        'mchc',
+        'rdw',
+        'neutrophil',
+        'lymphocyte',
+        'monocyte',
+        'eosinophil',
+        'basophil',
+        'risk_level',
+        'doctor_notes',
+        'created_at',
+      };
+
+      // Map extended/canonical keys to existing DB columns when possible
+      Map<String, dynamic> sanitized = {};
+      // Direct allowed keys
+      for (final entry in test.entries) {
+        if (allowedColumns.contains(entry.key)) {
+          sanitized[entry.key] = entry.value;
+        }
+      }
+      // Try to map canonical keys from extended model
+      void tryAssign(String canonicalKey, String dbColumn) {
+        if (!sanitized.containsKey(dbColumn) && test.containsKey(canonicalKey)) {
+          sanitized[dbColumn] = test[canonicalKey];
+        }
+      }
+      tryAssign('white_blood_cells', 'leukocyte');
+      tryAssign('red_blood_cells', 'erythrocyte');
+      tryAssign('platelets', 'platelet');
+      tryAssign('neutrophils', 'neutrophil');
+      tryAssign('lymphocytes', 'lymphocyte');
+      tryAssign('monocytes', 'monocyte');
+      tryAssign('eosinophils', 'eosinophil');
+      tryAssign('basophils', 'basophil');
+
+      // Ensure mandatory metadata
+      sanitized['created_at'] = DateTime.now().toIso8601String();
+
+      return await (db as Database).insert('hemogram_tests', sanitized);
     }
   }
 
@@ -303,7 +352,7 @@ class DatabaseHelper {
     }
   }
 
-  // Aile üyesi işlemleri
+  // Aile uyesi islemleri
   Future<int> insertFamilyMember(Map<String, dynamic> member) async {
     if (kIsWeb) {
       return await _webHelper!.insertFamilyMember(member);
@@ -355,7 +404,7 @@ class DatabaseHelper {
     }
   }
 
-  // Aile üyesi hemogram testleri
+  // Aile uyesi hemogram testleri
   Future<int> insertFamilyHemogramTest(Map<String, dynamic> test) async {
     final db = await database;
     test['created_at'] = DateTime.now().toIso8601String();
@@ -372,7 +421,7 @@ class DatabaseHelper {
     );
   }
 
-  // İlaç işlemleri
+  // Ilac islemleri
   Future<int> insertMedication(Map<String, dynamic> medication) async {
     final db = await database;
     medication['created_at'] = DateTime.now().toIso8601String();
@@ -399,7 +448,7 @@ class DatabaseHelper {
     );
   }
 
-  // İlaç alım kaydı
+  // Ilac alim kaydi
   Future<int> insertMedicationLog(Map<String, dynamic> log) async {
     final db = await database;
     log['created_at'] = DateTime.now().toIso8601String();
@@ -419,7 +468,7 @@ class DatabaseHelper {
     return logs.isNotEmpty;
   }
 
-  // Bildirim işlemleri
+  // Bildirim islemleri
   Future<int> insertNotification(Map<String, dynamic> notification) async {
     final db = await database;
     notification['created_at'] = DateTime.now().toIso8601String();
@@ -444,6 +493,19 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  Future<int> deleteNotification(int id) async {
+    final db = await database;
+    if (kIsWeb) {
+      return await _webHelper!.deleteNotification(id);
+    } else {
+      return await (db as Database).delete(
+        'notifications',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    }
   }
 
   // Su takibi
@@ -493,25 +555,25 @@ class DatabaseHelper {
   Future<Map<String, dynamic>> getUserStats(int userId) async {
     final db = await database;
     
-    // Toplam test sayısı
+  // Toplam test sayisi
     final testCount = await db.rawQuery(
       'SELECT COUNT(*) as count FROM hemogram_tests WHERE user_id = ?',
       [userId],
     );
     
-    // Aile üyesi sayısı
+  // Aile uyesi sayisi
     final familyCount = await db.rawQuery(
       'SELECT COUNT(*) as count FROM family_members WHERE user_id = ?',
       [userId],
     );
     
-    // Aktif ilaç sayısı
+  // Aktif ilac sayisi
     final medicationCount = await db.rawQuery(
       'SELECT COUNT(*) as count FROM medications WHERE user_id = ? AND is_active = 1',
       [userId],
     );
     
-    // Okunmamış bildirim sayısı
+  // Okunmamis bildirim sayisi
     final notificationCount = await db.rawQuery(
       'SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0',
       [userId],
@@ -525,7 +587,7 @@ class DatabaseHelper {
     };
   }
 
-  // Veritabanını temizle
+  // Veritabanini temizle
   Future<void> clearDatabase() async {
     final db = await database;
     await db.delete('users');
@@ -538,7 +600,7 @@ class DatabaseHelper {
     await db.delete('water_tracking');
   }
 
-  // Veritabanını kapat
+  // Veritabanini kapat
   Future<void> close() async {
     final db = await database;
     await db.close();
@@ -600,7 +662,7 @@ class DatabaseHelper {
     }
   }
 
-  // İlaç yönetimi
+  // Ilac yonetimi
   Future<int> addMedication(int userId, String name, String dosage, String frequency, String time) async {
     if (kIsWeb) {
       return await _webHelper!.addMedication(userId, name, dosage, frequency, time);
@@ -618,7 +680,7 @@ class DatabaseHelper {
     }
   }
 
-  // Su tüketimi takibi
+  // Su tuketimi takibi
   Future<int> getTodayWaterIntake(int userId) async {
     if (kIsWeb) {
       return await _webHelper!.getTodayWaterIntake(userId);
@@ -677,7 +739,31 @@ class DatabaseHelper {
     }
   }
 
-  // Bildirim yönetimi
+  Future<List<int>> getLast7DaysWaterIntake(int userId) async {
+    if (kIsWeb) {
+      return await _webHelper!.getLast7DaysWaterIntake(userId);
+    } else {
+      final db = await database;
+      final now = DateTime.now();
+      final List<int> values = [];
+      for (int i = 6; i >= 0; i--) {
+        final day = now.subtract(Duration(days: i)).toIso8601String().split('T')[0];
+        final results = await db.query(
+          'water_tracking',
+          columns: ['water_count'],
+          where: 'user_id = ? AND date = ?',
+          whereArgs: [userId, day],
+        );
+        final v = results.isNotEmpty && results.first['water_count'] != null
+            ? (results.first['water_count'] as num).toInt()
+            : 0;
+        values.add(v);
+      }
+      return values;
+    }
+  }
+
+  // Bildirim yonetimi
   Future<int> createNotification(int userId, String title, String message, String type) async {
     if (kIsWeb) {
       return await _webHelper!.createNotification(userId, title, message, type);
@@ -699,10 +785,10 @@ class DatabaseHelper {
     }
   }
 
-  // Hatırlatıcı yönetimi
+  // Hatirlatici yonetimi
   Future<int> createReminder(Map<String, dynamic> reminderData) async {
     if (kIsWeb) {
-      // Web için local storage kullan
+  // Web icin local storage kullan
       return DateTime.now().millisecondsSinceEpoch; // Fake ID
     } else {
       final db = await database;
@@ -712,7 +798,7 @@ class DatabaseHelper {
 
   Future<List<Map<String, dynamic>>> getAllReminders([int? userId]) async {
     if (kIsWeb) {
-      // Web için boş liste döndür (şimdilik)
+  // Web icin bos liste dondur (simdilik)
       return [];
     } else {
       final db = await database;
@@ -802,7 +888,7 @@ class DatabaseHelper {
     }
   }
 
-  // Advanced Analytics metodları
+  // Advanced Analytics metodlari
   Future<List<Map<String, dynamic>>> getHemogramTestsByUser(int userId) async {
     if (kIsWeb) {
       final webDb = await database;
@@ -819,13 +905,13 @@ class DatabaseHelper {
   }
 }
 
-// Hemogram değerleri için yardımcı sınıf
+// Hemogram degerleri icin yardimci sinif
 class HemogramValues {
   static Map<String, String> getColumnNames() {
     return {
       'Hemoglobin (g/dL)': 'hemoglobin',
       'Demir (mcg/dL)': 'iron',
-      'Lökosit (K/uL)': 'leukocyte',
+      'Lokosit (K/uL)': 'leukocyte',
       'Eritrosit (M/uL)': 'erythrocyte',
       'Hematokrit (%)': 'hematocrit',
       'Trombosit (K/uL)': 'platelet',
@@ -833,7 +919,7 @@ class HemogramValues {
       'MCH (pg)': 'mch',
       'MCHC (g/dL)': 'mchc',
       'RDW (%)': 'rdw',
-      'Nötrofil (%)': 'neutrophil',
+      'Notrofil (%)': 'neutrophil',
       'Lenfosit (%)': 'lymphocyte',
       'Monosit (%)': 'monocyte',
       'Eozinofil (%)': 'eosinophil',
