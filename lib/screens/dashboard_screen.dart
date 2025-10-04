@@ -6,7 +6,6 @@ import '../services/push_notification_service.dart';
 import '../services/localization_service.dart';
 
 class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
   @override
   Widget build(BuildContext context) {
     return Consumer<LocalizationService>(
@@ -14,14 +13,18 @@ class DashboardScreen extends StatelessWidget {
         return Directionality(
           textDirection: localizationService.textDirection,
           child: Scaffold(
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            backgroundColor: Theme.of(context).brightness == Brightness.dark 
+              ? const Color(0xFF0D1117) 
+              : Colors.grey[50],
             drawer: const AppDrawer(currentRoute: '/dashboard'),
             appBar: AppBar(
               leading: Builder(
                 builder: (context) => IconButton(
                   icon: Icon(
                     Icons.menu,
-                    color: Theme.of(context).appBarTheme.foregroundColor ?? Theme.of(context).colorScheme.onSurface,
+                    color: Theme.of(context).brightness == Brightness.dark 
+                      ? const Color(0xFFF0F6FC) 
+                      : Colors.white,
                     size: 24,
                   ),
                   onPressed: () => Scaffold.of(context).openDrawer(),
@@ -30,12 +33,16 @@ class DashboardScreen extends StatelessWidget {
               ),
               title: Text(
                 '${localizationService.getString('app_name')} ${localizationService.getString('dashboard')}',
-                style: Theme.of(context).appBarTheme.titleTextStyle ?? Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).appBarTheme.foregroundColor ?? Theme.of(context).colorScheme.onSurface,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold, 
+                  color: Theme.of(context).brightness == Brightness.dark 
+                    ? Colors.white 
+                    : Colors.white,
                 ),
               ),
-              backgroundColor: Theme.of(context).appBarTheme.backgroundColor ?? Theme.of(context).colorScheme.surface,
+              backgroundColor: Theme.of(context).brightness == Brightness.dark 
+                ? const Color(0xFF161B22) 
+                : const Color(0xFFE53E3E),
               elevation: 0,
               actions: [
                 Consumer<PushNotificationService>(
@@ -47,7 +54,9 @@ class DashboardScreen extends StatelessWidget {
                         label: Text(unreadCount.toString()),
                         child: Icon(
                           Icons.notifications, 
-                          color: Theme.of(context).appBarTheme.foregroundColor ?? Theme.of(context).colorScheme.onSurface,
+                          color: Theme.of(context).brightness == Brightness.dark 
+                            ? const Color(0xFFF0F6FC) 
+                            : Colors.white,
                         ),
                       ),
                       onPressed: () {
@@ -59,7 +68,9 @@ class DashboardScreen extends StatelessWidget {
                 IconButton(
                   icon: Icon(
                     Icons.logout, 
-                    color: Theme.of(context).appBarTheme.foregroundColor ?? Theme.of(context).colorScheme.onSurface,
+                    color: Theme.of(context).brightness == Brightness.dark 
+                      ? const Color(0xFFF0F6FC) 
+                      : Colors.white,
                   ),
                   onPressed: () {
                     _showLogoutDialog(context);
@@ -84,15 +95,15 @@ class DashboardScreen extends StatelessWidget {
                       ),
                     ),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.secondary],
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFE53E3E), Color(0xFFFF6B6B)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                          color: const Color(0xFFE53E3E).withOpacity(0.3),
                           spreadRadius: 2,
                           blurRadius: 10,
                           offset: const Offset(0, 4),
@@ -104,12 +115,17 @@ class DashboardScreen extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.favorite, color: Theme.of(context).colorScheme.onPrimary, size: 32),
+                            const Icon(
+                              Icons.favorite,
+                              color: Colors.white,
+                              size: 32,
+                            ),
                             const SizedBox(width: 12),
                             Text(
                               localizationService.getString('welcome'),
-                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                color: Theme.of(context).colorScheme.onPrimary,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -118,14 +134,17 @@ class DashboardScreen extends StatelessWidget {
                         const SizedBox(height: 8),
                         Text(
                           localizationService.getString('health_tracking_ai'),
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.7)),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 16,
+                          ),
                         ),
                         const SizedBox(height: 16),
                         // Language Info
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.2),
+                            color: Colors.white.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
@@ -137,12 +156,19 @@ class DashboardScreen extends StatelessWidget {
                               const SizedBox(width: 8),
                               Text(
                                 localizationService.currentLanguageName,
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onPrimary, fontWeight: FontWeight.w500),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                               const Spacer(),
                               Text(
                                 localizationService.isRTL ? 'RTL' : 'LTR',
-                                style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.7)),
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                ),
                               ),
                             ],
                           ),
@@ -159,7 +185,7 @@ class DashboardScreen extends StatelessWidget {
                     style: TextStyle(
                       fontSize: ResponsiveHelper.getFontSize(context, 20),
                       fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
+                      color: const Color(0xFFE53E3E),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -216,7 +242,7 @@ class DashboardScreen extends StatelessWidget {
                     style: TextStyle(
                       fontSize: ResponsiveHelper.getFontSize(context, 20),
                       fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
+                      color: const Color(0xFFE53E3E),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -250,13 +276,6 @@ class DashboardScreen extends StatelessWidget {
                       ),
                       _buildFeatureCard(
                         context,
-                        localizationService.getString('stats_overview_title'),
-                        Icons.query_stats,
-                        Colors.blueGrey[600]!,
-                        '/stats',
-                      ),
-                      _buildFeatureCard(
-                        context,
                         localizationService.getString('profile'),
                         Icons.person,
                         Colors.indigo[600]!,
@@ -275,13 +294,6 @@ class DashboardScreen extends StatelessWidget {
                         Icons.language,
                         Colors.teal[600]!,
                         '/language_settings',
-                      ),
-                      _buildFeatureCard(
-                        context,
-                        localizationService.getString('performance_settings'),
-                        Icons.speed,
-                        Colors.cyan[700]!,
-                        '/performance',
                       ),
                       _buildFeatureCard(
                         context,
@@ -327,7 +339,9 @@ class DashboardScreen extends StatelessWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
+          color: Theme.of(context).brightness == Brightness.dark 
+            ? const Color(0xFF21262D)
+            : Colors.white,
           borderRadius: BorderRadius.circular(
             ResponsiveHelper.responsiveValue(
               context,
@@ -338,7 +352,7 @@ class DashboardScreen extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.1),
+              color: Colors.grey.withOpacity(0.1),
               spreadRadius: 2,
               blurRadius: 8,
               offset: const Offset(0, 4),
@@ -369,7 +383,7 @@ class DashboardScreen extends StatelessWidget {
                       ),
                     ),
                     decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.1),
+                      color: color.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
@@ -390,7 +404,9 @@ class DashboardScreen extends StatelessWidget {
                     style: TextStyle(
                       fontSize: ResponsiveHelper.getFontSize(context, 14),
                       fontWeight: FontWeight.w600,
-                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                      color: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.white 
+                        : Colors.black87,
                     ),
                   ),
                 ],
