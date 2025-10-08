@@ -1,3 +1,5 @@
+## 2025-10-08
+- Added keys: `release_name`, `release_label` for OS 4 branding display.
 # Localization Changelog
 
 ## 2025-10-04
@@ -16,6 +18,12 @@
   - diet_program_screen.dart, family_panel_screen.dart, guest_screen.dart,
     notification_screen.dart, personal_info_screen.dart, register_screen.dart
 - Validator now passes with zero issues. Analyzer down to non-blocking infos/warnings.
+
+### Additions (2025-10-06)
+- New keys for sharing features and filters:
+  - share_day_menu, share_day_menu_title (Diet Program daily menu share)
+  - share_favorites, share_favorites_title, no_favorites_yet (Alternative Medicine favorites share)
+  - favorites (filter label and tooltip)
 
 ## 2025-10-03
 - Added keys for Full Results screen and section titles:

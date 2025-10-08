@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/web_database_helper.dart';
 import '../services/database_helper.dart';
 import '../services/audit_log_service.dart';
 import '../services/preferences_service.dart';
@@ -18,11 +17,10 @@ class AnalysisScreen extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _AnalysisScreenState createState() => _AnalysisScreenState();
+  State<AnalysisScreen> createState() => _AnalysisScreenState();
 }
 
 class _AnalysisScreenState extends State<AnalysisScreen> {
-  late final WebDatabaseHelper _dbHelper;
   final PreferencesService _prefsService = PreferencesService();
   final ExportService _exportService = ExportService();
   
@@ -47,7 +45,6 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   @override
   void initState() {
     super.initState();
-    _dbHelper = WebDatabaseHelper.instance;
     currentValues = Map.from(widget.hemogramValues);
     _loadTestHistory();
     // Background audit: analysis viewed
@@ -58,7 +55,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
 
   Future<void> _loadTestHistory() async {
     try {
-      int? userId = await _prefsService.getCurrentUserId();
+      int? userId = _prefsService.getCurrentUserId();
       if (userId != null) {
         // Prefer unified DatabaseHelper for cross-platform storage
         final db = DatabaseHelper.instance;
@@ -124,7 +121,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Ana Analiz Başlığı
+            // Main Analysis Header
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -206,28 +203,33 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             ),
             
             const SizedBox(height: 24),
+
+            // Smart Summary Card
+            _buildSmartSummaryCard(),
             
-            // Hemogram Değerleri Listesi
+            const SizedBox(height: 24),
+            
+            // Hemogram Values List
             _buildParametersList(localizationService),
             
             const SizedBox(height: 24),
             
-            // Genel Değerlendirme
+            // Overall Evaluation
             _buildOverallEvaluation(localizationService),
             
             const SizedBox(height: 24),
             
-            // Öneriler
+            // Recommendations
             _buildRecommendations(localizationService),
             
             const SizedBox(height: 24),
             
-            // Test Geçmişi
+            // Test History
             if (testHistory.isNotEmpty) _buildTestHistory(localizationService),
             
             const SizedBox(height: 24),
             
-            // Alt Butonlar
+            // Bottom Buttons
             Row(
               children: [
                 Expanded(
@@ -380,6 +382,206 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildSmartSummaryCard() {
+    final loc = Provider.of<LocalizationService>(context);
+    final score = _computeRiskScore();
+    final flags = _getTopFlags(3);
+    // color scale: 0-33 green, 34-66 orange, 67-100 red
+    Color scoreColor;
+    if (score <= 33) {
+      scoreColor = Colors.green;
+    } else if (score <= 66) {
+      scoreColor = Colors.orange;
+    } else {
+      scoreColor = Colors.red;
+    }
+
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.insights, color: Color(0xFFE53E3E)),
+                const SizedBox(width: 8),
+                Text(
+                  loc.getString('smart_summary_title'),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFE53E3E),
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: scoreColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.speed, size: 16),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${loc.getString('risk_score_label')}: ${score.toStringAsFixed(0)}',
+                        style: TextStyle(color: scoreColor, fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Flags
+            Text(
+              loc.getString('top_flags_label'),
+              style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey[800]),
+            ),
+            const SizedBox(height: 8),
+            if (flags.isEmpty)
+              Text(
+                loc.getString('all_values_normal_message'),
+                style: TextStyle(color: Colors.grey[700]),
+              )
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: flags.map((f) {
+                  final label = _localizedParamName(f['key'] as String);
+                  final dir = f['direction'] as String; // 'low'|'high'|'very_high'
+                  Color c = dir == 'low' ? Colors.orange : (dir == 'high' ? Colors.red : Colors.red.shade900);
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: c.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(dir == 'low' ? Icons.arrow_downward : Icons.arrow_upward, size: 14, color: c),
+                        const SizedBox(width: 6),
+                        Text(label, style: TextStyle(color: c, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            const SizedBox(height: 12),
+            // Next steps
+            Text(
+              loc.getString('next_steps_label'),
+              style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey[800]),
+            ),
+            const SizedBox(height: 8),
+            Builder(builder: (_) {
+              final abnormalCount = _countAbnormal();
+              final hasVeryHigh = _hasVeryHigh();
+              final items = <String>[];
+              if (abnormalCount == 0) {
+                items.add(loc.getString('maintain_healthy_habits'));
+              } else {
+                if (hasVeryHigh || abnormalCount >= 3) {
+                  items.add(loc.getString('multiple_abnormalities'));
+                }
+                items.add(loc.getString('consider_follow_up'));
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: items
+                    .map((t) => Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.check, size: 16, color: Color(0xFFE53E3E)),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  t,
+                                  style: TextStyle(color: Colors.grey[700]),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ))
+                    .toList(),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  double _computeRiskScore() {
+    // Weighted simple scorer: each abnormal adds 15, very high adds +20 bonus, capped at 100
+    int abnormal = 0;
+    int bonus = 0;
+    currentValues.forEach((key, value) {
+      final range = referenceRanges[key];
+      if (range == null) return;
+      if (value < range['min']! || value > range['max']!) {
+        abnormal += 1;
+        if (value > range['max']!) {
+          final max = range['max']!;
+          if (value > max * 1.5) bonus += 20;
+        }
+      }
+    });
+    double score = abnormal * 15 + bonus.toDouble();
+    if (score > 100) score = 100;
+    return score;
+  }
+
+  List<Map<String, Object>> _getTopFlags(int count) {
+    final List<Map<String, Object>> flags = [];
+    currentValues.forEach((key, value) {
+      final range = referenceRanges[key];
+      if (range == null) return;
+      if (value < range['min']!) {
+        final diff = (range['min']! - value) / range['min']!;
+        flags.add({'key': key, 'severity': diff, 'direction': 'low'});
+      } else if (value > range['max']!) {
+        final diff = (value - range['max']!) / range['max']!;
+        final isVery = value > range['max']! * 1.5;
+        flags.add({'key': key, 'severity': isVery ? diff + 0.5 : diff, 'direction': isVery ? 'very_high' : 'high'});
+      }
+    });
+    flags.sort((a, b) => (b['severity'] as num).compareTo(a['severity'] as num));
+    return flags.take(count).toList();
+  }
+
+  int _countAbnormal() {
+    int abnormal = 0;
+    currentValues.forEach((key, value) {
+      final range = referenceRanges[key];
+      if (range == null) return;
+      if (value < range['min']! || value > range['max']!) {
+        abnormal += 1;
+      }
+    });
+    return abnormal;
+  }
+
+  bool _hasVeryHigh() {
+    bool veryHigh = false;
+    currentValues.forEach((key, value) {
+      final range = referenceRanges[key];
+      if (range == null) return;
+      if (value > range['max']!) {
+        final max = range['max']!;
+        if (value > max * 1.5) veryHigh = true;
+      }
+    });
+    return veryHigh;
   }
 
   Widget _buildParametersList(LocalizationService localizationService) {
@@ -634,6 +836,18 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     );
   }
 
+  // Normalize string by converting to lowercase and stripping common Turkish diacritics
+  String _normalizeAscii(String input) {
+  final lower = input.toLowerCase();
+  return lower
+    .replaceAll('\u00E7', 'c') // ç
+    .replaceAll('\u011F', 'g') // ğ
+    .replaceAll('\u0131', 'i') // ı
+    .replaceAll('\u00F6', 'o') // ö
+    .replaceAll('\u015F', 's') // ş
+    .replaceAll('\u00FC', 'u'); // ü
+  }
+
   String _localizedParamName(String raw) {
     final loc = Provider.of<LocalizationService>(context, listen: false);
     // If already canonical key, translate directly
@@ -657,10 +871,10 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     };
     if (canonicalKeys.contains(raw)) return loc.getString(raw);
 
-    final lower = raw.toLowerCase();
+    final lower = _normalizeAscii(raw);
     if (lower.contains('hemoglobin')) return loc.getString('hemoglobin');
     if (lower.contains('demir') || lower.contains('iron')) return loc.getString('iron');
-    if (lower.contains('lökosit') || lower.contains('lokosit') || lower.contains('wbc')) return loc.getString('white_blood_cells');
+    if (lower.contains('lokosit') || lower.contains('wbc')) return loc.getString('white_blood_cells');
     if (lower.contains('eritrosit') || lower.contains('rbc') || lower.contains('red blood')) return loc.getString('red_blood_cells');
     if (lower.contains('trombosit') || lower.contains('platelet') || lower.contains('plt')) return loc.getString('platelets');
     if (lower.contains('hematokrit') || lower.contains('hct')) return loc.getString('hematocrit');
@@ -730,9 +944,9 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     String riskLevel = (test['risk_level'] ?? 'low').toString();
     final loc = Provider.of<LocalizationService>(context, listen: false);
     // Normalize any stored label/code and derive color + localized label
-    final rl = riskLevel.toLowerCase();
+    final rl = _normalizeAscii(riskLevel);
     Color riskColor;
-    if (rl == 'yüksek' || rl == 'yuksek' || rl == 'high') {
+    if (rl == 'yuksek' || rl == 'high') {
       riskColor = Colors.red;
     } else if (rl == 'orta' || rl == 'medium') {
       riskColor = Colors.orange;
@@ -740,7 +954,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       riskColor = Colors.green;
     }
     String riskLabel;
-    if (rl == 'yüksek' || rl == 'yuksek' || rl == 'high') {
+    if (rl == 'yuksek' || rl == 'high') {
       riskLabel = loc.getString('risk_level_high');
     } else if (rl == 'orta' || rl == 'medium') {
       riskLabel = loc.getString('risk_level_medium');
@@ -859,25 +1073,25 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   List<String> _generateRecommendations() {
     List<String> recommendations = [];
     
-  // Hemoglobin kontrolü
+  // Hemoglobin check
   double? hb = currentValues['hemoglobin'];
     if (hb != null && hb < 12.0) {
       recommendations.add(Provider.of<LocalizationService>(context, listen: false).getString('hemoglobin_low_recommendation'));
     }
     
-  // Demir kontrolü
+  // Iron check
   double? iron = currentValues['iron'];
     if (iron != null && iron < 60.0) {
       recommendations.add(Provider.of<LocalizationService>(context, listen: false).getString('iron_low_recommendation'));
     }
     
-  // Lökosit kontrolü
+  // Leukocyte (WBC) check
   double? wbc = currentValues['white_blood_cells'];
     if (wbc != null && wbc > 11.0) {
       recommendations.add(Provider.of<LocalizationService>(context, listen: false).getString('wbc_high_recommendation'));
     }
     
-    // Genel öneriler
+  // General recommendations
     if (recommendations.isEmpty) {
       final loc = Provider.of<LocalizationService>(context, listen: false);
       recommendations.addAll([
@@ -953,7 +1167,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             ),
             ElevatedButton(
               onPressed: () {
-                // Burada paylaşım işlevi olacak
+                // Sharing functionality would be implemented here
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(Provider.of<LocalizationService>(context, listen: false).getString('report_copied'))),
@@ -996,328 +1210,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     return report.toString();
   }
 
-  // ===== RAPOR VE DIŞA AKTARMA ÖZELLİKLERİ =====
-  
-  void _generatePDFReport(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Row(
-            children: [
-              Icon(Icons.picture_as_pdf, color: Colors.red[600]),
-              const SizedBox(width: 8),
-              Text(Provider.of<LocalizationService>(context, listen: false).getString('pdf_report_dialog_title')),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(Provider.of<LocalizationService>(context, listen: false).getString('pdf_report_intro')),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(Provider.of<LocalizationService>(context, listen: false).getString('report_content_heading'), style: const TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('report_content_item_values')),
-                    Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('report_content_item_ai_analysis')),
-                    Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('report_content_item_health_tips')),
-                    Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('report_content_item_risk_assessment')),
-                    Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('report_content_item_date') + ': ' + Provider.of<LocalizationService>(context, listen: false).formatDate(DateTime.now())),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(Provider.of<LocalizationService>(context, listen: false).getString('cancel')),
-            ),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _simulatePDFGeneration(context);
-              },
-              icon: const Icon(Icons.download),
-              label: Text(Provider.of<LocalizationService>(context, listen: false).getString('create_pdf_button')),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red[600],
-                foregroundColor: Colors.white,
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _simulatePDFGeneration(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text(Provider.of<LocalizationService>(context, listen: false).getString('pdf_generating')),
-            ],
-          ),
-        );
-      },
-    );
-
-    // 2 saniye sonra tamamlandı mesajı
-    Future.delayed(const Duration(seconds: 2), () {
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle, color: Colors.white),
-              const SizedBox(width: 8),
-              Text(Provider.of<LocalizationService>(context, listen: false).getString('pdf_generated_success')),
-            ],
-          ),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    });
-  }
-
-  void _exportToExcel(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Row(
-            children: [
-              Icon(Icons.table_chart, color: Colors.green[600]),
-              const SizedBox(width: 8),
-              Text(Provider.of<LocalizationService>(context, listen: false).getString('excel_export_title')),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(Provider.of<LocalizationService>(context, listen: false).getString('excel_export_intro')),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.green[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green[200]!),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(Provider.of<LocalizationService>(context, listen: false).getString('excel_content_heading'), style: const TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('excel_content_item_all_params')),
-                    Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('excel_content_item_normal_ranges')),
-                    Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('excel_content_item_status_analysis')),
-                    Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('excel_content_item_test_history')),
-                    Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('excel_content_item_charts')),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(Provider.of<LocalizationService>(context, listen: false).getString('cancel')),
-            ),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _simulateExcelExport(context);
-              },
-              icon: const Icon(Icons.download),
-              label: Text(Provider.of<LocalizationService>(context, listen: false).getString('create_excel_button')),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green[600],
-                foregroundColor: Colors.white,
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _simulateExcelExport(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(color: Colors.green),
-              SizedBox(height: 16),
-              Text(Provider.of<LocalizationService>(context, listen: false).getString('excel_generating')),
-            ],
-          ),
-        );
-      },
-    );
-
-    Future.delayed(const Duration(seconds: 2), () {
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle, color: Colors.white),
-              const SizedBox(width: 8),
-              Text(Provider.of<LocalizationService>(context, listen: false).getString('excel_generated_success')),
-            ],
-          ),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    });
-  }
-
-  void _sendEmail(BuildContext context) {
-    final TextEditingController emailController = TextEditingController();
-    
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Row(
-            children: [
-              Icon(Icons.email, color: Colors.blue[600]),
-              const SizedBox(width: 8),
-              Text(Provider.of<LocalizationService>(context, listen: false).getString('email_send_title')),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(Provider.of<LocalizationService>(context, listen: false).getString('email_send_intro')),
-              const SizedBox(height: 16),
-              TextField(
-                controller: emailController,
-                decoration: InputDecoration(
-                  labelText: Provider.of<LocalizationService>(context, listen: false).getString('email_address_label'),
-                  hintText: Provider.of<LocalizationService>(context, listen: false).getString('email_address_hint'),
-                  prefixIcon: const Icon(Icons.email),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue[200]!),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(Provider.of<LocalizationService>(context, listen: false).getString('email_content_heading'), style: const TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('email_content_item_pdf')),
-                    Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('email_content_item_analysis_summary')),
-                    Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('email_content_item_health_tips')),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(Provider.of<LocalizationService>(context, listen: false).getString('cancel')),
-            ),
-            ElevatedButton.icon(
-              onPressed: () {
-                if (emailController.text.isNotEmpty) {
-                  Navigator.of(context).pop();
-                  _simulateEmailSend(context, emailController.text);
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(Provider.of<LocalizationService>(context, listen: false).getString('email_invalid')),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              },
-              icon: const Icon(Icons.send),
-              label: Text(Provider.of<LocalizationService>(context, listen: false).getString('email_send_button')),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue[600],
-                foregroundColor: Colors.white,
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _simulateEmailSend(BuildContext context, String email) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(color: Colors.blue),
-              SizedBox(height: 16),
-              Text(Provider.of<LocalizationService>(context, listen: false).getString('email_sending')),
-            ],
-          ),
-        );
-      },
-    );
-
-    Future.delayed(const Duration(seconds: 3), () {
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle, color: Colors.white),
-              const SizedBox(width: 8),
-              Expanded(child: Text(Provider.of<LocalizationService>(context, listen: false).getStringWithParams('email_sent_success', {'email': email}))),
-            ],
-          ),
-          backgroundColor: Colors.blue,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 4),
-        ),
-      );
-    });
-  }
+  // ===== REPORT AND EXPORT FEATURES =====
 
   // Navigate to Export Options Screen
   void _navigateToExportOptions(BuildContext context) {

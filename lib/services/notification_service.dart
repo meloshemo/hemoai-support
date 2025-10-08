@@ -202,6 +202,16 @@ class NotificationService extends ChangeNotifier {
     }
   }
 
+  // Update scheduled time for a reminder by id
+  Future<void> updateScheduledTime(int id, DateTime newTime) async {
+    final index = _notifications.indexWhere((n) => n.id == id);
+    if (index != -1) {
+      final notification = _notifications[index];
+      _notifications[index] = notification.copyWith(scheduledTime: newTime);
+      notifyListeners();
+    }
+  }
+
   // Predefined reminder templates
   NotificationItem createMedicationReminder({
     required String medicationName,

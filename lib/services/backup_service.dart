@@ -17,6 +17,7 @@ class BackupSummary {
   final int notifications;
   final int medications;
   final int water;
+  final int dietEntries;
 
   const BackupSummary({
     required this.platform,
@@ -29,6 +30,7 @@ class BackupSummary {
     required this.notifications,
     required this.medications,
     required this.water,
+    required this.dietEntries,
   });
 
   bool get isWeb => platform == 'web';
@@ -97,6 +99,7 @@ class BackupService {
         'notifications': <String, dynamic>{},
         'medications': <String, dynamic>{},
         'water': <String, dynamic>{},
+        'diet': <String, dynamic>{},
       };
       for (final k in keys) {
         if (k.startsWith('reminders_')) {
@@ -107,6 +110,10 @@ class BackupService {
           perUser['medications'][k] = sp.getString(k);
         } else if (k.startsWith('water_')) {
           perUser['water'][k] = sp.getInt(k);
+        } else if (k.startsWith('diet_')) {
+          // diet_<userId>_<yyyy-MM-dd>
+          final v = sp.getString(k);
+          if (v != null) perUser['diet'][k] = v;
         }
       }
       sections['per_user'] = perUser;
@@ -131,6 +138,10 @@ class BackupService {
         try {
           notifications = await db.rawQuery('SELECT * FROM notifications');
         } catch (_) {}
+        List<Map<String, Object?>> dietTracking = [];
+        try {
+          dietTracking = await db.rawQuery('SELECT * FROM diet_tracking');
+        } catch (_) {}
 
         backup['data']['native_db'] = {
           'users': users,
@@ -138,6 +149,7 @@ class BackupService {
           'family_members': family,
           'reminders': reminders,
           'notifications': notifications,
+          'diet_tracking': dietTracking,
         };
       } catch (e) {
   debugPrint('Backup (native) error while querying DB: $e');
@@ -167,7 +179,8 @@ class BackupService {
         reminders = 0,
         notifications = 0,
         medications = 0,
-        water = 0;
+    water = 0,
+    diet = 0;
 
     if (data['web_store'] is Map) {
       final webStore = (data['web_store'] as Map).cast<String, dynamic>();
@@ -181,6 +194,7 @@ class BackupService {
         notifications = _len((pu['notifications'] as Map?)?.values);
         medications = _len((pu['medications'] as Map?)?.values);
         water = _len((pu['water'] as Map?)?.values);
+        diet = _len((pu['diet'] as Map?)?.values);
       }
     } else if (data['native_db'] is Map) {
       final native = (data['native_db'] as Map).cast<String, dynamic>();
@@ -189,6 +203,7 @@ class BackupService {
       familyMembers = _len(native['family_members']);
       reminders = _len(native['reminders']);
       notifications = _len(native['notifications']);
+      diet = _len(native['diet_tracking']);
     }
 
     return BackupSummary(
@@ -202,6 +217,7 @@ class BackupService {
       notifications: notifications,
       medications: medications,
       water: water,
+      dietEntries: diet,
     );
   }
 

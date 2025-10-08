@@ -724,6 +724,11 @@ class LocalizationService extends ChangeNotifier {
       'en': 'No completed reminders',
       'tr': 'Tamamlanan hatırlatıcınız yok',
     },
+    // Parameterized info labels for reminders
+    'weekly_reminders_scheduled': {
+      'en': 'Scheduled {count} weekly reminders',
+      'tr': '{count} haftalık hatırlatıcı planlandı',
+    },
     'reminder_time_label': {
       'en': 'Time',
       'tr': 'Zamanı',
@@ -823,6 +828,14 @@ class LocalizationService extends ChangeNotifier {
       'fr': 'Paramètres',
       'de': 'Einstellungen',
       'ar': 'الإعدادات',
+    },
+    'customize_your_experience': {
+      'tr': 'Deneyiminizi özelleştirin',
+      'en': 'Customize your experience',
+      'es': 'Personaliza tu experiencia',
+      'fr': 'Personnalisez votre expérience',
+      'de': 'Passen Sie Ihre Erfahrung an',
+      'ar': 'خصص تجربتك',
     },
     'language': {
       'tr': 'Dil',
@@ -1023,6 +1036,10 @@ class LocalizationService extends ChangeNotifier {
       'fr': 'Actualiser',
       'de': 'Aktualisieren',
       'ar': 'تحديث',
+    },
+    'favorites': {
+      'tr': 'Favoriler',
+      'en': 'Favorites',
     },
     // Dashboard specific translations
     'health_tracking_ai': {
@@ -1249,6 +1266,34 @@ class LocalizationService extends ChangeNotifier {
       'fr': 'Téléphone',
       'de': 'Telefon',
       'ar': 'الهاتف',
+    },
+    'change_language_desc': {
+      'en': 'Choose app language',
+      'tr': 'Uygulama dilini seçin',
+    },
+    'diet_share_button': {
+      'en': 'Share',
+      'tr': 'Paylaş',
+    },
+    'diet_share_message_prefix': {
+      'en': 'My personalized diet suggestions from HemoAI:',
+      'tr': 'HemoAI’den kişisel diyet önerilerim:',
+    },
+    'share_day_menu': {
+      'tr': 'Günün Menüsünü Paylaş',
+      'en': 'Share Day Menu',
+    },
+    'share_day_menu_title': {
+      'tr': 'Kişisel Günlük Menü',
+      'en': 'Personal Daily Menu',
+    },
+    'copy_day_menu': {
+      'tr': 'Günün Menüsünü Kopyala',
+      'en': 'Copy Day Menu',
+    },
+    'day_menu_copied': {
+      'tr': 'Günlük menü kopyalandı',
+      'en': 'Daily menu copied',
     },
     'address': {
       'tr': 'Adres',
@@ -1872,6 +1917,65 @@ class LocalizationService extends ChangeNotifier {
       'tr': 'Analiz Sonuçları',
       'en': 'Analysis Results',
     },
+    // Smart Summary & Risk Score
+    'smart_summary_title': {
+      'tr': 'Akıllı Özet',
+      'en': 'Smart Summary',
+    },
+    'risk_score_label': {
+      'tr': 'Risk Skoru',
+      'en': 'Risk Score',
+    },
+    'top_flags_label': {
+      'tr': 'Öne Çıkan Bulgular',
+      'en': 'Top Flags',
+    },
+    'next_steps_label': {
+      'tr': 'Sonraki Adımlar',
+      'en': 'Next Steps',
+    },
+    'maintain_healthy_habits': {
+      'tr': 'Sağlıklı alışkanlıklara devam edin',
+      'en': 'Maintain healthy habits',
+    },
+    'consider_follow_up': {
+      'tr': '1-2 hafta içinde takip testi düşünün',
+      'en': 'Consider a follow-up test in 1-2 weeks',
+    },
+    'multiple_abnormalities': {
+      'tr': 'Birden fazla anormallik tespit edildi',
+      'en': 'Multiple abnormalities detected',
+    },
+    // Reminder streaks & actions
+    'mark_as_done': {
+      'tr': 'Tamamlandı',
+      'en': 'Mark as Done',
+    },
+    'snooze_10m': {
+      'tr': '10 dk ertele',
+      'en': 'Snooze 10m',
+    },
+    'current_streak_label': {
+      'tr': 'Seri',
+      'en': 'Streak',
+    },
+    'longest_streak_label': {
+      'tr': 'Rekor',
+      'en': 'Best',
+    },
+    'days_suffix': {
+      'tr': 'gün',
+      'en': 'days',
+    },
+    // Release branding
+    'release_name': {
+      'tr': 'OS 4 HemoAI',
+      'en': 'OS 4 HemoAI',
+    },
+    'release_label': {
+      'tr': 'Sürüm',
+      'en': 'Release',
+    },
     // Debug login screen (dev only)
     'debug_login_title': {
       'tr': 'Debug Giriş Testi',
@@ -2325,6 +2429,947 @@ class LocalizationService extends ChangeNotifier {
       'tr': 'Karşılaştırma için en az 2 test sonucu gerekli',
       'en': 'At least 2 test results are required for comparison',
     },
+    // =====================
+    // Export / Restore
+    // =====================
+    'restore_data': {
+      'en': 'Restore Data',
+      'tr': 'Verileri Geri Yükle',
+    },
+    'restore_data_desc': {
+      'en': 'Restore your backup file to this device',
+      'tr': 'Yedek dosyanızı bu cihaza geri yükleyin',
+    },
+    'export_success': {
+      'en': 'Export completed successfully',
+      'tr': 'Dışa aktarma başarıyla tamamlandı',
+    },
+    'export_failed': {
+      'en': 'Export failed',
+      'tr': 'Dışa aktarma başarısız',
+    },
+    'no_file_selected': {
+      'en': 'No file selected',
+      'tr': 'Dosya seçilmedi',
+    },
+    'export_error_title': {
+      'en': 'Export Error',
+      'tr': 'Dışa Aktarma Hatası',
+    },
+    'export_error_message': {
+      'en': 'An error occurred while exporting your data.',
+      'tr': 'Veriler dışa aktarılırken bir hata oluştu.',
+    },
+    'troubleshooting_tips': {
+      'en': 'Troubleshooting Tips',
+      'tr': 'Sorun Giderme İpuçları',
+    },
+    'export_troubleshooting': {
+      'en': '• Check file permissions\n• Ensure enough storage space\n• Try another format',
+      'tr': '• Dosya izinlerini kontrol edin\n• Yeterli depolama alanı olduğundan emin olun\n• Başka bir format deneyin',
+    },
+    'try_again': {
+      'en': 'Try Again',
+      'tr': 'Tekrar Dene',
+    },
+    // =====================
+    // Full Results
+    // =====================
+    'full_results_title': {
+      'en': 'Full Results',
+      'tr': 'Tüm Sonuçlar',
+    },
+    'no_results_available': {
+      'en': 'No results available',
+      'tr': 'Sonuç bulunmuyor',
+    },
+    // =====================
+    // Guest
+    // =====================
+    'guest_mode_description': {
+      'en': 'Use basic features without creating an account.',
+      'tr': 'Hesap oluşturmadan temel özellikleri kullanın.',
+    },
+    'edit_profile': {
+      'en': 'Edit Profile',
+      'tr': 'Profili Düzenle',
+    },
+    // Generic simple values
+    'good': {
+      'en': 'Good',
+      'tr': 'İyi',
+    },
+    'value': {
+      'en': 'Value',
+      'tr': 'Değer',
+    },
+    // =====================
+    // OCR
+    // =====================
+    'ocr_reader': {
+      'en': 'OCR Reader',
+      'tr': 'OCR Okuyucu',
+    },
+    'ocr_desktop_placeholder': {
+      'en': 'On desktop, select an image file to scan',
+      'tr': 'Masaüstünde, taramak için bir görsel dosyası seçin',
+    },
+    'scan_document': {
+      'en': 'Scan Document',
+      'tr': 'Belgeyi Tara',
+    },
+    'ocr_review_title': {
+      'en': 'Review Extracted Values',
+      'tr': 'Çıkarılan Değerleri İncele',
+    },
+    'view_source_image': {
+      'en': 'View source image',
+      'tr': 'Kaynak görseli görüntüle',
+    },
+    'ocr_review_instructions': {
+      'en': 'Please confirm or correct the values below before saving.',
+      'tr': 'Kaydetmeden önce aşağıdaki değerleri onaylayın veya düzeltin.',
+    },
+    'ocr_review_description': {
+      'en': 'We parsed key hemogram parameters from your image.',
+      'tr': 'Görselinizden temel hemogram parametreleri çıkarıldı.',
+    },
+    'ocr_review_warnings': {
+      'en': 'Some values may be uncertain due to image quality.',
+      'tr': 'Görsel kalitesi nedeniyle bazı değerler belirsiz olabilir.',
+    },
+    'processing': {
+      'en': 'Processing...',
+      'tr': 'İşleniyor...',
+    },
+    'confirm_values': {
+      'en': 'Confirm Values',
+      'tr': 'Değerleri Onayla',
+    },
+    'enter_value': {
+      'en': 'Enter value',
+      'tr': 'Değer girin',
+    },
+    'value_outside_normal_range': {
+      'en': 'Value is outside the normal range',
+      'tr': 'Değer normal aralığın dışında',
+    },
+    // =====================
+    // Notification Debug
+    // =====================
+    'notification_debug_title': {
+      'en': 'Notification Debug',
+      'tr': 'Bildirim Hata Ayıklama',
+    },
+    'notification_debug_scheduled': {
+      'en': 'Scheduled notifications',
+      'tr': 'Planlanan bildirimler',
+    },
+    'notification_debug_received': {
+      'en': 'Recently received',
+      'tr': 'Son alınanlar',
+    },
+    'why_did_i_get_this': {
+      'en': 'Why did I get this?',
+      'tr': 'Bu neden geldi?',
+    },
+    'reason_scheduled_time': {
+      'en': 'Scheduled time',
+      'tr': 'Planlanan saat',
+    },
+    'reason_received_at': {
+      'en': 'Received at',
+      'tr': 'Alındığı zaman',
+    },
+    'reason_repeat': {
+      'en': 'Repeat',
+      'tr': 'Tekrar',
+    },
+    'reason_reminder_id': {
+      'en': 'Reminder ID',
+      'tr': 'Hatırlatıcı ID',
+    },
+    'reason_category': {
+      'en': 'Category',
+      'tr': 'Kategori',
+    },
+    'reason_hour': {
+      'en': 'Hour',
+      'tr': 'Saat',
+    },
+    'reason_minute': {
+      'en': 'Minute',
+      'tr': 'Dakika',
+    },
+    'reason_device_token': {
+      'en': 'Device token',
+      'tr': 'Cihaz anahtarı',
+    },
+    'reason_permission_granted': {
+      'en': 'Permission granted',
+      'tr': 'İzin verildi',
+    },
+    'notification_debug_logs': {
+      'en': 'Debug logs',
+      'tr': 'Hata ayıklama kayıtları',
+    },
+    'none': {
+      'en': 'None',
+      'tr': 'Yok',
+    },
+    // =====================
+    // Performance
+    // =====================
+    'performance_settings': {
+      'en': 'Performance Settings',
+      'tr': 'Performans Ayarları',
+    },
+    'enable_animations': {
+      'en': 'Enable animations',
+      'tr': 'Animasyonları etkinleştir',
+    },
+    'reduce_motion': {
+      'en': 'Reduce motion',
+      'tr': 'Hareketi azalt',
+    },
+    'clear_cache': {
+      'en': 'Clear cache',
+      'tr': 'Önbelleği temizle',
+    },
+    'apply_recommended_settings': {
+      'en': 'Apply recommended settings',
+      'tr': 'Önerilen ayarları uygula',
+    },
+    'cache_info': {
+      'en': 'Cache helps speed up the app but may take storage.',
+      'tr': 'Önbellek uygulamayı hızlandırır ancak depolama kullanabilir.',
+    },
+    'performance_recommendations': {
+      'en': 'Performance recommendations',
+      'tr': 'Performans önerileri',
+    },
+    // =====================
+    // Restore Preview
+    // =====================
+    'restore_preview': {
+      'en': 'Restore Preview',
+      'tr': 'Geri Yükleme Önizlemesi',
+    },
+    'backup_overview': {
+      'en': 'Backup Overview',
+      'tr': 'Yedek Özeti',
+    },
+    'backup_platform': {
+      'en': 'Platform',
+      'tr': 'Platform',
+    },
+    'preferences': {
+      'en': 'Preferences',
+      'tr': 'Tercihler',
+    },
+    'diet_entries': {
+      'en': 'Diet Entries',
+      'tr': 'Diyet Kayıtları',
+    },
+    'users': {
+      'en': 'Users',
+      'tr': 'Kullanıcılar',
+    },
+    'hemogram_tests': {
+      'en': 'Hemogram Tests',
+      'tr': 'Hemogram Testleri',
+    },
+    'family_invitations': {
+      'en': 'Family Invitations',
+      'tr': 'Aile Davetleri',
+    },
+    'water': {
+      'en': 'Water',
+      'tr': 'Su',
+    },
+    'restore_strategy': {
+      'en': 'Restore Strategy',
+      'tr': 'Geri Yükleme Stratejisi',
+    },
+    'restore_merge': {
+      'en': 'Merge (keep existing + add from backup)',
+      'tr': 'Birleştir (mevcut kalsın + yedekten ekle)',
+    },
+    'restore_replace': {
+      'en': 'Replace (wipe current and load backup)',
+      'tr': 'Değiştir (mevcut silinsin, yedek yüklensin)',
+    },
+    'restore_merge_desc': {
+      'en': 'Adds backup items without removing your current data.',
+      'tr': 'Mevcut verilerinizi silmeden yedek öğeleri ekler.',
+    },
+    'restore_replace_desc': {
+      'en': 'Erases current data and replaces everything with backup.',
+      'tr': 'Mevcut verileri siler ve her şeyi yedekle değiştirir.',
+    },
+    'apply_restore': {
+      'en': 'Apply Restore',
+      'tr': 'Geri Yüklemeyi Uygula',
+    },
+    'error_details': {
+      'en': 'Error details',
+      'tr': 'Hata detayları',
+    },
+    // =====================
+    // Settings
+    // =====================
+    'settings_personal_data': {
+      'en': 'Personal Data',
+      'tr': 'Kişisel Veriler',
+    },
+    'edit_profile_desc': {
+      'en': 'Update your personal information',
+      'tr': 'Kişisel bilgilerinizi güncelleyin',
+    },
+    'account_login': {
+      'en': 'Account & Login',
+      'tr': 'Hesap ve Giriş',
+    },
+    'account_login_desc': {
+      'en': 'Manage your account and login preferences',
+      'tr': 'Hesap ve giriş tercihlerini yönetin',
+    },
+    'settings_privacy': {
+      'en': 'Privacy',
+      'tr': 'Gizlilik',
+    },
+    'privacy_policy': {
+      'en': 'Privacy Policy',
+      'tr': 'Gizlilik Politikası',
+    },
+    'privacy_policy_desc': {
+      'en': 'How we handle your data',
+      'tr': 'Verilerinizi nasıl işlediğimiz',
+    },
+    'privacy_policy_body': {
+      'en': 'We store your data locally and respect your privacy.',
+      'tr': 'Verilerinizi yerel olarak saklarız ve gizliliğinize saygı duyarız.',
+    },
+    'terms_of_use': {
+      'en': 'Terms of Use',
+      'tr': 'Kullanım Şartları',
+    },
+    'terms_of_use_desc': {
+      'en': 'Rules for using the app',
+      'tr': 'Uygulamanın kullanım kuralları',
+    },
+    'terms_of_use_body': {
+      'en': 'Use at your own responsibility. Not a medical device.',
+      'tr': 'Kullanım sorumluluğu size aittir. Tıbbi cihaz değildir.',
+    },
+    'analytics_opt_in': {
+      'en': 'Allow anonymous analytics',
+      'tr': 'Anonim analizlere izin ver',
+    },
+    'analytics_opt_in_desc': {
+      'en': 'Help us improve by sharing anonymous usage data',
+      'tr': 'Anonim kullanım verileri paylaşarak gelişime yardımcı olun',
+    },
+    'settings_security': {
+      'en': 'Security',
+      'tr': 'Güvenlik',
+    },
+    'privacy_summary_title': {
+      'en': 'Privacy Summary',
+      'tr': 'Gizlilik Özeti',
+    },
+    'privacy_summary_desc': {
+      'en': 'Key points about your data privacy',
+      'tr': 'Veri gizliliğiniz hakkında önemli noktalar',
+    },
+    'privacy_summary_body': {
+      'en': 'Your data stays on your device unless you export it.',
+      'tr': 'Verileriniz, dışa aktarmadığınız sürece cihazınızda kalır.',
+    },
+    'app_lock': {
+      'en': 'App Lock',
+      'tr': 'Uygulama Kilidi',
+    },
+    'app_lock_desc': {
+      'en': 'Protect HemoAI with a passcode',
+      'tr': 'HemoAI uygulamasını bir şifre ile koruyun',
+    },
+    'clear_notifications': {
+      'en': 'Clear notifications',
+      'tr': 'Bildirimleri temizle',
+    },
+    'clear_notifications_desc': {
+      'en': 'Remove all in-app notifications',
+      'tr': 'Uygulama içi tüm bildirimleri kaldırın',
+    },
+    'done': {
+      'en': 'Done',
+      'tr': 'Bitti',
+    },
+    'notification_debug_desc': {
+      'en': 'Inspect scheduled and received notifications',
+      'tr': 'Planlanan ve alınan bildirimleri inceleyin',
+    },
+    'settings_data_backup': {
+      'en': 'Data Backup',
+      'tr': 'Veri Yedeği',
+    },
+    'trial_backup_title': {
+      'en': 'Try Backup',
+      'tr': 'Yedeği Dene',
+    },
+    'trial_backup_desc': {
+      'en': 'Create a quick backup to see how it works',
+      'tr': 'Nasıl çalıştığını görmek için hızlı bir yedek oluşturun',
+    },
+    'stats_overview_title': {
+      'en': 'Statistics Overview',
+      'tr': 'İstatistiklere Genel Bakış',
+    },
+    'stats_overview_desc': {
+      'en': 'See your app usage and health stats',
+      'tr': 'Uygulama kullanımı ve sağlık istatistiklerinizi görün',
+    },
+    'backup_data': {
+      'en': 'Backup Data',
+      'tr': 'Verileri Yedekle',
+    },
+    'backup_data_desc': {
+      'en': 'Create a backup file of your data',
+      'tr': 'Verilerinizin bir yedek dosyasını oluşturun',
+    },
+    'backup_ready': {
+      'en': 'Backup is ready',
+      'tr': 'Yedek hazır',
+    },
+    'encrypted_backup': {
+      'en': 'Encrypted Backup',
+      'tr': 'Şifreli Yedek',
+    },
+    'encrypted_backup_desc': {
+      'en': 'Protect your backup with a password (AES-GCM)',
+      'tr': 'Yedeğinizi bir şifre ile koruyun (AES-GCM)',
+    },
+    'encryption_enabled': {
+      'en': 'Encryption enabled',
+      'tr': 'Şifreleme etkin',
+    },
+    'decryption_failed': {
+      'en': 'Decryption failed',
+      'tr': 'Şifre çözme başarısız',
+    },
+    'delete_all_data': {
+      'en': 'Delete all data',
+      'tr': 'Tüm verileri sil',
+    },
+    'delete_all_data_desc': {
+      'en': 'This will permanently remove all app data',
+      'tr': 'Bu işlem tüm uygulama verilerini kalıcı olarak silecek',
+    },
+    'delete_all_data_confirm': {
+      'en': 'Are you sure you want to delete all data?',
+      'tr': 'Tüm verileri silmek istediğinize emin misiniz?',
+    },
+    'data_deleted': {
+      'en': 'All data deleted',
+      'tr': 'Tüm veriler silindi',
+    },
+    'cache_management': {
+      'en': 'Cache Management',
+      'tr': 'Önbellek Yönetimi',
+    },
+    'cache_cleared': {
+      'en': 'Cache cleared',
+      'tr': 'Önbellek temizlendi',
+    },
+    'optimize_for_device': {
+      'en': 'Optimize for this device',
+      'tr': 'Bu cihaz için optimize et',
+    },
+    'performance_optimized': {
+      'en': 'Performance optimized',
+      'tr': 'Performans optimize edildi',
+    },
+    'advanced_performance': {
+      'en': 'Advanced Performance',
+      'tr': 'Gelişmiş Performans',
+    },
+    'detailed_performance_controls': {
+      'en': 'Detailed performance controls',
+      'tr': 'Detaylı performans kontrolleri',
+    },
+    'settings_legal': {
+      'en': 'Legal',
+      'tr': 'Yasal',
+    },
+    'app_description_detailed': {
+      'en': 'HemoAI helps you track hemogram values, analyze trends, and manage reminders for a healthier life.',
+      'tr': 'HemoAI, hemogram değerlerinizi takip etmenize, trendleri analiz etmenize ve daha sağlıklı bir yaşam için hatırlatıcıları yönetmenize yardımcı olur.',
+    },
+    'medical_disclaimer': {
+      'en': 'Medical Disclaimer',
+      'tr': 'Tıbbi Uyarı',
+    },
+    'medical_disclaimer_desc': {
+      'en': 'This app is not a substitute for professional medical advice.',
+      'tr': 'Bu uygulama profesyonel tıbbi tavsiyenin yerine geçmez.',
+    },
+    'medical_disclaimer_body': {
+      'en': 'Always consult your doctor for medical questions and decisions.',
+      'tr': 'Tıbbi sorular ve kararlar için daima doktorunuza danışın.',
+    },
+    'help_support_desc': {
+      'en': 'How to get help and support',
+      'tr': 'Yardım ve desteğe nasıl ulaşılır',
+    },
+    'help_support_body': {
+      'en': 'Contact us via feedback form or check documentation.',
+      'tr': 'Geri bildirim formundan bize ulaşın veya dokümantasyonu inceleyin.',
+    },
+    'set_backup_password': {
+      'en': 'Set backup password',
+      'tr': 'Yedek şifresi belirle',
+    },
+    'enter_backup_password': {
+      'en': 'Enter backup password',
+      'tr': 'Yedek şifresini girin',
+    },
+    'password': {
+      'en': 'Password',
+      'tr': 'Şifre',
+    },
+    'confirm_password': {
+      'en': 'Confirm Password',
+      'tr': 'Şifreyi Doğrula',
+    },
+    'auto_optimize': {
+      'en': 'Auto optimize on startup',
+      'tr': 'Açılışta otomatik optimize et',
+    },
+    // =====================
+    // Stats
+    // =====================
+    'stats_total_tests': {
+      'en': 'Total tests',
+      'tr': 'Toplam test',
+    },
+    'stats_family_members': {
+      'en': 'Family members',
+      'tr': 'Aile üyeleri',
+    },
+    'stats_active_medications': {
+      'en': 'Active medications',
+      'tr': 'Aktif ilaçlar',
+    },
+    'stats_unread_notifications': {
+      'en': 'Unread notifications',
+      'tr': 'Okunmamış bildirimler',
+    },
+    'privacy_local_analytics_note': {
+      'en': 'Analytics are processed locally and never leave your device.',
+      'tr': 'Analizler yerel olarak işlenir ve cihazınızdan dışarı çıkmaz.',
+    },
+    // =====================
+    // Export service headings
+    // =====================
+    'diet_programs': {
+      'en': 'Diet Programs',
+      'tr': 'Diyet Programları',
+    },
+    'weekly_plan': {
+      'en': 'Weekly Plan',
+      'tr': 'Haftalık Plan',
+    },
+    'weeks_completed': {
+      'en': 'Weeks Completed',
+      'tr': 'Tamamlanan Hafta',
+    },
+    'analysis_details_heading': {
+      'en': 'Analysis Details',
+      'tr': 'Analiz Detayları',
+    },
+    'recommendations_heading': {
+      'en': 'Recommendations',
+      'tr': 'Öneriler',
+    },
+    'key_parameters_heading': {
+      'en': 'Key Parameters',
+      'tr': 'Anahtar Parametreler',
+    },
+    // =====================
+    // About Screen
+    // =====================
+    'key_features': {
+      'en': 'Key Features',
+      'tr': 'Öne Çıkan Özellikler',
+    },
+    'feature_ai_analysis': {
+      'en': 'AI-powered analysis',
+      'tr': 'Yapay zeka destekli analiz',
+    },
+    'feature_diet_recommendations': {
+      'en': 'Diet recommendations',
+      'tr': 'Diyet önerileri',
+    },
+    'feature_family_tracking': {
+      'en': 'Family tracking',
+      'tr': 'Aile takibi',
+    },
+    'feature_secure_data': {
+      'en': 'Secure data storage',
+      'tr': 'Güvenli veri saklama',
+    },
+    'feature_export_reports': {
+      'en': 'Exportable reports',
+      'tr': 'Dışa aktarılabilir raporlar',
+    },
+    'feature_multilingual': {
+      'en': 'Multilingual support',
+      'tr': 'Çok dilli destek',
+    },
+    'privacy_first': {
+      'en': 'Privacy First',
+      'tr': 'Önce Gizlilik',
+    },
+    'data_stays_local': {
+      'en': 'Your data stays on this device',
+      'tr': 'Verileriniz bu cihazda kalır',
+    },
+    'no_cloud_upload': {
+      'en': 'No cloud uploads by default',
+      'tr': 'Varsayılan olarak buluta yükleme yok',
+    },
+    'encrypted_backups': {
+      'en': 'Encrypted backups',
+      'tr': 'Şifreli yedekler',
+    },
+    'app_info': {
+      'en': 'App Info',
+      'tr': 'Uygulama Bilgisi',
+    },
+    'app_version': {
+      'en': 'App Version',
+      'tr': 'Uygulama Sürümü',
+    },
+    'build_number': {
+      'en': 'Build Number',
+      'tr': 'Yapı Numarası',
+    },
+    'developed_by': {
+      'en': 'Developed by',
+      'tr': 'Geliştiren',
+    },
+    'developer_name': {
+      'en': 'Developer',
+      'tr': 'Geliştirici',
+    },
+    'release_date': {
+      'en': 'Release Date',
+      'tr': 'Yayın Tarihi',
+    },
+    'rate_app': {
+      'en': 'Rate App',
+      'tr': 'Uygulamayı Puanla',
+    },
+    'share_app': {
+      'en': 'Share App',
+      'tr': 'Uygulamayı Paylaş',
+    },
+    'contact_support': {
+      'en': 'Contact Support',
+      'tr': 'Destek ile İletişim',
+    },
+    'open_source_licenses': {
+      'en': 'Open Source Licenses',
+      'tr': 'Açık Kaynak Lisansları',
+    },
+    'system_info': {
+      'en': 'System Info',
+      'tr': 'Sistem Bilgisi',
+    },
+    'support_email': {
+      'en': 'Support Email',
+      'tr': 'Destek E-postası',
+    },
+    // =====================
+    // Alternative Medicine extras
+    // =====================
+    'reason_label': {
+      'en': 'Reason',
+      'tr': 'Neden',
+    },
+    'toggle_favorite': {
+      'en': 'Toggle favorite',
+      'tr': 'Favoriye al/çıkar',
+    },
+    'age_personalization_note': {
+      'en': 'Recommendations are personalized by age and condition.',
+      'tr': 'Öneriler yaş ve duruma göre kişiselleştirilir.',
+    },
+    'female_general_caution': {
+      'en': 'Consult your doctor during pregnancy and breastfeeding.',
+      'tr': 'Hamilelik ve emzirme döneminde doktorunuza danışın.',
+    },
+    // =====================
+    // Data Import Flow
+    // =====================
+    'data_import_title': {
+      'en': 'Import Data',
+      'tr': 'Veri İçe Aktarma',
+    },
+    'data_import_welcome': {
+      'en': 'Welcome to data import',
+      'tr': 'Veri içe aktarmaya hoş geldiniz',
+    },
+    'data_import_subtitle': {
+      'en': 'Bring your results from various sources',
+      'tr': 'Sonuçlarınızı çeşitli kaynaklardan içe aktarın',
+    },
+    'import_options_title': {
+      'en': 'Import Options',
+      'tr': 'İçe Aktarma Seçenekleri',
+    },
+    'import_from_edevlet': {
+      'en': 'Import from e-Devlet',
+      'tr': 'e-Devlet’ten içe aktar',
+    },
+    'import_edevlet_description': {
+      'en': 'Paste your e-Devlet hemogram snippet or connect',
+      'tr': 'e-Devlet hemogram metnini yapıştırın veya bağlanın',
+    },
+    'import_from_qr': {
+      'en': 'Import from QR',
+      'tr': 'QR’dan içe aktar',
+    },
+    'import_qr_description': {
+      'en': 'Scan a QR code that contains your results',
+      'tr': 'Sonuçlarınızı içeren bir QR kodunu tarayın',
+    },
+    'import_from_text': {
+      'en': 'Import from Text',
+      'tr': 'Metinden içe aktar',
+    },
+    'import_text_description': {
+      'en': 'Paste hemogram values from text',
+      'tr': 'Metinden hemogram değerlerini yapıştırın',
+    },
+    'import_from_image': {
+      'en': 'Import from Image',
+      'tr': 'Görüntüden içe aktar',
+    },
+    'import_image_description': {
+      'en': 'Use OCR to parse values from an image',
+      'tr': 'Görüntüden değerleri almak için OCR kullanın',
+    },
+    'import_from_file': {
+      'en': 'Import from File',
+      'tr': 'Dosyadan içe aktar',
+    },
+    'import_file_description': {
+      'en': 'Upload a file that includes your test results',
+      'tr': 'Test sonuçlarınızı içeren bir dosyayı yükleyin',
+    },
+    'import_manual_entry': {
+      'en': 'Manual Entry',
+      'tr': 'Manuel Giriş',
+    },
+    'import_manual_description': {
+      'en': 'Enter your values by hand',
+      'tr': 'Değerleri elle girin',
+    },
+    'paste_text_title': {
+      'en': 'Paste Text',
+      'tr': 'Metni Yapıştır',
+    },
+    'paste_from_clipboard': {
+      'en': 'Paste from clipboard',
+      'tr': 'Panodan yapıştır',
+    },
+    'paste_text_instructions': {
+      'en': 'Paste your hemogram text below to parse the values.',
+      'tr': 'Hemogram metninizi aşağıya yapıştırın; değerler çözümlenecektir.',
+    },
+    'paste_text_hint': {
+      'en': 'Paste text here...',
+      'tr': 'Metni buraya yapıştırın...',
+    },
+    'parse_and_import': {
+      'en': 'Parse & Import',
+      'tr': 'Çözümle ve İçe Aktar',
+    },
+    'no_text_provided': {
+      'en': 'No text provided',
+      'tr': 'Metin girilmedi',
+    },
+    'parsing_text': {
+      'en': 'Parsing text...',
+      'tr': 'Metin çözümleniyor...',
+    },
+    'import_success_count': {
+      'en': '{count} values imported',
+      'tr': '{count} değer içe aktarıldı',
+    },
+    'import_failed': {
+      'en': 'Import failed',
+      'tr': 'İçe aktarma başarısız',
+    },
+    'import_error': {
+      'en': 'Import error',
+      'tr': 'İçe aktarma hatası',
+    },
+    'file_import_failed': {
+      'en': 'File import failed',
+      'tr': 'Dosya içe aktarma başarısız',
+    },
+    'qr_scan_failed': {
+      'en': 'QR scan failed',
+      'tr': 'QR tarama başarısız',
+    },
+    'view_full_results': {
+      'en': 'View full results',
+      'tr': 'Tüm sonuçları görüntüle',
+    },
+    'edevlet_login_title': {
+      'en': 'e-Devlet Login',
+      'tr': 'e-Devlet Girişi',
+    },
+    'edevlet_login_description': {
+      'en': 'Connect with your e-Devlet to import records',
+      'tr': 'Kayıtları içe aktarmak için e-Devlet ile bağlanın',
+    },
+    'tc_kimlik_no': {
+      'en': 'T.C. Identity No',
+      'tr': 'T.C. Kimlik No',
+    },
+    'edevlet_security_notice': {
+      'en': 'Your credentials are only used locally.',
+      'tr': 'Kimlik bilgileriniz yalnızca yerelde kullanılır.',
+    },
+    'edevlet_or_paste_label': {
+      'en': 'Or paste the snippet below',
+      'tr': 'Veya aşağıya metni yapıştırın',
+    },
+    'edevlet_paste_hint': {
+      'en': 'Paste the e-Devlet results text here...',
+      'tr': 'e-Devlet sonuç metnini buraya yapıştırın...',
+    },
+    'connect_and_import': {
+      'en': 'Connect & Import',
+      'tr': 'Bağlan ve İçe Aktar',
+    },
+    'edevlet_import_snippet_button': {
+      'en': 'Use Pasted Text',
+      'tr': 'Yapıştırılan Metni Kullan',
+    },
+    'edevlet_credentials_required': {
+      'en': 'Credentials required',
+      'tr': 'Kimlik bilgileri gerekli',
+    },
+    'edevlet_connecting': {
+      'en': 'Connecting to e-Devlet...',
+      'tr': 'e-Devlet’e bağlanılıyor...',
+    },
+    'qr_scanning': {
+      'en': 'Scanning QR...',
+      'tr': 'QR taranıyor...',
+    },
+    'file_processing': {
+      'en': 'Processing file...',
+      'tr': 'Dosya işleniyor...',
+    },
+    'file_processing_error': {
+      'en': 'File processing error',
+      'tr': 'Dosya işleme hatası',
+    },
+    'image_processing': {
+      'en': 'Processing image...',
+      'tr': 'Görsel işleniyor...',
+    },
+    'ocr_not_available_web': {
+      'en': 'OCR is not available on web',
+      'tr': 'OCR web üzerinde kullanılamıyor',
+    },
+    'image_import_failed': {
+      'en': 'Image import failed',
+      'tr': 'Görsel içe aktarma başarısız',
+    },
+    'image_processing_error': {
+      'en': 'Image processing error',
+      'tr': 'Görsel işleme hatası',
+    },
+    'login_required_for_save': {
+      'en': 'Please log in to save imported results',
+      'tr': 'İçe aktarılan sonuçları kaydetmek için giriş yapın',
+    },
+    // =====================
+    // Enhanced Notification Snooze
+    // =====================
+    'snoozed_for_30': {
+      'en': 'Snoozed for 30 minutes',
+      'tr': '30 dakika ertelendi',
+    },
+    'snooze_30m': {
+      'en': 'Snooze 30m',
+      'tr': '30 dk ertele',
+    },
+    'snoozed_for_60': {
+      'en': 'Snoozed for 60 minutes',
+      'tr': '60 dakika ertelendi',
+    },
+    'snooze_60m': {
+      'en': 'Snooze 60m',
+      'tr': '60 dk ertele',
+    },
+    'custom_snooze': {
+      'en': 'Custom snooze',
+      'tr': 'Özel ertele',
+    },
+    'snooze_15m': {
+      'en': 'Snooze 15m',
+      'tr': '15 dk ertele',
+    },
+    'snoozed_for_n_minutes': {
+      'en': 'Snoozed for {minutes} minutes',
+      'tr': '{minutes} dakika ertelendi',
+    },
+    'snooze_2h': {
+      'en': 'Snooze 2h',
+      'tr': '2 sa ertele',
+    },
+    'enter_minutes': {
+      'en': 'Enter minutes',
+      'tr': 'Dakika girin',
+    },
+    'invalid_minutes': {
+      'en': 'Please enter a valid number of minutes',
+      'tr': 'Lütfen geçerli bir dakika değeri girin',
+    },
+    'snoozed_for_tomorrow': {
+      'en': 'Snoozed until tomorrow morning',
+      'tr': 'Yarın sabaha kadar ertelendi',
+    },
+    'tomorrow_morning': {
+      'en': 'Tomorrow morning',
+      'tr': 'Yarın sabah',
+    },
+    // =====================
+    // Export Options defaults
+    // =====================
+    'patient_name_default': {
+      'en': 'Unknown Patient',
+      'tr': 'Bilinmeyen Hasta',
+    },
+    'no_analysis_available': {
+      'en': 'No analysis available',
+      'tr': 'Analiz mevcut değil',
+    },
+    // =====================
+    // Register success (shortcut key)
+    // =====================
+    'register_success': {
+      'en': 'Registration successful!',
+      'tr': 'Kayıt başarılı!',
+    },
   };
 
   // Hemogram specific translations
@@ -2770,13 +3815,369 @@ class LocalizationService extends ChangeNotifier {
       'ar': 'برنامج النظام الغذائي الشخصي',
     },
     // Diet program i18n
-    'diet_recommendations_title': {
-      'tr': 'Önerilen Diyet Programları',
-      'en': 'Recommended Diet Programs',
-    },
     'diet_program_description': {
       'tr': 'Hemogram sonuçlarınıza göre seçilen planlar. Aşağıda günlük makro hedefleri ve örnek menüyü görebilirsiniz.',
       'en': 'Plans tailored to your hemogram results. See daily macro targets and a sample menu below.',
+    },
+    'diet_today_tab': {
+      'tr': 'Bugün',
+      'en': 'Today',
+      'es': 'Hoy',
+      'fr': 'Aujourd\'hui',
+      'de': 'Heute',
+    },
+    'diet_week_tab': {
+      'tr': 'Hafta',
+      'en': 'Week',
+      'es': 'Semana',
+      'fr': 'Semaine',
+      'de': 'Woche',
+    },
+    'weekly_plan': {
+      'tr': 'Haftalık Plan',
+      'en': 'Weekly Plan',
+      'es': 'Plan Semanal',
+      'fr': 'Plan Hebdomadaire',
+      'de': 'Wochenplan',
+      'ar': 'الخطة الأسبوعية',
+    },
+    'hemoglobin_support_diet': {
+      'tr': 'Hemoglobin Destek Diyeti',
+      'en': 'Hemoglobin Support Diet',
+      'es': 'Dieta de Apoyo a la Hemoglobina',
+      'fr': 'Régime de Soutien à l\'Hémoglobine',
+      'de': 'Hämoglobin-Unterstützungsdiät',
+      'ar': 'نظام غذائي لدعم الهيموجلوبين',
+    },
+    'diet_recommendations': {
+      'tr': 'Diyet Önerileri',
+      'en': 'Diet Recommendations',
+      'es': 'Recomendaciones Dietéticas',
+      'fr': 'Recommandations Diététiques',
+      'de': 'Diätempfehlungen',
+      'ar': 'التوصيات الغذائية',
+    },
+    'diet_recommendations_title': {
+      'tr': 'Hemoglobin Desteği İçin Diyet Önerileri',
+      'en': 'Diet Recommendations for Hemoglobin Support',
+      'es': 'Recomendaciones Dietéticas para el Apoyo de la Hemoglobina',
+      'fr': 'Recommandations Diététiques pour le Soutien de l\'Hémoglobine',
+      'de': 'Diätempfehlungen zur Hämoglobin-Unterstützung',
+      'ar': 'التوصيات الغذائية لدعم الهيموجلوبين',
+    },
+    'hemoglobin_diet_description': {
+      'tr': 'Hemoglobin değerlerinizi desteklemek için demir ve B12 açısından zengin beslenme planı.',
+      'en': 'A nutrition plan rich in iron and B12 to support your hemoglobin values.',
+      'es': 'Un plan nutricional rico en hierro y B12 para apoyar sus valores de hemoglobina.',
+      'fr': 'Un plan nutritionnel riche en fer et B12 pour soutenir vos valeurs d\'hémoglobine.',
+      'de': 'Ein Ernährungsplan reich an Eisen und B12 zur Unterstützung Ihrer Hämoglobinwerte.',
+      'ar': 'خطة تغذية غنية بالحديد وفيتامين ب12 لدعم قيم الهيموجلوبين.',
+    },
+    'hemogram_based_nutrition_plan': {
+      'tr': 'Hemogram değerlerinize ve yaş grubunuza göre önerilen beslenme planı.',
+      'en': 'Recommended nutrition plan based on your hemogram values and age group.',
+      'es': 'Plan nutricional recomendado basado en sus valores de hemograma y grupo de edad.',
+      'fr': 'Plan nutritionnel recommandé basé sur vos valeurs d\'hémogramme et votre groupe d\'âge.',
+      'de': 'Empfohlener Ernährungsplan basierend auf Ihren Hämogrammwerten und Altersgruppe.',
+      'ar': 'خطة التغذية الموصى بها بناءً على قيم تعداد الدم وفئتك العمرية.',
+    },
+    'for_you': {
+      'tr': 'Sizin için uygun',
+      'en': 'Suitable for you',
+      'es': 'Adecuado para ti',
+      'fr': 'Adapté pour vous',
+      'de': 'Für Sie geeignet',
+      'ar': 'مناسب لك',
+    },
+    'increase_consumption': {
+      'tr': 'Kırmızı et, karaciğer',
+      'en': 'Red meat, liver',
+      'es': 'Carne roja, hígado',
+      'fr': 'Viande rouge, foie',
+      'de': 'Rotes Fleisch, Leber',
+      'ar': 'اللحوم الحمراء، الكبد',
+    },
+    'iron_rich_foods_list': {
+      'tr': '• Ispanak, pazı, brokoli\n• Mercimek, nohut\n• C vitamini ile birlikte tüketin',
+      'en': '• Spinach, chard, broccoli\n• Lentils, chickpeas\n• Consume with vitamin C',
+      'es': '• Espinacas, acelgas, brócoli\n• Lentejas, garbanzos\n• Consumir con vitamina C',
+      'fr': '• Épinards, blettes, brocoli\n• Lentilles, pois chiches\n• Consommer avec vitamine C',
+      'de': '• Spinat, Mangold, Brokkoli\n• Linsen, Kichererbsen\n• Mit Vitamin C konsumieren',
+      'ar': '• السبانخ، السلق، البروكلي\n• العدس، الحمص\n• تناول مع فيتامين ج',
+    },
+    'limit_consumption': {
+      'tr': 'Aşırı çay/kahve (demir emilimini azaltır)',
+      'en': 'Excessive tea/coffee (reduces iron absorption)',
+      'es': 'Exceso de té/café (reduce la absorción de hierro)',
+      'fr': 'Excès de thé/café (réduit l\'absorption du fer)',
+      'de': 'Übermäßiger Tee/Kaffee (reduziert Eisenaufnahme)',
+      'ar': 'الإفراط في الشاي/القهوة (يقلل امتصاص الحديد)',
+    },
+    'iron_inhibiting_foods_list': {
+      'tr': '• Aşırı süt ürünleri',
+      'en': '• Excessive dairy products',
+      'es': '• Exceso de productos lácteos',
+      'fr': '• Excès de produits laitiers',
+      'de': '• Übermäßige Milchprodukte',
+      'ar': '• الإفراط في منتجات الألبان',
+    },
+    'daily_menu': {
+      'tr': 'Günlük Menü',
+      'en': 'Daily Menu',
+      'es': 'Menú Diario',
+      'fr': 'Menu Quotidien',
+      'de': 'Tagesmenü',
+      'ar': 'القائمة اليومية',
+    },
+    'sunday': {
+      'tr': 'Pazar',
+      'en': 'Sunday',
+      'es': 'Domingo',
+      'fr': 'Dimanche',
+      'de': 'Sonntag',
+      'ar': 'الأحد',
+    },
+    'monday': {
+      'tr': 'Pazartesi',
+      'en': 'Monday',
+      'es': 'Lunes',
+      'fr': 'Lundi',
+      'de': 'Montag',
+      'ar': 'الاثنين',
+    },
+    'tuesday': {
+      'tr': 'Salı',
+      'en': 'Tuesday',
+      'es': 'Martes',
+      'fr': 'Mardi',
+      'de': 'Dienstag',
+      'ar': 'الثلاثاء',
+    },
+    'wednesday': {
+      'tr': 'Çarşamba',
+      'en': 'Wednesday',
+      'es': 'Miércoles',
+      'fr': 'Mercredi',
+      'de': 'Mittwoch',
+      'ar': 'الأربعاء',
+    },
+    'thursday': {
+      'tr': 'Perşembe',
+      'en': 'Thursday',
+      'es': 'Jueves',
+      'fr': 'Jeudi',
+      'de': 'Donnerstag',
+      'ar': 'الخميس',
+    },
+    'friday': {
+      'tr': 'Cuma',
+      'en': 'Friday',
+      'es': 'Viernes',
+      'fr': 'Vendredi',
+      'de': 'Freitag',
+      'ar': 'الجمعة',
+    },
+    'saturday': {
+      'tr': 'Cumartesi',
+      'en': 'Saturday',
+      'es': 'Sábado',
+      'fr': 'Samedi',
+      'de': 'Samstag',
+      'ar': 'السبت',
+    },
+    // Sunday menus
+    'breakfast_menu_sunday': {
+      'tr': '• Pekmez yulaf (1 yemek kaşığı)\n• Haşlanmış yumurta\n• Taze portakal veya kivi\n• Bir avuç ceviz',
+      'en': '• Molasses oat (1 tablespoon)\n• Boiled egg\n• Fresh orange or kiwi\n• A handful of walnuts',
+    },
+    'lunch_menu_sunday': {
+      'tr': '• Ispanak yoğurt kırmızı et veya tavuk ciğeri (haftada 2x)\n• Yeşil salata + limon\n• Kinoa veya bulgur',
+      'en': '• Spinach yogurt with red meat or chicken liver (2x per week)\n• Green salad + lemon\n• Quinoa or bulgur',
+    },
+    'snack_menu_sunday': {
+      'tr': '• Kuru kayısı + kabak çekirdeği\n• Pekmez süt (küçük bardak) haftada 2-3x',
+      'en': '• Dried apricots + pumpkin seeds\n• Molasses milk (small glass) 2-3x per week',
+    },
+    'dinner_menu_sunday': {
+      'tr': '• Baklagil yemeği (mercimek/kuru fasulye)\n• Pancar veya ıspanak salatası\n• Tam tahıllı ekmek (1 dilim)',
+      'en': '• Legume dish (lentils/dried beans)\n• Beet or spinach salad\n• Whole grain bread (1 slice)',
+    },
+    // Monday menus  
+    'breakfast_menu_monday': {
+      'tr': '• Çilek Muesli\n• Organik süt + kuru üzüm + ceviz\n• Taze meyve sürekli verir + yoğurt',
+      'en': '• Strawberry Muesli\n• Organic milk + raisins + walnuts\n• Fresh fruit continuously provides + yogurt',
+    },
+    'lunch_menu_monday': {
+      'tr': '• Pekmez yulaf (1 yemek kaşığı)\n• Haşlanmış yumurta\n• Taze portakal veya kivi',
+      'en': '• Molasses oat (1 tablespoon)\n• Boiled egg\n• Fresh orange or kiwi',
+    },
+    'snack_menu_monday': {
+      'tr': '• Ispanak yoğurt kırmızı et veya tavuk ciğeri (haftada 2x)',
+      'en': '• Spinach yogurt with red meat or chicken liver (2x per week)',
+    },
+    'dinner_menu_monday': {
+      'tr': '• Kuru kayısı + kabak çekirdeği\n• Pekmez süt (küçük bardak) haftada 2-3x',
+      'en': '• Dried apricots + pumpkin seeds\n• Molasses milk (small glass) 2-3x per week',
+    },
+    // Tuesday menus
+    'breakfast_menu_tuesday': {
+      'tr': '• Pekmez yulaf (1 yemek kaşığı)\n• Haşlanmış yumurta\n• Taze portakal veya kivi\n• Bir avuç ceviz',
+      'en': '• Molasses oat (1 tablespoon)\n• Boiled egg\n• Fresh orange or kiwi\n• A handful of walnuts',
+    },
+    'lunch_menu_tuesday': {
+      'tr': '• Ispanak yoğurt kırmızı et veya tavuk ciğeri (haftada 2x)\n• Yeşil salata + limon\n• Kinoa veya bulgur',
+      'en': '• Spinach yogurt with red meat or chicken liver (2x per week)\n• Green salad + lemon\n• Quinoa or bulgur',
+    },
+    'snack_menu_tuesday': {
+      'tr': '• Kuru kayısı + kabak çekirdeği\n• Pekmez süt (küçük bardak) haftada 2-3x',
+      'en': '• Dried apricots + pumpkin seeds\n• Molasses milk (small glass) 2-3x per week',
+    },
+    'dinner_menu_tuesday': {
+      'tr': '• Baklagil yemeği (mercimek/kuru fasulye)\n• Pancar veya ıspanak salatası\n• Tam tahıllı ekmek (1 dilim)',
+      'en': '• Legume dish (lentils/dried beans)\n• Beet or spinach salad\n• Whole grain bread (1 slice)',
+    },
+    // Wednesday menus
+    'breakfast_menu_wednesday': {
+      'tr': '• Pekmez yulaf (1 yemek kaşığı)\n• Haşlanmış yumurta\n• Taze portakal veya kivi\n• Bir avuç ceviz',
+      'en': '• Molasses oat (1 tablespoon)\n• Boiled egg\n• Fresh orange or kiwi\n• A handful of walnuts',
+    },
+    'lunch_menu_wednesday': {
+      'tr': '• Ispanak yoğurt kırmızı et veya tavuk ciğeri (haftada 2x)\n• Yeşil salata + limon\n• Kinoa veya bulgur',
+      'en': '• Spinach yogurt with red meat or chicken liver (2x per week)\n• Green salad + lemon\n• Quinoa or bulgur',
+    },
+    'snack_menu_wednesday': {
+      'tr': '• Kuru kayısı + kabak çekirdeği\n• Pekmez süt (küçük bardak) haftada 2-3x',
+      'en': '• Dried apricots + pumpkin seeds\n• Molasses milk (small glass) 2-3x per week',
+    },
+    'dinner_menu_wednesday': {
+      'tr': '• Baklagil yemeği (mercimek/kuru fasulye)\n• Pancar veya ıspanak salatası\n• Tam tahıllı ekmek (1 dilim)',
+      'en': '• Legume dish (lentils/dried beans)\n• Beet or spinach salad\n• Whole grain bread (1 slice)',
+    },
+    // Thursday menus
+    'breakfast_menu_thursday': {
+      'tr': '• Pekmez yulaf (1 yemek kaşığı)\n• Haşlanmış yumurta\n• Taze portakal veya kivi\n• Bir avuç ceviz',
+      'en': '• Molasses oat (1 tablespoon)\n• Boiled egg\n• Fresh orange or kiwi\n• A handful of walnuts',
+    },
+    'lunch_menu_thursday': {
+      'tr': '• Ispanak yoğurt kırmızı et veya tavuk ciğeri (haftada 2x)\n• Yeşil salata + limon\n• Kinoa veya bulgur',
+      'en': '• Spinach yogurt with red meat or chicken liver (2x per week)\n• Green salada + lemon\n• Quinoa or bulgur',
+    },
+    'snack_menu_thursday': {
+      'tr': '• Kuru kayısı + kabak çekirdeği\n• Pekmez süt (küçük bardak) haftada 2-3x',
+      'en': '• Dried apricots + pumpkin seeds\n• Molasses milk (small glass) 2-3x per week',
+    },
+    'dinner_menu_thursday': {
+      'tr': '• Baklagil yemeği (mercimek/kuru fasulye)\n• Pancar veya ıspanak salatası\n• Tam tahıllı ekmek (1 dilim)',
+      'en': '• Legume dish (lentils/dried beans)\n• Beet or spinach salad\n• Whole grain bread (1 slice)',
+    },
+    // Friday menus
+    'breakfast_menu_friday': {
+      'tr': '• Pekmez yulaf (1 yemek kaşığı)\n• Haşlanmış yumurta\n• Taze portakal veya kivi\n• Bir avuç ceviz',
+      'en': '• Molasses oat (1 tablespoon)\n• Boiled egg\n• Fresh orange or kiwi\n• A handful of walnuts',
+    },
+    'lunch_menu_friday': {
+      'tr': '• Ispanak yoğurt kırmızı et veya tavuk ciğeri (haftada 2x)\n• Yeşil salata + limon\n• Kinoa veya bulgur',
+      'en': '• Spinach yogurt with red meat or chicken liver (2x per week)\n• Green salad + lemon\n• Quinoa or bulgur',
+    },
+    'snack_menu_friday': {
+      'tr': '• Kuru kayısı + kabak çekirdeği\n• Pekmez süt (küçük bardak) haftada 2-3x',
+      'en': '• Dried apricots + pumpkin seeds\n• Molasses milk (small glass) 2-3x per week',
+    },
+    'dinner_menu_friday': {
+      'tr': '• Baklagil yemeği (mercimek/kuru fasulye)\n• Pancar veya ıspanak salatası\n• Tam tahıllı ekmek (1 dilim)',
+      'en': '• Legume dish (lentils/dried beans)\n• Beet or spinach salad\n• Whole grain bread (1 slice)',
+    },
+    // Saturday menus
+    'breakfast_menu_saturday': {
+      'tr': '• Pekmez yulaf (1 yemek kaşığı)\n• Haşlanmış yumurta\n• Taze portakal veya kivi\n• Bir avuç ceviz',
+      'en': '• Molasses oat (1 tablespoon)\n• Boiled egg\n• Fresh orange or kiwi\n• A handful of walnuts',
+    },
+    'lunch_menu_saturday': {
+      'tr': '• Ispanak yoğurt kırmızı et veya tavuk ciğeri (haftada 2x)\n• Yeşil salata + limon\n• Kinoa veya bulgur',
+      'en': '• Spinach yogurt with red meat or chicken liver (2x per week)\n• Green salad + lemon\n• Quinoa or bulgur',
+    },
+    'snack_menu_saturday': {
+      'tr': '• Kuru kayısı + kabak çekirdeği\n• Pekmez süt (küçük bardak) haftada 2-3x',
+      'en': '• Dried apricots + pumpkin seeds\n• Molasses milk (small glass) 2-3x per week',
+    },
+    'dinner_menu_saturday': {
+      'tr': '• Baklagil yemeği (mercimek/kuru fasulye)\n• Pancar veya ıspanak salatası\n• Tam tahıllı ekmek (1 dilim)',
+      'en': '• Legume dish (lentils/dried beans)\n• Beet or spinach salad\n• Whole grain bread (1 slice)',
+    },
+    // Default fallback menus
+    'default_breakfast_menu': {
+      'tr': '• Pekmez yulaf\n• Haşlanmış yumurta\n• Taze meyve\n• Bir avuç kuruyemiş',
+      'en': '• Molasses oat\n• Boiled egg\n• Fresh fruit\n• A handful of nuts',
+      'es': '• Avena con melaza\n• Huevo hervido\n• Fruta fresca\n• Un puñado de frutos secos',
+      'fr': '• Avoine à la mélasse\n• Œuf bouilli\n• Fruit frais\n• Une poignée de noix',
+      'de': '• Melasse Hafer\n• Gekochtes Ei\n• Frisches Obst\n• Eine Handvoll Nüsse',
+      'ar': '• الشوفان بالدبس\n• بيضة مسلوقة\n• فاكهة طازجة\n• حفنة من المكسرات',
+    },
+    'default_lunch_menu': {
+      'tr': '• Demir açısından zengin et/tavuk\n• Yeşil salata\n• Tam tahıllı pirinç/bulgur',
+      'en': '• Iron-rich meat/chicken\n• Green salad\n• Whole grain rice/bulgur',
+      'es': '• Carne/pollo rico en hierro\n• Ensalada verde\n• Arroz/bulgur integral',
+      'fr': '• Viande/poulet riche en fer\n• Salade verte\n• Riz/boulgour complet',
+      'de': '• Eisenreiches Fleisch/Hähnchen\n• Grüner Salat\n• Vollkorn Reis/Bulgur',
+      'ar': '• لحم/دجاج غني بالحديد\n• سلطة خضراء\n• أرز/برغل كامل الحبة',
+    },
+    'default_snack_menu': {
+      'tr': '• Kuru meyve ve kuruyemiş karışımı\n• C vitamini açısından zengin meyve',
+      'en': '• Dried fruit and nut mix\n• Vitamin C rich fruit',
+      'es': '• Mezcla de frutos secos y fruta seca\n• Fruta rica en vitamina C',
+      'fr': '• Mélange de fruits secs et noix\n• Fruit riche en vitamine C',
+      'de': '• Trockenobst und Nuss-Mix\n• Vitamin C reiche Frucht',
+      'ar': '• خليط الفواكه المجففة والمكسرات\n• فاكهة غنية بفيتامين ج',
+    },
+    'default_dinner_menu': {
+      'tr': '• Baklagil yemeği\n• Demir emilimini artıran salata\n• Tam tahıllı ekmek',
+      'en': '• Legume dish\n• Iron absorption enhancing salad\n• Whole grain bread',
+      'es': '• Plato de legumbres\n• Ensalada que mejora la absorción de hierro\n• Pan integral',
+      'fr': '• Plat de légumineuses\n• Salade améliorant l\'absorption du fer\n• Pain complet',
+      'de': '• Hülsenfrucht Gericht\n• Eisenaufnahme fördernder Salat\n• Vollkornbrot',
+      'ar': '• طبق البقوليات\n• سلطة تعزز امتصاص الحديد\n• خبز الحبة الكاملة',
+    },
+    'meal_breakfast': {
+      'tr': 'Kahvaltı',
+      'en': 'Breakfast',
+      'es': 'Desayuno',
+      'fr': 'Petit-déjeuner',
+      'de': 'Frühstück',
+    },
+    'meal_lunch': {
+      'tr': 'Öğle',
+      'en': 'Lunch',
+      'es': 'Almuerzo',
+      'fr': 'Déjeuner',
+      'de': 'Mittagessen',
+    },
+    'meal_dinner': {
+      'tr': 'Akşam',
+      'en': 'Dinner',
+      'es': 'Cena',
+      'fr': 'Dîner',
+      'de': 'Abendessen',
+    },
+    'meal_snack': {
+      'tr': 'Ara öğün',
+      'en': 'Snack',
+      'es': 'Snack',
+      'fr': 'Collation',
+      'de': 'Snack',
+    },
+    'diet_weekly_progress': {
+      'tr': 'Haftalık ilerleme',
+      'en': 'Weekly progress',
+      'es': 'Progreso semanal',
+      'fr': 'Progrès hebdomadaire',
+      'de': 'Wöchentlicher Fortschritt',
+    },
+    'diet_toggle_hint': {
+      'tr': 'Öğünleri tamamladıkça işaretleyin',
+      'en': 'Check meals as you complete them',
+      'es': 'Marca las comidas a medida que las completes',
+      'fr': 'Cochez les repas au fur et à mesure',
+      'de': 'Mahlzeiten abhaken, wenn erledigt',
     },
     'age_suitability': {
       'tr': 'Yaşa Uygunluk',
@@ -3058,6 +4459,31 @@ class LocalizationService extends ChangeNotifier {
       'fr': 'Erreur lors de l\'envoi de la réponse : {error}',
       'de': 'Fehler beim Senden der Antwort: {error}',
       'ar': 'خطأ أثناء إرسال الرد: {error}',
+    },
+    // Login prompt for Family Panel when user is not authenticated
+    'family_login_required_title': {
+      'tr': 'Giriş gerekli',
+      'en': 'Sign in required',
+      'es': 'Se requiere iniciar sesión',
+      'fr': "Connexion requise",
+      'de': 'Anmeldung erforderlich',
+      'ar': 'يلزم تسجيل الدخول',
+    },
+    'family_login_required_desc': {
+      'tr': 'Aile üyelerini görüntülemek ve yönetmek için oturum açın.',
+      'en': 'Sign in to view and manage your family members.',
+      'es': 'Inicia sesión para ver y gestionar a tus familiares.',
+      'fr': 'Connectez-vous pour voir et gérer vos membres de famille.',
+      'de': 'Melden Sie sich an, um Familienmitglieder zu sehen und zu verwalten.',
+      'ar': 'سجّل الدخول لعرض أفراد عائلتك وإدارتهم.',
+    },
+    'go_to_login': {
+      'tr': 'Girişe git',
+      'en': 'Go to login',
+      'es': 'Ir a iniciar sesión',
+      'fr': 'Aller à la connexion',
+      'de': 'Zum Login',
+      'ar': 'الانتقال إلى تسجيل الدخول',
     },
     'family_gender_male': {
       'tr': 'Erkek',
@@ -3394,6 +4820,47 @@ class LocalizationService extends ChangeNotifier {
       'fr': 'Je voudrais vous ajouter à mon panneau de santé familiale.',
       'de': 'Ich möchte Sie zu meinem Familien-Gesundheitspanel hinzufügen.',
       'ar': 'أرغب في إضافتك إلى لوحة الصحة العائلية الخاصة بي.',
+    },
+    // Family panel search/sort/filter
+    'family_search_hint': {
+      'tr': 'İsim ile ara...',
+      'en': 'Search by name...',
+      'es': 'Buscar por nombre...',
+      'fr': 'Rechercher par nom...',
+      'de': 'Nach Namen suchen...',
+      'ar': 'ابحث بالاسم...'
+    },
+    'family_filter_all': {
+      'tr': 'Tümü',
+      'en': 'All',
+      'es': 'Todos',
+      'fr': 'Tous',
+      'de': 'Alle',
+      'ar': 'الكل'
+    },
+    'family_sort_name': {
+      'tr': 'İsme göre',
+      'en': 'By Name',
+      'es': 'Por nombre',
+      'fr': 'Par nom',
+      'de': 'Nach Name',
+      'ar': 'حسب الاسم'
+    },
+    'family_sort_age': {
+      'tr': 'Yaşa göre',
+      'en': 'By Age',
+      'es': 'Por edad',
+      'fr': 'Par âge',
+      'de': 'Nach Alter',
+      'ar': 'حسب العمر'
+    },
+    'family_sort_toggle': {
+      'tr': 'Sıralama yönünü değiştir',
+      'en': 'Toggle sort order',
+      'es': 'Cambiar orden',
+      'fr': 'Inverser l’ordre',
+      'de': 'Sortierreihenfolge umkehren',
+      'ar': 'تبديل الترتيب'
     },
     'notifications_reminders': {
       'tr': 'Bildirimler & Hatırlatıcı',
@@ -4659,6 +6126,18 @@ class LocalizationService extends ChangeNotifier {
     'expert_support_body': {
       'tr': 'Alternatif tıp yöntemlerini uygulamadan önce:\n\n• Fitoterapist veya geleneksel tıp uzmanına danışın\n• Hematoloji uzmanınızın onayını alın\n• Düzenli kan takibinizi aksatmayın\n• Tedavi sürecinizi doktorunuzla paylaşın',
       'en': 'Before applying alternative medicine methods:\n\n• Consult a phytotherapist or traditional medicine specialist\n• Obtain approval from your hematology specialist\n• Do not neglect regular blood monitoring\n• Share your treatment process with your doctor',
+    },
+    'share_favorites': {
+      'tr': 'Favorileri Paylaş',
+      'en': 'Share Favorites',
+    },
+    'share_favorites_title': {
+      'tr': 'HemoAI Favori Bitkisel Desteklerim',
+      'en': 'My Favorite Herbal Supports from HemoAI',
+    },
+    'no_favorites_yet': {
+      'tr': 'Henüz favori eklenmemiş',
+      'en': 'No favorites yet',
     },
     // Notification settings item titles
     'setting_title_test_reminders': {

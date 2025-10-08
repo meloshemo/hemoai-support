@@ -6,6 +6,7 @@ import '../services/analytics_service.dart';
 import '../services/cache_service.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -45,7 +46,14 @@ class AboutScreen extends StatelessWidget {
             const SizedBox(height: 24),
             
             // App Information
-            _buildAppInfoCard(context, loc, theme, scheme),
+            FutureBuilder<PackageInfo>(
+              future: PackageInfo.fromPlatform(),
+              builder: (context, snapshot) {
+                final version = snapshot.data?.version ?? '—';
+                final build = snapshot.data?.buildNumber ?? '—';
+                return _buildAppInfoCard(context, loc, theme, scheme, version, build);
+              },
+            ),
             
             const SizedBox(height: 24),
             
@@ -107,7 +115,7 @@ class AboutScreen extends StatelessWidget {
             
             // App Name
             Text(
-              'HemoAI',
+              loc.getString('app_name'),
               style: theme.textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: scheme.onPrimaryContainer,
@@ -116,13 +124,21 @@ class AboutScreen extends StatelessWidget {
             
             const SizedBox(height: 8),
             
-            // App Description
+            // App Description + Release
             Text(
-              loc.getString('app_description_detailed'),
+              '${loc.getString('app_description_detailed')}',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: scheme.onPrimaryContainer.withValues(alpha: 0.8),
                 height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              loc.getString('release_name'),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onPrimaryContainer.withValues(alpha: 0.7),
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
@@ -238,7 +254,7 @@ class AboutScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAppInfoCard(BuildContext context, LocalizationService loc, ThemeData theme, ColorScheme scheme) {
+  Widget _buildAppInfoCard(BuildContext context, LocalizationService loc, ThemeData theme, ColorScheme scheme, String version, String buildNumber) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -259,8 +275,9 @@ class AboutScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            _buildInfoRow(loc.getString('app_version'), '1.0.0', theme),
-            _buildInfoRow(loc.getString('build_number'), '1', theme),
+            _buildInfoRow(loc.getString('app_version'), version, theme),
+            _buildInfoRow(loc.getString('build_number'), buildNumber, theme),
+            _buildInfoRow(loc.getString('release_label'), loc.getString('release_name'), theme),
             _buildInfoRow(loc.getString('developed_by'), loc.getString('developer_name'), theme),
             _buildInfoRow(loc.getString('release_date'), 'October 2025', theme),
           ],

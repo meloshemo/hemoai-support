@@ -635,6 +635,50 @@ class WebDatabaseHelper {
     }
   }
 
+  // Diet tracking (web): store per-day booleans for meals
+  Future<Map<String, dynamic>?> getDietTrackingForDate(int userId, String date) async {
+    try {
+      if (_prefs == null) await init();
+      final key = 'diet_${userId}_$date';
+      final str = _prefs!.getString(key);
+      if (str == null) return null;
+      return jsonDecode(str) as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint('Diet get error: $e');
+      return null;
+    }
+  }
+
+  Future<int> upsertDietTracking({
+    required int userId,
+    required String date,
+    required bool breakfast,
+    required bool lunch,
+    required bool dinner,
+    required bool snack,
+    String? notes,
+  }) async {
+    try {
+      if (_prefs == null) await init();
+      final key = 'diet_${userId}_$date';
+      final payload = {
+        'user_id': userId,
+        'date': date,
+        'breakfast': breakfast ? 1 : 0,
+        'lunch': lunch ? 1 : 0,
+        'dinner': dinner ? 1 : 0,
+        'snack': snack ? 1 : 0,
+        'notes': notes,
+        'created_at': DateTime.now().toIso8601String(),
+      };
+      await _prefs!.setString(key, jsonEncode(payload));
+      return 1;
+    } catch (e) {
+      debugPrint('Diet upsert error: $e');
+      return 0;
+    }
+  }
+
 
 
   // Advanced Analytics metodları
@@ -660,5 +704,68 @@ class WebDatabaseHelper {
     await _prefs!.remove('hemogram_tests');
     await _prefs!.remove('family_members');
     await _prefs!.remove('family_invitations');
+  }
+
+  // Reminder streaks & logs (web)
+  Future<Map<String, dynamic>> getReminderStreak(int reminderId, {int? userId}) async {
+    if (_prefs == null) await init();
+    final key = 'streak_${userId ?? 0}_$reminderId';
+    final str = _prefs!.getString(key);
+    if (str != null) {
+      return jsonDecode(str) as Map<String, dynamic>;
+    }
+    return {
+      'reminder_id': reminderId,
+      'user_id': userId,
+      'current_streak': 0,
+      'longest_streak': 0,
+      'last_completed_date': null,
+    };
+  }
+
+  Future<int> upsertReminderStreak({
+    required int reminderId,
+    int? userId,
+    required int currentStreak,
+    required int longestStreak,
+    String? lastCompletedDate,
+  }) async {
+    if (_prefs == null) await init();
+    final key = 'streak_${userId ?? 0}_$reminderId';
+    final payload = {
+      'reminder_id': reminderId,
+      'user_id': userId,
+      'current_streak': currentStreak,
+      'longest_streak': longestStreak,
+      'last_completed_date': lastCompletedDate,
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+    await _prefs!.setString(key, jsonEncode(payload));
+    return 1;
+  }
+
+  Future<int> insertReminderLog({
+    required int reminderId,
+    int? userId,
+    required String action,
+    required DateTime actionDate,
+    DateTime? scheduledTime,
+    String? metadata,
+  }) async {
+    if (_prefs == null) await init();
+    final key = 'logs_${userId ?? 0}_$reminderId';
+    final existing = _prefs!.getStringList(key) ?? <String>[];
+    final row = {
+      'reminder_id': reminderId,
+      'user_id': userId,
+      'action': action,
+      'action_date': actionDate.toIso8601String().split('T')[0],
+      'scheduled_time': scheduledTime?.toIso8601String(),
+      'metadata': metadata,
+      'created_at': DateTime.now().toIso8601String(),
+    };
+    existing.add(jsonEncode(row));
+    await _prefs!.setStringList(key, existing);
+    return 1;
   }
 }

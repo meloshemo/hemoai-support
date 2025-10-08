@@ -106,6 +106,10 @@ class _RestorePreviewScreenState extends State<RestorePreviewScreen> {
                     _Row(label: loc.getString('notifications'), value: _summary!.notifications.toString()),
                     _Row(label: loc.getString('medications'), value: _summary!.medications.toString()),
                     _Row(label: loc.getString('water'), value: _summary!.water.toString()),
+                    _Row(label: loc.getString('diet_entries'), value: _summary!.dietEntries.toString()),
+                  ],
+                  if (!_summary!.isWeb) ...[
+                    _Row(label: loc.getString('diet_entries'), value: _summary!.dietEntries.toString()),
                   ],
                   const SizedBox(height: 16),
                   Semantics(

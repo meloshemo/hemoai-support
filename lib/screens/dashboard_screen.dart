@@ -45,6 +45,17 @@ class DashboardScreen extends StatelessWidget {
                 : const Color(0xFFE53E3E),
               elevation: 0,
               actions: [
+                // Settings shortcut
+                IconButton(
+                  tooltip: localizationService.getString('settings'),
+                  icon: Icon(
+                    Icons.settings,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFFF0F6FC)
+                        : Colors.white,
+                  ),
+                  onPressed: () => Navigator.pushNamed(context, '/settings'),
+                ),
                 Consumer<PushNotificationService>(
                   builder: (context, pushService, child) {
                     final unreadCount = pushService.unreadCount;
@@ -103,7 +114,7 @@ class DashboardScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFE53E3E).withOpacity(0.3),
+                          color: const Color(0xFFE53E3E).withValues(alpha: 0.3),
                           spreadRadius: 2,
                           blurRadius: 10,
                           offset: const Offset(0, 4),
@@ -144,7 +155,7 @@ class DashboardScreen extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
@@ -269,6 +280,13 @@ class DashboardScreen extends StatelessWidget {
                       ),
                       _buildFeatureCard(
                         context,
+                        localizationService.getString('settings'),
+                        Icons.settings,
+                        Colors.grey[700]!,
+                        '/settings',
+                      ),
+                      _buildFeatureCard(
+                        context,
                         localizationService.getString('notifications'),
                         Icons.notifications,
                         Colors.orange[600]!,
@@ -352,7 +370,7 @@ class DashboardScreen extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
+              color: Colors.grey.withValues(alpha: 0.1),
               spreadRadius: 2,
               blurRadius: 8,
               offset: const Offset(0, 4),
@@ -383,7 +401,7 @@ class DashboardScreen extends StatelessWidget {
                       ),
                     ),
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.1),
+                      color: color.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(

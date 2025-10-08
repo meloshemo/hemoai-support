@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/preferences_service.dart';
-import '../services/web_database_helper.dart';
+import '../services/database_helper.dart';
 import '../services/localization_service.dart';
 import '../widgets/app_drawer.dart';
+import '../utils/responsive_helper.dart';
 
 class FamilyPanelScreen extends StatefulWidget {
   const FamilyPanelScreen({Key? key}) : super(key: key);
@@ -14,12 +15,18 @@ class FamilyPanelScreen extends StatefulWidget {
 
 class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
   PreferencesService? _prefsService;
-  final WebDatabaseHelper _dbHelper = WebDatabaseHelper.instance;
+  final DatabaseHelper _db = DatabaseHelper.instance;
   List<Map<String, dynamic>> familyMembers = [];
+  List<Map<String, dynamic>> filteredMembers = [];
+  List<Map<String, dynamic>> pendingInvitations = [];
   bool _isLoading = true;
   int? currentUserId;
 
-  List<Map<String, dynamic>> pendingInvitations = [];
+  // UI state: search/filter/sort
+  final TextEditingController _searchController = TextEditingController();
+  String _relationFilter = 'all';
+  String _sortKey = 'name'; // name|age
+  bool _sortAsc = true;
   
   @override
   void initState() {
@@ -30,11 +37,18 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
   Future<void> _initServices() async {
     try {
       _prefsService = await PreferencesService.getInstance();
+      final loggedIn = _prefsService?.isUserLoggedIn() ?? false;
       currentUserId = _prefsService?.getCurrentUserId();
-      print('Family Panel - Current User ID: $currentUserId');
-      await _loadFamilyMembers();
+      debugPrint('Family Panel - Current User ID: $currentUserId');
+      if (!loggedIn || currentUserId == null) {
+        if (!mounted) return;
+        // Do not redirect anymore; show inline login prompt instead
+        setState(() { _isLoading = false; });
+      } else {
+        await _loadFamilyMembers();
+      }
     } catch (e) {
-      print('Family Panel - Error in _initServices: $e');
+      debugPrint('Family Panel - Error in _initServices: $e');
       setState(() {
         _isLoading = false;
       });
@@ -44,23 +58,24 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
   Future<void> _loadFamilyMembers() async {
     try {
       if (currentUserId != null) {
-        print('Family Panel - Loading family members for user: $currentUserId');
-        List<Map<String, dynamic>> members = await _dbHelper.getFamilyMembers(currentUserId!);
-        List<Map<String, dynamic>> invitations = await _dbHelper.getPendingInvitations(currentUserId!);
-        print('Family Panel - Found ${members.length} family members and ${invitations.length} pending invitations');
+        debugPrint('Family Panel - Loading family members for user: $currentUserId');
+        List<Map<String, dynamic>> members = await _db.getFamilyMembers(currentUserId!);
+        List<Map<String, dynamic>> invitations = await _db.getPendingInvitations(currentUserId!);
+        debugPrint('Family Panel - Found ${members.length} family members and ${invitations.length} pending invitations');
         setState(() {
           familyMembers = members;
+          filteredMembers = members;
           pendingInvitations = invitations;
           _isLoading = false;
         });
       } else {
-        print('Family Panel - No current user ID found');
+        debugPrint('Family Panel - No current user ID found');
         setState(() {
           _isLoading = false;
         });
       }
     } catch (e) {
-      print('Family Panel - Error loading family members: $e');
+      debugPrint('Family Panel - Error loading family members: $e');
       setState(() {
         _isLoading = false;
       });
@@ -89,12 +104,45 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
       'father','mother','child','spouse','sibling','grandfather','grandmother','grandchild','parent','grandparent','other'
     };
     if (allowed.contains(s)) return s;
-    // Legacy Turkish/English to code
-    const legacy = {
-      'Baba': 'father', 'Anne': 'mother', 'Çocuk': 'child', 'Eş': 'spouse', 'Kardeş': 'sibling', 'Büyükbaba': 'grandfather', 'Büyükanne': 'grandmother', 'Torun': 'grandchild', 'Aile Üyesi': 'other',
-      'Father': 'father', 'Mother': 'mother', 'Child': 'child', 'Spouse': 'spouse', 'Sibling': 'sibling', 'Grandfather': 'grandfather', 'Grandmother': 'grandmother', 'Grandchild': 'grandchild', 'Parent': 'parent', 'Grandparent': 'grandparent', 'Other': 'other',
+    String asciiLower(String input) => input
+        .toLowerCase()
+        .replaceAll('\u015f', 's') // ş
+        .replaceAll('\u015e', 's') // Ş
+        .replaceAll('\u011f', 'g') // ğ
+        .replaceAll('\u011e', 'g') // Ğ
+        .replaceAll('\u00f6', 'o') // ö
+        .replaceAll('\u00d6', 'o') // Ö
+        .replaceAll('\u00fc', 'u') // ü
+        .replaceAll('\u00dc', 'u') // Ü
+        .replaceAll('\u0131', 'i') // ı
+        .replaceAll('\u00e7', 'c') // ç
+        .replaceAll('\u00c7', 'c'); // Ç
+    final key = asciiLower(s);
+    const map = {
+      // Turkish labels (ASCII-normalized)
+      'baba': 'father',
+      'anne': 'mother',
+      'cocuk': 'child',
+      'es': 'spouse',
+      'kardes': 'sibling',
+      'buyukbaba': 'grandfather',
+      'buyukanne': 'grandmother',
+      'torun': 'grandchild',
+      'aile uyesi': 'other',
+      // English labels
+      'father': 'father',
+      'mother': 'mother',
+      'child': 'child',
+      'spouse': 'spouse',
+      'sibling': 'sibling',
+      'grandfather': 'grandfather',
+      'grandmother': 'grandmother',
+      'grandchild': 'grandchild',
+      'parent': 'parent',
+      'grandparent': 'grandparent',
+      'other': 'other',
     };
-    return legacy[s] ?? 'other';
+    return map[key] ?? 'other';
   }
 
   String _relationLabelFromStored(LocalizationService loc, String? stored) {
@@ -116,7 +164,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
   }
 
   Future<void> _addFamilyMember() async {
-    // İki seçenek sun: Manuel ekleme veya Gerçek kullanıcı davet etme
+    // Offer two options: manual entry or invite a real registered user
     final localizationService = Provider.of<LocalizationService>(context, listen: false);
     final choice = await showDialog<String>(
       context: context,
@@ -156,7 +204,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
       // Normalize relation to code before saving
       final loc = Provider.of<LocalizationService>(context, listen: false);
       result['relation'] = _relationCodeFromLabel(loc, result['relation']);
-      await _dbHelper.insertFamilyMember(result);
+      await _db.insertFamilyMember(result);
       await _loadFamilyMembers();
       
       
@@ -176,16 +224,16 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
     );
 
     if (result != null && currentUserId != null) {
-      // Kullanıcıyı telefon numarası ile ara
+      // Find target user by phone number
   String phone = result['phone'];
   String relationCode = _relationCodeFromLabel(Provider.of<LocalizationService>(context, listen: false), result['relation']);
       
       try {
-        Map<String, dynamic>? targetUser = await _dbHelper.findUserByPhone(phone);
+  Map<String, dynamic>? targetUser = await _db.findUserByPhone(phone);
         
         if (targetUser != null) {
-          // Davet gönder
-          await _dbHelper.sendFamilyInvitation({
+          // Send invitation
+          await _db.sendFamilyInvitation({
             'from_user_id': currentUserId,
             'to_user_id': targetUser['id'],
             'relation': relationCode,
@@ -223,31 +271,100 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
   @override
   Widget build(BuildContext context) {
     final localizationService = Provider.of<LocalizationService>(context);
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: theme.colorScheme.surface,
       drawer: const AppDrawer(currentRoute: '/family_panel'),
       appBar: AppBar(
-  title: Text(localizationService.getString('family_health_panel')),
-        backgroundColor: const Color(0xFFE53E3E),
-        foregroundColor: Colors.white,
+        title: Text(localizationService.getString('family_health_panel')),
+        backgroundColor: cs.primary,
+        foregroundColor: cs.onPrimary,
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.person_add),
+            icon: Icon(Icons.person_add, color: cs.onPrimary),
             onPressed: _addFamilyMember,
           ),
         ],
       ),
       body: _isLoading 
         ? const Center(child: CircularProgressIndicator(color: Color(0xFFE53E3E)))
-        : familyMembers.isEmpty 
-          ? _buildEmptyState()
-          : _buildFamilyList(),
+        : (currentUserId == null)
+          ? _buildLoginPrompt()
+          : (familyMembers.isEmpty 
+            ? _buildEmptyState()
+            : _buildFamilyList()),
+    );
+  }
+
+  Widget _buildLoginPrompt() {
+    final loc = Provider.of<LocalizationService>(context, listen: false);
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Card(
+            color: cs.surface,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: cs.primary,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(Icons.group, color: cs.onPrimary),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          loc.getString('family_login_required_title'),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 18,
+                            color: cs.onSurface,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    loc.getString('family_login_required_desc'),
+                    style: TextStyle(color: cs.onSurface.withValues(alpha: .75)),
+                  ),
+                  const SizedBox(height: 16),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: FilledButton.icon(
+                      onPressed: () => Navigator.of(context).pushNamed('/login'),
+                      icon: const Icon(Icons.login),
+                      label: Text(loc.getString('go_to_login')),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
   Widget _buildEmptyState() {
     final localizationService = Provider.of<LocalizationService>(context, listen: false);
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -255,14 +372,14 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
           Icon(
             Icons.family_restroom,
             size: 80,
-            color: Colors.grey[400],
+            color: cs.onSurface.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 24),
           Text(
             localizationService.getString('family_empty_title'),
             style: TextStyle(
               fontSize: 18,
-              color: Colors.grey[600],
+              color: cs.onSurfaceVariant,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -271,7 +388,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
             localizationService.getString('family_empty_subtitle'),
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.grey[500],
+              color: cs.onSurface.withValues(alpha: 0.7),
               fontSize: 14,
             ),
           ),
@@ -281,8 +398,8 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
             icon: const Icon(Icons.person_add),
             label: Text(localizationService.getString('family_add_first_member')),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE53E3E),
-              foregroundColor: Colors.white,
+              backgroundColor: cs.primary,
+              foregroundColor: cs.onPrimary,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -295,26 +412,45 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
   }
 
   Widget _buildFamilyList() {
-    final localizationService = Provider.of<LocalizationService>(context, listen: false); // for potential future use
+    final loc = Provider.of<LocalizationService>(context, listen: false);
     return RefreshIndicator(
       onRefresh: _loadFamilyMembers,
       color: const Color(0xFFE53E3E),
       child: CustomScrollView(
         slivers: [
-          // Bekleyen davetler
+          // Pending invitations
           if (pendingInvitations.isNotEmpty) 
             SliverToBoxAdapter(child: _buildPendingInvitations()),
-          
-          // Aile üyeleri listesi
+
+          // Search + filters bar
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: _buildSearchAndFilters(loc),
+            ),
+          ),
+
+          // Family members grid
           SliverPadding(
             padding: const EdgeInsets.all(16),
-            sliver: SliverList(
+            sliver: SliverGrid(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: ResponsiveHelper.getGridColumns(context),
+                mainAxisSpacing: ResponsiveHelper.getCardSpacing(context),
+                crossAxisSpacing: ResponsiveHelper.getCardSpacing(context),
+                childAspectRatio: ResponsiveHelper.isMobile(context) ? 16/10 : 16/9,
+              ),
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
-                  final member = familyMembers[index];
-                  return _buildFamilyMemberCard(member);
+                  final member = filteredMembers[index];
+                  return _FamilyMemberCard(
+                    member: member,
+                    onEdit: () => _editFamilyMember(member),
+                    onDelete: () => _deleteFamilyMember(member),
+                    relationLabel: _relationLabelFromStored(loc, member['relation']),
+                  );
                 },
-                childCount: familyMembers.length,
+                childCount: filteredMembers.length,
               ),
             ),
           ),
@@ -323,15 +459,107 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
     );
   }
 
+  Widget _buildSearchAndFilters(LocalizationService loc) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _searchController,
+                onChanged: (_) => _applyFilters(),
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search),
+                  hintText: loc.getString('family_search_hint'),
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            DropdownButtonHideUnderline(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: cs.outlineVariant),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: DropdownButton<String>(
+                  value: _relationFilter,
+                  onChanged: (v) { setState(() { _relationFilter = v!; _applyFilters(); }); },
+                  items: [
+                    DropdownMenuItem(value: 'all', child: Text(loc.getString('family_filter_all'))),
+                    DropdownMenuItem(value: 'spouse', child: Text(loc.getString('family_relation_spouse'))),
+                    DropdownMenuItem(value: 'child', child: Text(loc.getString('family_relation_child'))),
+                    DropdownMenuItem(value: 'father', child: Text(loc.getString('family_relation_father'))),
+                    DropdownMenuItem(value: 'mother', child: Text(loc.getString('family_relation_mother'))),
+                    DropdownMenuItem(value: 'sibling', child: Text(loc.getString('family_relation_sibling'))),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            DropdownButtonHideUnderline(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: cs.outlineVariant),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: DropdownButton<String>(
+                  value: _sortKey,
+                  onChanged: (v) { setState(() { _sortKey = v!; _applyFilters(); }); },
+                  items: [
+                    DropdownMenuItem(value: 'name', child: Text(loc.getString('family_sort_name'))),
+                    DropdownMenuItem(value: 'age', child: Text(loc.getString('family_sort_age'))),
+                  ],
+                ),
+              ),
+            ),
+            IconButton(
+              tooltip: loc.getString('family_sort_toggle'),
+              onPressed: () { setState(() { _sortAsc = !_sortAsc; _applyFilters(); }); },
+              icon: Icon(_sortAsc ? Icons.arrow_upward : Icons.arrow_downward),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  void _applyFilters() {
+    final term = _searchController.text.trim().toLowerCase();
+    List<Map<String, dynamic>> list = List.of(familyMembers);
+    if (term.isNotEmpty) {
+      list = list.where((m) => (m['name'] ?? '').toString().toLowerCase().contains(term)).toList();
+    }
+    if (_relationFilter != 'all') {
+      list = list.where((m) => _normalizeExistingStored((m['relation'] ?? '').toString()) == _relationFilter).toList();
+    }
+    list.sort((a, b) {
+      int cmp;
+      if (_sortKey == 'age') {
+        cmp = ((a['age'] ?? 0) as int).compareTo((b['age'] ?? 0) as int);
+      } else {
+        cmp = (a['name'] ?? '').toString().toLowerCase().compareTo((b['name'] ?? '').toString().toLowerCase());
+      }
+      return _sortAsc ? cmp : -cmp;
+    });
+    setState(() { filteredMembers = list; });
+  }
+
   Widget _buildPendingInvitations() {
     final localizationService = Provider.of<LocalizationService>(context, listen: false);
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.orange[50],
+        color: cs.tertiaryContainer.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.orange[200]!),
+        border: Border.all(color: cs.tertiaryContainer.withValues(alpha: 0.6)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -341,10 +569,10 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.orange[100],
+                  color: cs.tertiaryContainer.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.notifications_active, color: Colors.orange[700], size: 20),
+                child: Icon(Icons.notifications_active, color: cs.onTertiaryContainer, size: 20),
               ),
               const SizedBox(width: 12),
               Text(
@@ -352,7 +580,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.orange[700],
+                  color: cs.onTertiaryContainer,
                 ),
               ),
             ],
@@ -444,7 +672,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
   Future<void> _respondToInvitation(int invitationId, String response) async {
     final localizationService = Provider.of<LocalizationService>(context, listen: false);
     try {
-      await _dbHelper.respondToInvitation(invitationId, response);
+      await _db.respondToInvitation(invitationId, response);
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -457,7 +685,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
         ),
       );
       
-      await _loadFamilyMembers(); // Listeyi yenile
+  await _loadFamilyMembers(); // Refresh the list
       
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -469,124 +697,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
     }
   }
 
-  Widget _buildFamilyMemberCard(Map<String, dynamic> member) {
-    final localizationService = Provider.of<LocalizationService>(context, listen: false);
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: const Color(0xFFE53E3E).withOpacity(0.1),
-                  child: Text(
-                    member['gender'] == localizationService.getString('family_gender_female') ? '👩' : '👨',
-                    style: const TextStyle(fontSize: 24),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        member['name'] ?? localizationService.getString('family_name_unknown'),
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.family_restroom, size: 16, color: Colors.grey[600]),
-                          const SizedBox(width: 4),
-                          Text(
-                            _relationLabelFromStored(localizationService, member['relation']),
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Icon(Icons.cake, size: 16, color: Colors.grey[600]),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${member['age'] ?? 0} ${localizationService.getString('family_age_suffix')}',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                PopupMenuButton<String>(
-                  onSelected: (value) {
-                    if (value == 'edit') {
-                      _editFamilyMember(member);
-                    } else if (value == 'delete') {
-                      _deleteFamilyMember(member);
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      value: 'edit',
-                      child: Row(children: [
-                        const Icon(Icons.edit, size: 18),
-                        const SizedBox(width: 8),
-                        Text(localizationService.getString('family_edit')),
-                      ]),
-                    ),
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Row(children: [
-                        const Icon(Icons.delete, size: 18, color: Colors.red),
-                        const SizedBox(width: 8),
-                        Text(localizationService.getString('family_delete'), style: const TextStyle(color: Colors.red)),
-                      ]),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue[200]!),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      localizationService.getString('family_hemogram_info'),
-                      style: TextStyle(
-                        color: Colors.blue[700],
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // Note: legacy _buildFamilyMemberCard removed; grid now uses _FamilyMemberCard directly.
 
   Future<void> _editFamilyMember(Map<String, dynamic> member) async {
     final localizationService = Provider.of<LocalizationService>(context, listen: false);
@@ -598,7 +709,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
     if (result != null) {
       // Normalize relation to code before saving
       result['relation'] = _relationCodeFromLabel(localizationService, result['relation']);
-      await _dbHelper.updateFamilyMember(member['id'], result);
+  await _db.updateFamilyMember(member['id'], result);
       await _loadFamilyMembers();
       
       ScaffoldMessenger.of(context).showSnackBar(
@@ -632,7 +743,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
     );
 
     if (confirm == true) {
-      await _dbHelper.deleteFamilyMember(member['id']);
+  await _db.deleteFamilyMember(member['id']);
       await _loadFamilyMembers();
       
       ScaffoldMessenger.of(context).showSnackBar(
@@ -667,11 +778,45 @@ class _AddFamilyMemberDialogState extends State<_AddFamilyMemberDialog> {
       'father','mother','child','spouse','sibling','grandfather','grandmother','grandchild','parent','grandparent','other'
     };
     if (allowed.contains(s)) return s;
-    const legacy = {
-      'Baba': 'father', 'Anne': 'mother', 'Çocuk': 'child', 'Eş': 'spouse', 'Kardeş': 'sibling', 'Büyükbaba': 'grandfather', 'Büyükanne': 'grandmother', 'Torun': 'grandchild', 'Aile Üyesi': 'other',
-      'Father': 'father', 'Mother': 'mother', 'Child': 'child', 'Spouse': 'spouse', 'Sibling': 'sibling', 'Grandfather': 'grandfather', 'Grandmother': 'grandmother', 'Grandchild': 'grandchild', 'Parent': 'parent', 'Grandparent': 'grandparent', 'Other': 'other',
+    String asciiLower(String input) => input
+        .toLowerCase()
+        .replaceAll('\u015f', 's') // ş
+        .replaceAll('\u015e', 's') // Ş
+        .replaceAll('\u011f', 'g') // ğ
+        .replaceAll('\u011e', 'g') // Ğ
+        .replaceAll('\u00f6', 'o') // ö
+        .replaceAll('\u00d6', 'o') // Ö
+        .replaceAll('\u00fc', 'u') // ü
+        .replaceAll('\u00dc', 'u') // Ü
+        .replaceAll('\u0131', 'i') // ı
+        .replaceAll('\u00e7', 'c') // ç
+        .replaceAll('\u00c7', 'c'); // Ç
+    final key = asciiLower(s);
+    const map = {
+      // Turkish labels (ASCII-normalized)
+      'baba': 'father',
+      'anne': 'mother',
+      'cocuk': 'child',
+      'es': 'spouse',
+      'kardes': 'sibling',
+      'buyukbaba': 'grandfather',
+      'buyukanne': 'grandmother',
+      'torun': 'grandchild',
+      'aile uyesi': 'other',
+      // English labels
+      'father': 'father',
+      'mother': 'mother',
+      'child': 'child',
+      'spouse': 'spouse',
+      'sibling': 'sibling',
+      'grandfather': 'grandfather',
+      'grandmother': 'grandmother',
+      'grandchild': 'grandchild',
+      'parent': 'parent',
+      'grandparent': 'grandparent',
+      'other': 'other',
     };
-    return legacy[s] ?? 'other';
+    return map[key] ?? 'other';
   }
 
   String _labelFromStored(LocalizationService loc, String? stored) {
@@ -725,6 +870,7 @@ class _AddFamilyMemberDialogState extends State<_AddFamilyMemberDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return AlertDialog(
       title: Builder(builder: (context){
         final loc = Provider.of<LocalizationService>(context, listen: false);
@@ -769,7 +915,7 @@ class _AddFamilyMemberDialogState extends State<_AddFamilyMemberDialog> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _gender,
+                initialValue: _gender,
                 decoration: InputDecoration(
                   labelText: Provider.of<LocalizationService>(context, listen: false).getString('family_gender_label'),
                   border: const OutlineInputBorder(),
@@ -791,7 +937,7 @@ class _AddFamilyMemberDialogState extends State<_AddFamilyMemberDialog> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _relation,
+                initialValue: _relation,
                 decoration: InputDecoration(
                   labelText: Provider.of<LocalizationService>(context, listen: false).getString('family_relation_label'),
                   border: const OutlineInputBorder(),
@@ -828,12 +974,12 @@ class _AddFamilyMemberDialogState extends State<_AddFamilyMemberDialog> {
               });
             }
           },
-          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE53E3E)),
+          style: ElevatedButton.styleFrom(backgroundColor: cs.primary),
           child: Builder(builder: (context){
             final loc = Provider.of<LocalizationService>(context, listen:false);
             return Text(
               widget.member == null ? loc.getString('family_add_action') : loc.getString('family_update_action'),
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: cs.onPrimary),
             );
           }),
         ),
@@ -884,10 +1030,11 @@ class _InviteUserDialogState extends State<_InviteUserDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return AlertDialog(
       title: Row(
         children: [
-          Icon(Icons.person_add, color: const Color(0xFFE53E3E)),
+          Icon(Icons.person_add, color: cs.primary),
           const SizedBox(width: 8),
           Builder(builder: (context){return Text(Provider.of<LocalizationService>(context, listen:false).getString('family_invite_real_user'));}),
         ],
@@ -901,21 +1048,18 @@ class _InviteUserDialogState extends State<_InviteUserDialog> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue[50],
+                  color: cs.secondaryContainer.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue[200]!),
+                  border: Border.all(color: cs.secondaryContainer.withValues(alpha: 0.5)),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+                    Icon(Icons.info_outline, color: cs.onSecondaryContainer, size: 20),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         Provider.of<LocalizationService>(context, listen:false).getString('family_invite_info'),
-                        style: TextStyle(
-                          color: Colors.blue[700],
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: cs.onSecondaryContainer, fontSize: 12),
                       ),
                     ),
                   ],
@@ -943,7 +1087,7 @@ class _InviteUserDialogState extends State<_InviteUserDialog> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _relation,
+                initialValue: _relation,
                 decoration: InputDecoration(
                   labelText: Provider.of<LocalizationService>(context, listen:false).getString('family_relation_label'),
                   prefixIcon: const Icon(Icons.family_restroom),
@@ -996,13 +1140,137 @@ class _InviteUserDialogState extends State<_InviteUserDialog> {
               });
             }
           },
-          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE53E3E)),
+          style: ElevatedButton.styleFrom(backgroundColor: cs.primary),
           child: Builder(builder: (context){return Text(
             Provider.of<LocalizationService>(context, listen:false).getString('family_send_invite'),
-            style: const TextStyle(color: Colors.white),
+            style: TextStyle(color: cs.onPrimary),
           );}),
         ),
       ],
+    );
+  }
+}
+
+class _FamilyMemberCard extends StatelessWidget {
+  final Map<String, dynamic> member;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final String relationLabel;
+
+  const _FamilyMemberCard({
+    required this.member,
+    required this.onEdit,
+    required this.onDelete,
+    required this.relationLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = Provider.of<LocalizationService>(context, listen: false);
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: InkWell(
+        onTap: () {
+          // Placeholder: could navigate to member details/test history
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(loc.getString('coming_soon'))),
+          );
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              height: 6,
+              color: cs.primary,
+            ),
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 26,
+                    backgroundColor: cs.primaryContainer.withValues(alpha: 0.3),
+                    child: Text(
+                      (member['gender'] ?? loc.getString('family_gender_male')) == loc.getString('family_gender_female') ? '👩' : '👨',
+                      style: const TextStyle(fontSize: 22),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          member['name'] ?? loc.getString('family_name_unknown'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: cs.onSurface),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.family_restroom, size: 16, color: cs.onSurfaceVariant),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                relationLabel,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Icon(Icons.cake, size: 16, color: cs.onSurfaceVariant),
+                            const SizedBox(width: 4),
+                            Text('${member['age'] ?? 0} ${loc.getString('family_age_suffix')}', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuButton<String>(
+                    onSelected: (v) { if (v == 'edit') onEdit(); if (v == 'delete') onDelete(); },
+                    itemBuilder: (context) => [
+                      PopupMenuItem(value: 'edit', child: Row(children: [const Icon(Icons.edit, size: 18), const SizedBox(width:8), Text(loc.getString('family_edit'))])),
+                      PopupMenuItem(value: 'delete', child: Row(children: [const Icon(Icons.delete, color: Colors.red, size: 18), const SizedBox(width:8), Text(loc.getString('family_delete'), style: const TextStyle(color: Colors.red))])),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const Spacer(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: cs.secondaryContainer.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: cs.onSecondaryContainer, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        loc.getString('family_hemogram_info'),
+                        style: TextStyle(color: cs.onSecondaryContainer, fontSize: 12),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
     );
   }
 }

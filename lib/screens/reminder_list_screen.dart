@@ -8,6 +8,7 @@ import '../services/audit_log_service.dart';
 import '../services/web_database_helper.dart';
 import '../services/preferences_service.dart';
 import '../services/push_notification_service.dart' as ps;
+import '../services/database_helper.dart';
 
 class ReminderListScreen extends StatefulWidget {
   const ReminderListScreen({super.key});
@@ -255,6 +256,40 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
                       children: [
                         Expanded(
                           child: OutlinedButton.icon(
+                            onPressed: () async {
+                              // Mark as Done -> log, update streak, reschedule if repeating
+                              Navigator.pop(context);
+                              await _markAsDone(reminder);
+                            },
+                            icon: const Icon(Icons.check_circle_outline),
+                            label: Text(Provider.of<LocalizationService>(context, listen: false).getString('mark_as_done')),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              Navigator.pop(context);
+                              // Snooze 10 minutes
+                              await _snoozeReminder(reminder, const Duration(minutes: 10));
+                            },
+                            icon: const Icon(Icons.snooze),
+                            label: Text(Provider.of<LocalizationService>(context, listen: false).getString('snooze_10m')),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
                             onPressed: () {
                               Navigator.pop(context);
                               _toggleReminder(reminder);
@@ -263,9 +298,6 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
                             label: Text(reminder.isActive 
                               ? Provider.of<LocalizationService>(context, listen: false).getString('reminder_action_pause')
                               : Provider.of<LocalizationService>(context, listen: false).getString('reminder_action_activate')),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -280,7 +312,6 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Theme.of(context).colorScheme.error,
                               foregroundColor: Theme.of(context).colorScheme.onError,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
                             ),
                           ),
                         ),
@@ -294,6 +325,157 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
         ),
       ),
     );
+  }
+
+  Future<void> _markAsDone(ns.NotificationItem reminder) async {
+    try {
+      if (reminder.id == null) return;
+      final prefs = await PreferencesService.getInstance();
+      final userId = prefs.getCurrentUserId();
+      final db = DatabaseHelper.instance;
+      // Update streaks
+      final streak = await db.getReminderStreak(reminder.id!, userId: userId);
+      final last = streak['last_completed_date'] as String?;
+      final today = DateTime.now().toIso8601String().split('T')[0];
+      int current = (streak['current_streak'] as int? ?? 0);
+      int longest = (streak['longest_streak'] as int? ?? 0);
+      if (last == null) {
+        current = 1;
+      } else {
+        // if last was yesterday -> +1; if today -> keep; else reset to 1
+        final yesterday = DateTime.now().subtract(const Duration(days: 1)).toIso8601String().split('T')[0];
+        if (last == today) {
+          // already counted
+        } else if (last == yesterday) {
+          current = current + 1;
+        } else {
+          current = 1;
+        }
+      }
+      if (current > longest) longest = current;
+      await db.upsertReminderStreak(
+        reminderId: reminder.id!,
+        userId: userId,
+        currentStreak: current,
+        longestStreak: longest,
+        lastCompletedDate: today,
+      );
+
+      // Log action
+      await db.insertReminderLog(
+        reminderId: reminder.id!,
+        userId: userId,
+        action: 'done',
+        actionDate: DateTime.now(),
+        scheduledTime: reminder.scheduledTime,
+      );
+
+      // Reschedule next occurrence if repeating; otherwise deactivate
+      final notificationService = Provider.of<ns.NotificationService>(context, listen: false);
+      DateTime? next;
+      switch (reminder.repeatType) {
+        case ns.RepeatType.none:
+          await notificationService.toggleNotification(reminder.id!);
+          break;
+        case ns.RepeatType.daily:
+          next = reminder.scheduledTime.add(const Duration(days: 1));
+          break;
+        case ns.RepeatType.weekly:
+          next = reminder.scheduledTime.add(const Duration(days: 7));
+          break;
+        case ns.RepeatType.monthly:
+          next = DateTime(reminder.scheduledTime.year, reminder.scheduledTime.month + 1, reminder.scheduledTime.day, reminder.scheduledTime.hour, reminder.scheduledTime.minute);
+          break;
+      }
+      if (next != null) {
+        await notificationService.updateScheduledTime(reminder.id!, next);
+        // Also push-notification mapping
+        final push = Provider.of<ps.PushNotificationService>(context, listen: false);
+        String repeatStr = 'none';
+        switch (reminder.repeatType) {
+          case ns.RepeatType.daily:
+            repeatStr = 'daily';
+            break;
+          case ns.RepeatType.weekly:
+            repeatStr = 'weekly';
+            break;
+          case ns.RepeatType.monthly:
+            repeatStr = 'monthly';
+            break;
+          case ns.RepeatType.none:
+            repeatStr = 'none';
+            break;
+        }
+        await push.scheduleNotification(
+          title: reminder.title,
+          body: reminder.description,
+          scheduledTime: next,
+          type: _mapReminderTypeToPush(reminder.type),
+          data: {
+            'repeat': repeatStr,
+            'hour': next.hour,
+            'minute': next.minute,
+            'reminder_id': reminder.id,
+            'source': 'mark_done',
+          },
+        );
+      }
+      AuditLogService().logAction('reminder_mark_done', data: {'id': reminder.id});
+      if (!mounted) return;
+      _loadReminders();
+    } catch (e) {
+      if (!mounted) return;
+      final loc = Provider.of<LocalizationService>(context, listen: false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${loc.getString('error_prefix')}${e.toString()}')),
+      );
+    }
+  }
+
+  Future<void> _snoozeReminder(ns.NotificationItem reminder, Duration delay) async {
+    try {
+      if (reminder.id == null) return;
+      final prefs = await PreferencesService.getInstance();
+      final userId = prefs.getCurrentUserId();
+      final db = DatabaseHelper.instance;
+      final newTime = DateTime.now().add(delay);
+      // Update schedule in local service
+      final notificationService = Provider.of<ns.NotificationService>(context, listen: false);
+      await notificationService.updateScheduledTime(reminder.id!, newTime);
+      // Log action
+      await db.insertReminderLog(
+        reminderId: reminder.id!,
+        userId: userId,
+        action: 'snooze',
+        actionDate: DateTime.now(),
+        scheduledTime: newTime,
+        metadata: 'minutes=${delay.inMinutes}',
+      );
+      // Push layer schedule one-off (no repeat)
+      final push = Provider.of<ps.PushNotificationService>(context, listen: false);
+      await push.scheduleNotification(
+        title: reminder.title,
+        body: reminder.description,
+        scheduledTime: newTime,
+        type: _mapReminderTypeToPush(reminder.type),
+        data: {
+          'repeat': 'none',
+          'hour': newTime.hour,
+          'minute': newTime.minute,
+          'reminder_id': reminder.id,
+          'source': 'snooze_10m',
+        },
+      );
+      AuditLogService().logAction('reminder_snoozed', data: {'id': reminder.id, 'minutes': delay.inMinutes});
+      if (!mounted) return;
+      _loadReminders();
+    } catch (e) {
+      if (!mounted) return;
+      final loc = Provider.of<LocalizationService>(context, listen: false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${loc.getString('error_prefix')}${e.toString()}')),
+      );
+    }
   }
 
   Future<void> _toggleReminder(ns.NotificationItem reminder) async {
@@ -409,6 +591,7 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
 
   Widget _buildReminderCard(ns.NotificationItem reminder) {
     final isOverdue = reminder.scheduledTime.isBefore(DateTime.now()) && reminder.isActive;
+    final loc = Provider.of<LocalizationService>(context, listen: false);
     
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -471,6 +654,37 @@ class _ReminderListScreenState extends State<ReminderListScreen> with SingleTick
                             color: isOverdue ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.75),
                             fontWeight: isOverdue ? FontWeight.w600 : FontWeight.normal,
                           ),
+                        ),
+                        const SizedBox(width: 8),
+                        FutureBuilder<Map<String, dynamic>>(
+                          future: DatabaseHelper.instance.getReminderStreak(reminder.id ?? -1, userId: PreferencesService().getCurrentUserId()),
+                          builder: (context, snapshot) {
+                            if (!snapshot.hasData) return const SizedBox.shrink();
+                            final data = snapshot.data!;
+                            final current = (data['current_streak'] as int? ?? 0);
+                            final longest = (data['longest_streak'] as int? ?? 0);
+                            if (current <= 0) return const SizedBox.shrink();
+                            return Container(
+                              margin: const EdgeInsets.only(left: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.local_fire_department, size: 14, color: Colors.orange),
+                                  const SizedBox(width: 4),
+                                  Text('${loc.getString('current_streak_label')}: $current ${loc.getString('days_suffix')}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.orange)),
+                                  if (longest > 0) ...[
+                                    const SizedBox(width: 6),
+                                    Text('• ${loc.getString('longest_streak_label')}: $longest', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.orange)),
+                                  ],
+                                ],
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),

@@ -4,8 +4,10 @@ import '../widgets/app_drawer.dart';
 import '../services/web_database_helper.dart';
 import '../services/preferences_service.dart';
 import '../services/localization_service.dart';
-import '../services/notification_service.dart';
+import '../services/notification_service.dart' as inapp;
 import 'package:flutter/services.dart';
+import '../services/push_notification_service.dart' as push show PushNotificationService;
+import '../services/analytics_service.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({Key? key}) : super(key: key);
@@ -166,7 +168,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
     ];
   }
 
-  // Hatırlatıcı ayarları
+  // Reminder settings
   final Map<String, bool> reminderSettings = {
     'test_reminders': true,
     'critical_alerts': true,
@@ -183,7 +185,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
     'exercise_reminders': false,
   };
 
-  // Su içme takibi
+  // Water intake tracking
   int waterCount = 0;
   final int waterGoal = 8;
 
@@ -318,7 +320,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
           waterCount = newCount;
         });
         
-        // Hedefe ulaşıldığında bildirim oluştur
+  // When goal is reached, create a notification
         if (newCount >= waterGoal) {
           final loc = Provider.of<LocalizationService>(context, listen: false);
           await _createNotification(
@@ -332,7 +334,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
       print('Water tracking update error: $e');
       if (!mounted) return;
       setState(() {
-        waterCount = newCount; // En azından UI'yi güncelle
+  waterCount = newCount; // At least update the UI
       });
     }
   }
@@ -509,6 +511,16 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                         ),
                       ),
                       PopupMenuItem(
+                        value: 'why',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.help_outline, size: 16),
+                            const SizedBox(width: 8),
+                            Text(Provider.of<LocalizationService>(context, listen: false).getString('why_did_i_get_this')),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
                         value: 'delete',
                         child: Row(
                           children: [
@@ -521,6 +533,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                     ],
                     onSelected: (value) {
                       if (value == 'details') _showNotificationDetails(notification);
+                      if (value == 'why') _showWhyDidIGetThis(notification);
                       if (value == 'delete') _deleteNotification(notification['id']);
                     },
                   ),
@@ -837,13 +850,13 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                       await _preferencesService.saveCustomSettings('daily_motivation_hour', picked.hour);
                       await _preferencesService.saveCustomSettings('daily_motivation_minute', picked.minute);
                       // Schedule notification
-                      NotificationService().addNotification(
-                        NotificationItem(
+                      inapp.NotificationService().addNotification(
+                        inapp.NotificationItem(
                           title: '🌟 ${loc.getString('motivational_message')}',
                           description: quote,
                           scheduledTime: firstTime,
-                          type: NotificationType.general,
-                          repeatType: RepeatType.daily,
+                          type: inapp.NotificationType.general,
+                          repeatType: inapp.RepeatType.daily,
                         ),
                       );
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -1106,7 +1119,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
       body: TabBarView(
         controller: _tabController,
         children: [
-          // Bildirimler Tab
+          // Notifications Tab
           notifications.isEmpty 
             ? Center(
                 child: Column(
@@ -1154,7 +1167,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                 ],
               ),
           
-          // Su Takibi Tab
+          // Water Tracking Tab
           SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -1189,7 +1202,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
             ),
           ),
           
-          // İlaçlar Tab
+          // Medications Tab
           SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -1223,7 +1236,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
             ),
           ),
           
-          // Ayarlar Tab
+          // Settings Tab
           _buildSettingsTab(),
         ],
       ),
@@ -1332,6 +1345,95 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
           ),
         ],
       ),
+    );
+  }
+
+  void _showWhyDidIGetThis(Map<String, dynamic> notification) {
+    final loc = Provider.of<LocalizationService>(context, listen: false);
+  final pushService = Provider.of<push.PushNotificationService>(context, listen: false);
+    final analytics = Provider.of<AnalyticsService>(context, listen: false);
+
+    // Fetch reason details from push service (may be partial for sample/DB items)
+    final String id = notification['id'].toString();
+  final reason = pushService.getNotificationReason(id);
+
+    // Log analytics event
+    analytics.trackEvent('why_did_i_get_this_open', parameters: {
+      'id': id,
+      'type': notification['type'] ?? 'general',
+      'is_read': notification['isRead'] ?? false,
+      'repeat': reason['repeat'] ?? 'unknown',
+      'category': reason['category'] ?? 'unknown',
+    });
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: false,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        Widget kv(String label, Object? value) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 160,
+                  child: Text(label, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[700])),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('${value ?? loc.getString('none')}', style: Theme.of(context).textTheme.bodyMedium),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.help_outline, color: Color(0xFFE53E3E)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        loc.getString('why_did_i_get_this'),
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                kv(loc.getString('reason_scheduled_time'), reason['scheduled_time']),
+                kv(loc.getString('reason_received_at'), reason['received_at']),
+                kv(loc.getString('reason_repeat'), reason['repeat']),
+                kv(loc.getString('reason_reminder_id'), reason['reminder_id']),
+                kv(loc.getString('reason_category'), reason['category']),
+                kv(loc.getString('reason_hour'), reason['hour']),
+                kv(loc.getString('reason_minute'), reason['minute']),
+                kv(loc.getString('reason_device_token'), reason['device_token']),
+                kv(loc.getString('reason_permission_granted'), reason['permission_granted']),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(loc.getString('close')),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

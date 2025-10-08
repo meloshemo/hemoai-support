@@ -45,5 +45,20 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+
+	<!-- Privacy Usage Descriptions -->
+	<key>NSCameraUsageDescription</key>
+	<string>We use the camera to scan lab reports (OCR) and allow profile photo capture.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We need access to your photos to select images for OCR and to share/export reports.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>We save exported reports to your photo library when you choose to export as images.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Face ID is used to unlock the app if you enable App Lock in Settings.</string>
+	<!-- If HealthKit is ever used, these keys are required. Keep strings generic and clear. -->
+	<key>NSHealthShareUsageDescription</key>
+	<string>With your permission, HemoAI may read health data to enrich insights. You can opt out anytime.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>With your permission, HemoAI may write relevant health data you explicitly choose to save.</string>
 </dict>
 </plist>

@@ -2,6 +2,18 @@
     <!-- Internet erişimi -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Media and Camera (for OCR/image picking) -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Android 13+ read images permission -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <!-- Fallback for older Android versions -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <!-- Optional: write if exporting to shared storage -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
+    <!-- Notifications permission for Android 13+ -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     
     <application
         android:label="HemoAI - Akıllı Hemogram Analizi"

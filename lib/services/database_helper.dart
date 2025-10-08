@@ -30,8 +30,9 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'hemoai.db');
     return await openDatabase(
       path,
-      version: 1,
+      version: 4,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -177,6 +178,22 @@ class DatabaseHelper {
       )
     ''');
 
+  // Aile davetleri tablosu (native)
+    await db.execute('''
+      CREATE TABLE family_invitations(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        from_user_id INTEGER NOT NULL,
+        to_user_id INTEGER NOT NULL,
+        relation TEXT NOT NULL,
+        message TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        created_at TEXT NOT NULL,
+        responded_at TEXT,
+        FOREIGN KEY (from_user_id) REFERENCES users (id) ON DELETE CASCADE,
+        FOREIGN KEY (to_user_id) REFERENCES users (id) ON DELETE CASCADE
+      )
+    ''');
+
   // Hatirlaticilar tablosu
     await db.execute('''
       CREATE TABLE reminders(
@@ -205,6 +222,203 @@ class DatabaseHelper {
         FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
       )
     ''');
+
+    // Diet tracking table: store daily compliance per meal slot
+    await db.execute('''
+      CREATE TABLE diet_tracking(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        date TEXT NOT NULL,
+        breakfast INTEGER DEFAULT 0,
+        lunch INTEGER DEFAULT 0,
+        dinner INTEGER DEFAULT 0,
+        snack INTEGER DEFAULT 0,
+        notes TEXT,
+        created_at TEXT NOT NULL,
+        UNIQUE(user_id, date),
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+      )
+    ''');
+
+    // Reminder streaks (completed sequences)
+    await db.execute('''
+      CREATE TABLE reminder_streaks(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        reminder_id INTEGER NOT NULL,
+        user_id INTEGER,
+        current_streak INTEGER NOT NULL DEFAULT 0,
+        longest_streak INTEGER NOT NULL DEFAULT 0,
+        last_completed_date TEXT,
+        updated_at TEXT NOT NULL
+      )
+    ''');
+
+    // Reminder logs (per completion/snooze)
+    await db.execute('''
+      CREATE TABLE reminder_logs(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        reminder_id INTEGER NOT NULL,
+        user_id INTEGER,
+        action TEXT NOT NULL, -- done | snooze | auto_reschedule
+        action_date TEXT NOT NULL,
+        scheduled_time TEXT,
+        metadata TEXT,
+        created_at TEXT NOT NULL
+      )
+    ''');
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS diet_tracking(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          date TEXT NOT NULL,
+          breakfast INTEGER DEFAULT 0,
+          lunch INTEGER DEFAULT 0,
+          dinner INTEGER DEFAULT 0,
+          snack INTEGER DEFAULT 0,
+          notes TEXT,
+          created_at TEXT NOT NULL,
+          UNIQUE(user_id, date),
+          FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+        )
+      ''');
+    }
+    if (oldVersion < 3) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS family_invitations(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          from_user_id INTEGER NOT NULL,
+          to_user_id INTEGER NOT NULL,
+          relation TEXT NOT NULL,
+          message TEXT,
+          status TEXT NOT NULL DEFAULT 'pending',
+          created_at TEXT NOT NULL,
+          responded_at TEXT,
+          FOREIGN KEY (from_user_id) REFERENCES users (id) ON DELETE CASCADE,
+          FOREIGN KEY (to_user_id) REFERENCES users (id) ON DELETE CASCADE
+        )
+      ''');
+    }
+    if (oldVersion < 4) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS reminder_streaks(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          reminder_id INTEGER NOT NULL,
+          user_id INTEGER,
+          current_streak INTEGER NOT NULL DEFAULT 0,
+          longest_streak INTEGER NOT NULL DEFAULT 0,
+          last_completed_date TEXT,
+          updated_at TEXT NOT NULL
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS reminder_logs(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          reminder_id INTEGER NOT NULL,
+          user_id INTEGER,
+          action TEXT NOT NULL,
+          action_date TEXT NOT NULL,
+          scheduled_time TEXT,
+          metadata TEXT,
+          created_at TEXT NOT NULL
+        )
+      ''');
+    }
+  }
+
+  // ===== Reminder streaks & logs =====
+  Future<Map<String, dynamic>> getReminderStreak(int reminderId, {int? userId}) async {
+    final db = await database;
+    if (kIsWeb) {
+      return await (db as WebDatabaseHelper).getReminderStreak(reminderId, userId: userId);
+    } else {
+      final rows = await (db as Database).query(
+        'reminder_streaks',
+        where: userId != null ? 'reminder_id = ? AND user_id = ?' : 'reminder_id = ?',
+        whereArgs: userId != null ? [reminderId, userId] : [reminderId],
+        limit: 1,
+      );
+      if (rows.isNotEmpty) return rows.first;
+      return {
+        'reminder_id': reminderId,
+        'user_id': userId,
+        'current_streak': 0,
+        'longest_streak': 0,
+        'last_completed_date': null,
+      };
+    }
+  }
+
+  Future<int> upsertReminderStreak({
+    required int reminderId,
+    int? userId,
+    required int currentStreak,
+    required int longestStreak,
+    String? lastCompletedDate,
+  }) async {
+    final db = await database;
+    if (kIsWeb) {
+      return await (db as WebDatabaseHelper).upsertReminderStreak(
+        reminderId: reminderId,
+        userId: userId,
+        currentStreak: currentStreak,
+        longestStreak: longestStreak,
+        lastCompletedDate: lastCompletedDate,
+      );
+    } else {
+      final sqlDb = db as Database;
+      final where = userId != null ? 'reminder_id = ? AND user_id = ?' : 'reminder_id = ?';
+      final args = userId != null ? [reminderId, userId] : [reminderId];
+      final existing = await sqlDb.query('reminder_streaks', where: where, whereArgs: args, limit: 1);
+      final row = {
+        'reminder_id': reminderId,
+        'user_id': userId,
+        'current_streak': currentStreak,
+        'longest_streak': longestStreak,
+        'last_completed_date': lastCompletedDate,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+      if (existing.isNotEmpty) {
+        return await sqlDb.update('reminder_streaks', row, where: where, whereArgs: args);
+      } else {
+        return await sqlDb.insert('reminder_streaks', row);
+      }
+    }
+  }
+
+  Future<int> insertReminderLog({
+    required int reminderId,
+    int? userId,
+    required String action,
+    required DateTime actionDate,
+    DateTime? scheduledTime,
+    String? metadata,
+  }) async {
+    final db = await database;
+    if (kIsWeb) {
+      return await (db as WebDatabaseHelper).insertReminderLog(
+        reminderId: reminderId,
+        userId: userId,
+        action: action,
+        actionDate: actionDate,
+        scheduledTime: scheduledTime,
+        metadata: metadata,
+      );
+    } else {
+      final row = {
+        'reminder_id': reminderId,
+        'user_id': userId,
+        'action': action,
+        'action_date': actionDate.toIso8601String().split('T')[0],
+        'scheduled_time': scheduledTime?.toIso8601String(),
+        'metadata': metadata,
+        'created_at': DateTime.now().toIso8601String(),
+      };
+      return await (db as Database).insert('reminder_logs', row);
+    }
   }
 
   // Kullanici islemleri
@@ -761,6 +975,107 @@ class DatabaseHelper {
       }
       return values;
     }
+  }
+
+  // Diet tracking
+  Future<Map<String, dynamic>?> getDietTrackingForDate(int userId, String date) async {
+    final db = await database;
+    if (kIsWeb) {
+      return await (db as WebDatabaseHelper).getDietTrackingForDate(userId, date);
+    } else {
+      final res = await (db as Database).query(
+        'diet_tracking',
+        where: 'user_id = ? AND date = ?',
+        whereArgs: [userId, date],
+        limit: 1,
+      );
+      return res.isNotEmpty ? res.first : null;
+    }
+  }
+
+  Future<int> upsertDietTracking({
+    required int userId,
+    required String date,
+    required bool breakfast,
+    required bool lunch,
+    required bool dinner,
+    required bool snack,
+    String? notes,
+  }) async {
+    final db = await database;
+    if (kIsWeb) {
+      return await (db as WebDatabaseHelper).upsertDietTracking(
+        userId: userId,
+        date: date,
+        breakfast: breakfast,
+        lunch: lunch,
+        dinner: dinner,
+        snack: snack,
+        notes: notes,
+      );
+    } else {
+      final sqlDb = db as Database;
+      final existing = await sqlDb.query(
+        'diet_tracking',
+        where: 'user_id = ? AND date = ?',
+        whereArgs: [userId, date],
+        limit: 1,
+      );
+      final Map<String, dynamic> row = {
+        'user_id': userId,
+        'date': date,
+        'breakfast': breakfast ? 1 : 0,
+        'lunch': lunch ? 1 : 0,
+        'dinner': dinner ? 1 : 0,
+        'snack': snack ? 1 : 0,
+        'notes': notes,
+        'created_at': DateTime.now().toIso8601String(),
+      };
+      if (existing.isNotEmpty) {
+        return await sqlDb.update(
+          'diet_tracking',
+          row,
+          where: 'user_id = ? AND date = ?',
+          whereArgs: [userId, date],
+        );
+      } else {
+        return await sqlDb.insert('diet_tracking', row,
+            conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getDietTrackingForLast7Days(int userId) async {
+    final db = await database;
+    final now = DateTime.now();
+    final List<Map<String, dynamic>> items = [];
+    for (int i = 6; i >= 0; i--) {
+      final day = now.subtract(Duration(days: i)).toIso8601String().split('T')[0];
+      if (kIsWeb) {
+        final data = await (db as WebDatabaseHelper).getDietTrackingForDate(userId, day);
+        items.add({
+          'date': day,
+          'breakfast': (data?['breakfast'] ?? 0) as int,
+          'lunch': (data?['lunch'] ?? 0) as int,
+          'dinner': (data?['dinner'] ?? 0) as int,
+          'snack': (data?['snack'] ?? 0) as int,
+        });
+      } else {
+        final res = await (db as Database).query(
+          'diet_tracking',
+          columns: ['date', 'breakfast', 'lunch', 'dinner', 'snack'],
+          where: 'user_id = ? AND date = ?',
+          whereArgs: [userId, day],
+          limit: 1,
+        );
+        if (res.isNotEmpty) {
+          items.add(res.first);
+        } else {
+          items.add({'date': day, 'breakfast': 0, 'lunch': 0, 'dinner': 0, 'snack': 0});
+        }
+      }
+    }
+    return items;
   }
 
   // Bildirim yonetimi

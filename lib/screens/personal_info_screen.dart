@@ -68,7 +68,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
         }
       }
     } catch (e) {
-      print('Kullanıcı bilgileri yüklenirken hata: $e');
+      print('Error loading user information: $e');
     }
     
     setState(() {
@@ -83,9 +83,15 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   String _mapGenderToCurrentLocale(String value, LocalizationService loc) {
     final male = loc.getString('male');
     final female = loc.getString('female');
-    final normalized = value.toLowerCase();
+    final normalized = value.toLowerCase()
+      .replaceAll('\u00E7','c') // ç
+      .replaceAll('\u011F','g') // ğ
+      .replaceAll('\u0131','i') // ı
+      .replaceAll('\u00F6','o') // ö
+      .replaceAll('\u015F','s') // ş
+      .replaceAll('\u00FC','u'); // ü
     if (normalized == 'erkek' || normalized == 'male') return male;
-    if (normalized == 'kadın' || normalized == 'kadin' || normalized == 'female') return female;
+    if (normalized == 'kadin' || normalized == 'female') return female;
     if (value == male || value == female) return value;
     return male; // default
   }
@@ -307,7 +313,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                           ),
                           const SizedBox(height: 16),
                           DropdownButtonFormField<String>(
-                            value: () {
+                            initialValue: () {
                               final male = Provider.of<LocalizationService>(context, listen:false).getString('male');
                               final female = Provider.of<LocalizationService>(context, listen:false).getString('female');
                               final options = [male, female];

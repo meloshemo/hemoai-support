@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'localization_service.dart';
@@ -88,12 +89,46 @@ class PushNotificationService extends ChangeNotifier {
         _log('Permission denied (web): $e');
       }
     } else {
-      // Mobile notification permission (would use flutter_local_notifications)
-      _permissionGranted = true; // Simulated for now
-      if (kDebugMode) {
-  debugPrint('📱 Mobile notification permission granted (simulated)');
+      // Mobile notification permission (Android 13+/iOS/macOS)
+      try {
+        final status = await Permission.notification.status;
+        if (status.isGranted) {
+          _permissionGranted = true;
+          if (kDebugMode) {
+            debugPrint('📱 Notification permission already granted');
+          }
+          _log('Permission granted (already)');
+          return;
+        }
+
+        // Request permission
+        final req = await Permission.notification.request();
+        _permissionGranted = req.isGranted;
+
+        if (_permissionGranted) {
+          if (kDebugMode) {
+            debugPrint('📱 Notification permission granted (request)');
+          }
+          _log('Permission granted (request)');
+        } else if (req.isPermanentlyDenied) {
+          if (kDebugMode) {
+            debugPrint('⚠️ Notification permission permanently denied');
+          }
+          _log('Permission permanently denied');
+        } else {
+          if (kDebugMode) {
+            debugPrint('❌ Notification permission denied');
+          }
+          _log('Permission denied');
+        }
+      } catch (e) {
+        // In tests or unsupported environments, avoid blocking flows
+        _permissionGranted = true; // fallback to previous simulated behavior
+        if (kDebugMode) {
+          debugPrint('⚠️ Permission request failed, falling back to simulated grant: $e');
+        }
+        _log('Permission request failed, using simulated grant: $e');
       }
-      _log('Permission granted (mobile simulated)');
     }
   }
 

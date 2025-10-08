@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../widgets/app_drawer.dart';
 // import '../services/web_database_helper.dart';
 import '../services/localization_service.dart';
@@ -1352,6 +1353,39 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
         backgroundColor: theme.appBarTheme.backgroundColor ?? scheme.surface,
         foregroundColor: theme.appBarTheme.foregroundColor ?? scheme.onSurface,
         elevation: 0,
+        actions: [
+          // Quick toggle favorites filter
+          IconButton(
+            tooltip: localizationService.getString('favorites'),
+            icon: Icon(_showOnlyFavorites ? Icons.favorite : Icons.favorite_border),
+            onPressed: () => setState(() => _showOnlyFavorites = !_showOnlyFavorites),
+          ),
+          // Share favorites
+          IconButton(
+            tooltip: localizationService.getString('share_favorites'),
+            icon: const Icon(Icons.ios_share),
+            onPressed: () {
+              final favs = _favoriteHerbs.toList();
+              if (favs.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(localizationService.getString('no_favorites_yet'))),
+                );
+                return;
+              }
+              final buffer = StringBuffer();
+              buffer.writeln(localizationService.getString('share_favorites_title'));
+              buffer.writeln();
+              for (final key in favs) {
+                try {
+                  buffer.writeln('• ' + localizationService.getString(key));
+                } catch (_) {
+                  buffer.writeln('• ' + key);
+                }
+              }
+              Share.share(buffer.toString());
+            },
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: scheme.primary,

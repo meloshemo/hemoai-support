@@ -3,6 +3,17 @@ import 'package:provider/provider.dart';
 import '../services/theme_service.dart';
 import '../services/localization_service.dart';
 import '../utils/responsive_helper.dart';
+import '../screens/family_panel_screen.dart';
+import '../screens/reminder_list_screen.dart';
+import '../screens/add_reminder_screen.dart';
+import '../screens/dashboard_screen.dart';
+import '../screens/hemogram_entry_screen.dart';
+import '../screens/analysis_screen.dart';
+import '../screens/diet_program_screen.dart';
+import '../screens/alternative_medicine_screen.dart';
+import '../screens/personal_info_screen.dart' as legacy_personal_info;
+import '../screens/notification_screen.dart';
+import '../screens/settings_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   final String? currentRoute;
@@ -155,6 +166,13 @@ class AppDrawer extends StatelessWidget {
                 ),
                 _buildDrawerItem(
                   context,
+                  icon: Icons.settings,
+                  title: LocalizationService.translate('settings'),
+                  route: '/settings',
+                  isSelected: currentRoute == '/settings',
+                ),
+                _buildDrawerItem(
+                  context,
                   icon: Icons.alarm,
                   title: LocalizationService.translate('reminders'),
                   route: '/reminders',
@@ -192,7 +210,18 @@ class AppDrawer extends StatelessWidget {
                         onChanged: (value) {
                           themeService.toggleTheme();
                         },
-                        activeThumbColor: const Color(0xFFE53E3E),
+                        thumbColor: WidgetStateProperty.resolveWith((states) {
+                          if (states.contains(WidgetState.selected)) {
+                            return const Color(0xFFE53E3E);
+                          }
+                          return Theme.of(context).colorScheme.outlineVariant;
+                        }),
+                        trackColor: WidgetStateProperty.resolveWith((states) {
+                          if (states.contains(WidgetState.selected)) {
+                            return const Color(0xFFE53E3E).withValues(alpha: 0.5);
+                          }
+                          return Theme.of(context).colorScheme.outlineVariant;
+                        }),
                       ),
                       onTap: () {
                         themeService.toggleTheme();
@@ -261,9 +290,49 @@ class AppDrawer extends StatelessWidget {
           ),
         ),
         onTap: () {
-          Navigator.pop(context); // Close drawer
+          // Close the drawer first
+          Navigator.of(context).pop();
+          // Navigate by pushing concrete pages directly to avoid named-route generator issues
           if (!isSelected) {
-            Navigator.pushNamed(context, route);
+            Widget? target;
+            switch (route) {
+              case '/dashboard':
+                target = DashboardScreen();
+                break;
+              case '/hemogram_entry':
+                target = HemogramEntryScreen();
+                break;
+              case '/analysis':
+                target = AnalysisScreen(hemogramValues: const {});
+                break;
+              case '/diet_program':
+                target = const DietProgramScreen();
+                break;
+              case '/family_panel':
+                target = const FamilyPanelScreen();
+                break;
+              case '/alternative_medicine':
+                target = const AlternativeMedicineScreen();
+                break;
+              case '/personal_info':
+                target = const legacy_personal_info.PersonalInfoScreen();
+                break;
+              case '/notifications':
+                target = const NotificationScreen();
+                break;
+              case '/settings':
+                target = const SettingsScreen();
+                break;
+              case '/reminders':
+                target = const ReminderListScreen();
+                break;
+              case '/add_reminder':
+                target = const AddReminderScreen();
+                break;
+            }
+            if (target != null) {
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => target!));
+            }
           }
         },
         selected: isSelected,

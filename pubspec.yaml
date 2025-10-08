@@ -16,50 +16,92 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 4.0.0+400
 
 environment:
-  sdk: ^3.9.2
+  sdk: ^3.5.0
+  flutter: ">=3.24.0"
 
-# Dependencies specify other packages that your package needs in order to work.
-# To automatically upgrade your package dependencies to the latest versions
-# consider running `flutter pub upgrade --major-versions`. Alternatively,
-# dependencies can be manually updated by changing the version numbers below to
-# the latest version available on pub.dev. To see which dependencies have newer
-# versions available, run `flutter pub outdated`.
 dependencies:
   flutter:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+  
+  
+  # Legacy state management (OS-3 stack)
+  provider: ^6.1.2
+  
+  # Modern State Management
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+  
+  # UI & Design System
   cupertino_icons: ^1.0.8
-  # State management için
-  provider: ^6.1.1
-  # Veri kalıcılığı için
-  shared_preferences: ^2.2.2
-  sqflite: ^2.3.0
+  # material_color_utilities is provided by Flutter SDK; no direct dep needed
+  
+  # Data Persistence & Database
+  drift: ^2.18.0
+  drift_flutter: ^0.1.0
+  sqlite3_flutter_libs: ^0.5.18
+  sqflite: ^2.4.2
   sqflite_common_ffi: ^2.3.3
-  path: ^1.8.3
-  # JSON işlemleri için
-  convert: ^3.1.1
-  # Şifreleme için
-  crypto: ^3.0.3
-  cryptography: ^2.5.0
-  # Chart kütüphanesi
-  fl_chart: ^0.68.0
-  # PDF export için
-  pdf: ^3.10.7
-  printing: ^5.12.0
-  # Sharing & file saving
-  share_plus: ^10.0.2
   path_provider: ^2.1.4
+  path: ^1.8.3
+  
+  # Local Storage & Preferences
+  shared_preferences: ^2.3.2
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  
+  # Networking & APIs
+  dio: ^5.7.0
+  retrofit: ^4.4.1
+  json_annotation: ^4.9.0
+  
+  # Charts & Data Visualization
+  fl_chart: ^0.69.0
+  
+  # PDF & Document Generation
+  pdf: ^3.11.1
+  printing: ^5.13.2
+  excel: ^4.0.6
+  
+  # File Operations
+  share_plus: ^10.1.1
   open_filex: ^4.5.0
-  image_picker: ^1.0.8
+  file_picker: ^8.1.2
+  image_picker: ^1.1.2
+  
+  # AI & Machine Learning
   google_mlkit_text_recognition: ^0.13.0
-  # Excel export için
-  excel: ^4.0.3
-  # File picker
-  file_picker: ^8.0.0+1
+  tflite_flutter: ^0.10.4
+  
+  # Security & Encryption
+  cryptography: ^2.7.0
+  local_auth: ^2.3.0
+  crypto: ^3.0.3
+  
+  # Utilities
+  intl: ^0.20.2
+  uuid: ^4.5.0
+  logger: ^2.4.0
+  package_info_plus: ^8.0.2
+  
+  # Animations & UI Enhancements
+  lottie: ^3.1.2
+  shimmer: ^3.0.0
+  cached_network_image: ^3.4.1
+  
+  # Background Tasks
+  workmanager: ^0.5.2
+  
+  # Cloud & Sync
+  supabase_flutter: ^2.8.0
+  
+  # Health & Fitness (optional)
+  # health: ^11.3.0 # Temporarily disabled due to unavailable version; re-enable with a valid version when needed
+  permission_handler: ^11.3.1
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
 
@@ -68,11 +110,19 @@ dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^5.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  
+  # Testing
+  mockito: ^5.4.4
+  integration_test:
+    sdk: flutter
+  
+  # Linting & Analysis
+  flutter_lints: ^5.0.0
+  very_good_analysis: ^6.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -86,6 +136,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/hemoai pic 1.O.jpg
+  # (Removed unused video asset)
 
   # To add assets to your application, add an assets section, like this:
   # assets:

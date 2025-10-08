@@ -206,6 +206,42 @@
 			"type": "shell",
 			"command": "flutter analyze",
 			"group": "build"
+		},
+		{
+			"label": "validate-localization",
+			"type": "shell",
+			"command": "dart run tool/validate_localization.dart",
+			"group": "build"
+		},
+		{
+			"label": "flutter-analyze",
+			"type": "shell",
+			"command": "flutter analyze",
+			"group": "build"
+		},
+		{
+			"label": "flutter-analyze",
+			"type": "shell",
+			"command": "flutter analyze",
+			"group": "build"
+		},
+		{
+			"label": "flutter-analyze",
+			"type": "shell",
+			"command": "flutter analyze",
+			"group": "build"
+		},
+		{
+			"label": "flutter-analyze",
+			"type": "shell",
+			"command": "flutter analyze",
+			"group": "build"
+		},
+		{
+			"label": "flutter-analyze",
+			"type": "shell",
+			"command": "flutter analyze",
+			"group": "build"
 		}
 	]
 }

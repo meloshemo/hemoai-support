@@ -15,16 +15,18 @@ void main() {
       MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => ThemeService()),
-          ChangeNotifierProvider(create: (_) => NotificationService()),
-          ChangeNotifierProvider(create: (_) => PushNotificationService()),
-          ChangeNotifierProvider(create: (_) => LocalizationService()),
+          ChangeNotifierProvider(create: (_) => NotificationService()..initialize()),
+          ChangeNotifierProvider(create: (_) => PushNotificationService()..initialize()),
+          ChangeNotifierProvider(create: (_) => LocalizationService()..initialize()),
           ChangeNotifierProvider(create: (_) => AnalyticsService()..initialize()),
         ],
         child: HemoAIApp(),
       ),
     );
-
-    await tester.pumpAndSettle();
+    // Avoid indefinite settle due to async initializations; do a bounded pump loop
+    for (int i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
 
     // Expect at least a MaterialApp to be present
     expect(find.byType(MaterialApp), findsOneWidget);

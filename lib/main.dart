@@ -1,155 +1,251 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
-import 'screens/login_screen.dart';
-import 'screens/register_screen.dart';
-import 'screens/guest_screen.dart';
-import 'screens/personal_info_screen.dart';
-import 'screens/hemogram_entry_screen.dart';
-import 'screens/analysis_screen.dart';
-import 'screens/diet_program_screen.dart';
-import 'screens/family_panel_screen.dart';
-import 'screens/notification_screen.dart';
-import 'screens/alternative_medicine_screen.dart';
-import 'screens/test_login_screen.dart';
-import 'screens/dashboard_screen.dart';
-import 'screens/add_reminder_screen.dart';
-import 'screens/reminder_list_screen.dart';
-import 'screens/enhanced_notification_screen.dart';
-import 'screens/export_options_screen.dart';
-import 'screens/language_settings_screen.dart';
-import 'screens/advanced_analytics_screen.dart';
-import 'services/theme_service.dart';
-import 'services/notification_service.dart';
-import 'services/push_notification_service.dart';
-import 'services/localization_service.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'dart:io' show Platform;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-void main() async {
+// Legacy OS-3 services (ChangeNotifier-based)
+import 'services/theme_service.dart';
+import 'services/notification_service.dart' as inapp_notifications;
+import 'services/push_notification_service.dart';
+import 'services/localization_service.dart';
+import 'services/analytics_service.dart';
+
+// Legacy OS-3 screens and routing targets
+import 'screens/dashboard_screen.dart';
+import 'screens/login_screen.dart';
+import 'screens/analysis_screen.dart';
+import 'screens/alternative_medicine_screen.dart';
+import 'screens/notification_screen.dart';
+import 'screens/diet_program_screen.dart';
+import 'screens/personal_info_screen.dart' as legacy_personal_info;
+import 'screens/language_settings_screen.dart';
+import 'screens/hemogram_entry_screen.dart';
+import 'screens/export_options_screen_simple.dart' as export_simple;
+import 'screens/family_panel_screen.dart';
+import 'screens/reminder_list_screen.dart';
+import 'screens/add_reminder_screen.dart';
+import 'services/preferences_service.dart';
+import 'screens/settings_screen.dart';
+import 'screens/performance_screen.dart';
+import 'screens/notification_debug_screen.dart';
+import 'screens/stats_screen.dart';
+import 'screens/about_screen.dart';
+
+void main() {
+  // Ensure bindings are ready before any async/service work
   WidgetsFlutterBinding.ensureInitialized();
-  // ignore: avoid_print
-  print('[BOOT] Widgets binding initialized');
-  // Initialize FFI database for desktop platforms (Windows, Linux, macOS)
-  // Guard with kIsWeb to avoid evaluating Platform.* on Web (would throw UnsupportedError)
-  if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
-    // ignore: avoid_print
-    print('[BOOT] Initializing sqflite_common_ffi for desktop');
-    sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
+  // Initialize SQLite FFI on desktop (Windows/Linux/macOS)
+  if (!kIsWeb) {
+    final isDesktop = {
+      TargetPlatform.windows,
+      TargetPlatform.linux,
+      TargetPlatform.macOS,
+    }.contains(defaultTargetPlatform);
+    if (isDesktop) {
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+    }
   }
-  
-  final notificationService = NotificationService();
-  final pushNotificationService = PushNotificationService();
-  final localizationService = LocalizationService();
-  
-  // ignore: avoid_print
-  print('[BOOT] Initializing NotificationService');
-  notificationService.initialize();
-  // ignore: avoid_print
-  print('[BOOT] Initializing PushNotificationService');
-  await pushNotificationService.initialize();
-  // ignore: avoid_print
-  print('[BOOT] Initializing LocalizationService');
-  await localizationService.initialize();
-  // ignore: avoid_print
-  print('[BOOT] Services initialized, starting app');
-  
-  // Surface errors visibly (avoid silent blank screen on Web)
-  FlutterError.onError = (FlutterErrorDetails details) {
-    FlutterError.presentError(details);
-    // Also print to console
-    // ignore: avoid_print
-    print('FlutterError: \\n${details.exceptionAsString()}\\n${details.stack}');
-  };
 
-  ErrorWidget.builder = (FlutterErrorDetails details) {
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(title: const Text('Error')),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Text(details.toString()),
-        ),
-      ),
-    );
-  };
-
-  runZonedGuarded(() {
-    runApp(
-      MultiProvider(
-        providers: [
-          ChangeNotifierProvider(create: (context) => ThemeService()),
-          ChangeNotifierProvider.value(value: notificationService),
-          ChangeNotifierProvider.value(value: pushNotificationService),
-          ChangeNotifierProvider.value(value: localizationService),
-        ],
-        child: HemoAIApp(),
-      ),
-    );
-  }, (error, stack) {
-    // ignore: avoid_print
-    print('Uncaught zone error: $error');
-    // ignore: avoid_print
-    print(stack);
-  });
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeService()),
+        ChangeNotifierProvider(create: (_) => inapp_notifications.NotificationService()..initialize()),
+        ChangeNotifierProvider(create: (_) => PushNotificationService()..initialize()),
+        ChangeNotifierProvider(create: (_) => LocalizationService()..initialize()),
+        ChangeNotifierProvider(create: (_) => AnalyticsService()..initialize()),
+      ],
+      child: const HemoAIApp(),
+    ),
+  );
 }
 
 class HemoAIApp extends StatelessWidget {
+  const HemoAIApp({super.key});
+
   @override
   Widget build(BuildContext context) {
-    // ignore: avoid_print
-    print('[BOOT] HemoAIApp build()');
-    return Consumer2<ThemeService, LocalizationService>(
-      builder: (context, themeService, localizationService, child) {
-        return AnimatedBuilder(
-          animation: themeService,
-          builder: (context, child) {
-            // ignore: avoid_print
-            print('[BOOT] Building MaterialApp with locale: ${localizationService.currentLocale.languageCode}, dark: ${themeService.isDarkMode}');
-            return MaterialApp(
-              title: 'HEMOAI',
-              theme: ThemeService.lightTheme,
-              darkTheme: ThemeService.darkTheme,
-              themeMode: themeService.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-              themeAnimationDuration: const Duration(milliseconds: 150), // Ultra hızlı geçiş
-              locale: localizationService.currentLocale,
+    final themeService = Provider.of<ThemeService>(context);
+    final localization = Provider.of<LocalizationService>(context);
+
+  return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'HemoAI',
+
+      // Theme
+      theme: ThemeService.lightTheme,
+      darkTheme: ThemeService.darkTheme,
+      themeMode: themeService.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+
+      // Localization
+      locale: localization.currentLocale,
+      supportedLocales: localization.supportedLocales,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ],
+
+      // Routes
       initialRoute: '/',
       routes: {
-        '/': (context) => LoginScreen(),
-        '/login': (context) => LoginScreen(),
-        '/register': (context) => RegisterScreen(),
-        '/guest': (context) => GuestScreen(),
-        '/personal_info': (context) => PersonalInfoScreen(),
-        '/hemogram_entry': (context) => HemogramEntryScreen(),
-        '/analysis': (context) {
-          final args = ModalRoute.of(context)?.settings.arguments as Map<String, double>?;
-          return AnalysisScreen(hemogramValues: args ?? const {});
-        },
-        '/diet_program': (context) => DietProgramScreen(),
-        '/family_panel': (context) => FamilyPanelScreen(),
-        '/notifications': (context) => EnhancedNotificationScreen(),
-        '/alternative_medicine': (context) => AlternativeMedicineScreen(),
-        '/test_login': (context) => TestLoginScreen(),
+        '/': (context) => const _AuthGate(),
         '/dashboard': (context) => DashboardScreen(),
-        '/add_reminder': (context) => AddReminderScreen(),
-        '/reminders': (context) => ReminderListScreen(),
-        '/export_options': (context) => const ExportOptionsScreen(),
+        '/login': (context) => const LoginScreen(),
+        '/alternative_medicine': (context) => const AlternativeMedicineScreen(),
+        '/notifications': (context) => const NotificationScreen(),
+        '/diet_program': (context) => const DietProgramScreen(),
+        '/personal_info': (context) => const legacy_personal_info.PersonalInfoScreen(),
         '/language_settings': (context) => const LanguageSettingsScreen(),
-        '/advanced_analytics': (context) => const AdvancedAnalyticsScreen(),
+  '/hemogram_entry': (context) => HemogramEntryScreen(),
+        '/export_options': (context) => const export_simple.ExportOptionsScreen(),
+        '/family_panel': (context) => const FamilyPanelScreen(),
+        '/reminders': (context) => const ReminderListScreen(),
+        '/add_reminder': (context) => const AddReminderScreen(),
+        // Settings and tools
+        '/settings': (context) => SettingsScreen(),
+        '/performance': (context) => PerformanceScreen(),
+        '/notification_debug': (context) => NotificationDebugScreen(),
+        '/stats': (context) => StatsScreen(),
+        '/about': (context) => AboutScreen(),
       },
-      supportedLocales: localizationService.supportedLocales,
-      localizationsDelegates: [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
+
+      // Handle routes needing arguments (e.g., /analysis with values)
+      onGenerateRoute: (settings) {
+        // Safety net: handle some named routes here too
+        switch (settings.name) {
+          case '/family_panel':
+            return MaterialPageRoute(
+              builder: (_) => const FamilyPanelScreen(),
+              settings: settings,
             );
-          },
+          case '/reminders':
+            return MaterialPageRoute(
+              builder: (_) => const ReminderListScreen(),
+              settings: settings,
+            );
+          case '/add_reminder':
+            return MaterialPageRoute(
+              builder: (_) => const AddReminderScreen(),
+              settings: settings,
+            );
+        }
+        if (settings.name == '/analysis') {
+          final args = settings.arguments;
+          final values = (args is Map<String, double>) ? args : <String, double>{};
+          return MaterialPageRoute(
+            builder: (_) => AnalysisScreen(hemogramValues: values),
+            settings: settings,
+          );
+        }
+        return null;
+      },
+
+      // Fallback for any unknown routes to avoid crashes in release
+      onUnknownRoute: (settings) {
+        debugPrint('Unknown route requested: \'${settings.name}\'');
+        return MaterialPageRoute(
+          builder: (_) => DashboardScreen(),
+          settings: const RouteSettings(name: '/dashboard'),
+        );
+      },
+
+      builder: (context, child) {
+        // Ensure consistent text scaling and text direction per LocalizationService
+        final media = MediaQuery.of(context);
+        return Directionality(
+          textDirection: localization.textDirection,
+          child: MediaQuery(
+            data: media.copyWith(textScaler: const TextScaler.linear(1.0)),
+            child: child ?? const SizedBox.shrink(),
+          ),
         );
       },
     );
+  }
+}
+
+class _AuthGate extends StatefulWidget {
+  const _AuthGate();
+
+  @override
+  State<_AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<_AuthGate> {
+  bool _loading = true;
+  bool _loggedIn = false;
+  bool _navigated = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuth();
+  }
+
+  Future<void> _checkAuth() async {
+    try {
+      final prefs = await PreferencesService.getInstance();
+      final logged = prefs.isUserLoggedIn();
+      if (!mounted) return;
+      setState(() {
+        _loggedIn = logged;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loggedIn = false;
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    // Redirect based on auth state
+    if (!_navigated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_navigated) return; // double guard
+        final current = ModalRoute.of(context)?.settings.name;
+        // If user already navigated to an inner page (e.g., /family_panel), don't override it
+        const safeInnerRoutes = {
+          '/family_panel',
+          '/reminders',
+          '/add_reminder',
+          '/analysis',
+          '/diet_program',
+          '/alternative_medicine',
+          '/personal_info',
+          '/notifications',
+          '/language_settings',
+          '/hemogram_entry',
+          '/export_options',
+          // Newly added routes
+          '/settings',
+          '/performance',
+          '/notification_debug',
+          '/stats',
+          '/about',
+        };
+        if (current != null && safeInnerRoutes.contains(current)) {
+          _navigated = true;
+          return;
+        }
+        final route = _loggedIn ? '/dashboard' : '/login';
+        if (current != route) {
+          _navigated = true;
+          Navigator.of(context).pushReplacementNamed(route);
+        }
+      });
+    }
+    return const SizedBox.shrink();
   }
 }

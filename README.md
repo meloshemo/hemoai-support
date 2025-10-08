@@ -1,10 +1,17 @@
-# hemoai
+# HemoAI — OS 4 HemoAI
 
-A new Flutter project.
+Hemogram tracking, AI analysis, reminders, and family features.
+
+Current release: OS 4 HemoAI (v4.0.0+400)
+
+Highlights:
+- Smart Summary on Analysis with Risk Score and Top Flags
+- Adaptive Reminders: streaks, Mark as Done, Snooze 10m
+- Settings discoverability improvements and developer tools
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+This project was initially scaffolded from Flutter templates and evolved into a multi-platform health tracker.
 
 A few resources to get you started if this is your first Flutter project:
 
