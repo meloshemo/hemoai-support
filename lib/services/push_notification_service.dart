@@ -3,6 +3,10 @@ import 'package:permission_handler/permission_handler.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'localization_service.dart';
+import 'daily_advice_service.dart';
+import 'preferences_service.dart';
+import 'database_helper.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Enhanced Notification Service with Push Support
 class PushNotificationService extends ChangeNotifier {
@@ -56,6 +60,7 @@ class PushNotificationService extends ChangeNotifier {
     try {
       await _requestPermissions();
       await _configureNotifications();
+      await _rehydrateSchedules();
       _startScheduleChecker();
       _isInitialized = true;
       
@@ -68,6 +73,21 @@ class PushNotificationService extends ChangeNotifier {
   debugPrint('❌ Failed to initialize PushNotificationService: $e');
         _log('Init failed: $e');
       }
+    }
+  }
+
+  // Public permission request for settings UI
+  Future<void> requestPermissions() async {
+    await _requestPermissions();
+    notifyListeners();
+  }
+
+  // Open system app notification settings
+  Future<void> openSystemSettings() async {
+    try {
+      await openAppSettings();
+    } catch (_) {
+      // no-op
     }
   }
 
@@ -156,6 +176,35 @@ class PushNotificationService extends ChangeNotifier {
     });
   }
 
+  // Persist schedules to local storage (shared_prefs JSON)
+  Future<void> _persistSchedules() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = _scheduledNotifications.map((e) => e.toMap()).toList();
+      await prefs.setString('scheduled_notifications_v1', jsonEncode(list));
+    } catch (e) {
+      _log('Persist schedules failed: $e');
+    }
+  }
+
+  Future<void> _rehydrateSchedules() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final s = prefs.getString('scheduled_notifications_v1');
+      if (s == null || s.isEmpty) return;
+      final List<dynamic> arr = jsonDecode(s);
+      final list = arr.cast<Map<String, dynamic>>().map(ScheduledNotification.fromMap).toList();
+      _scheduledNotifications
+        ..clear()
+        ..addAll(list);
+      _scheduledNotifications.sort((a, b) => a.scheduledTime.compareTo(b.scheduledTime));
+      _log('Rehydrated ${list.length} scheduled notifications');
+      notifyListeners();
+    } catch (e) {
+      _log('Rehydrate schedules failed: $e');
+    }
+  }
+
   // Check and trigger scheduled notifications
   void _checkScheduledNotifications() {
     final now = DateTime.now();
@@ -224,22 +273,20 @@ class PushNotificationService extends ChangeNotifier {
     // Auto-reschedule daily motivation notifications for the next day
     try {
       final repeat = message.data['repeat'];
-      if (repeat == 'daily_motivation') {
+  if (repeat == 'daily_motivation') {
         final int hour = (message.data['hour'] is String)
             ? int.tryParse(message.data['hour']) ?? DateTime.now().hour
             : (message.data['hour'] as int? ?? DateTime.now().hour);
         final int minute = (message.data['minute'] is String)
             ? int.tryParse(message.data['minute']) ?? DateTime.now().minute
             : (message.data['minute'] as int? ?? DateTime.now().minute);
-        final String? quote = message.data['quote'] as String?;
         // Schedule for next day at the same time
         final now = DateTime.now();
         final next = DateTime(now.year, now.month, now.day, hour, minute).add(const Duration(days: 1));
         final loc = LocalizationService();
         final title = loc.getString('motivational_rotating_title');
-        final body = quote != null && quote.trim().isNotEmpty
-            ? quote
-            : loc.getString('motivational_message_long');
+        // Fresh quote for next day
+        final body = DailyAdviceService().getQuoteForDate(loc, next);
         scheduleNotification(
           title: title,
           body: body,
@@ -249,7 +296,6 @@ class PushNotificationService extends ChangeNotifier {
             'repeat': 'daily_motivation',
             'hour': hour,
             'minute': minute,
-            if (quote != null) 'quote': quote,
           },
         );
       } else if (repeat == 'daily' || repeat == 'weekly' || repeat == 'monthly') {
@@ -289,6 +335,8 @@ class PushNotificationService extends ChangeNotifier {
       _log('Auto-reschedule failed: $e');
     }
 
+    // Update persisted schedules after modifications
+    _persistSchedules();
     notifyListeners();
   }
 
@@ -350,11 +398,12 @@ class PushNotificationService extends ChangeNotifier {
       scheduled = scheduled.add(const Duration(days: 1));
     }
 
-    final loc = LocalizationService();
-    final title = loc.getString('motivational_rotating_title');
-    final body = (quote != null && quote.trim().isNotEmpty)
-        ? quote
-        : loc.getString('motivational_message_long');
+  final loc = LocalizationService();
+  final title = loc.getString('motivational_rotating_title');
+  // Prefer provided quote; else pick deterministic quote for the scheduled day
+  final body = (quote != null && quote.trim().isNotEmpty)
+    ? quote
+    : DailyAdviceService().getQuoteForDate(loc, scheduled);
 
     return await scheduleNotification(
       title: title,
@@ -365,7 +414,6 @@ class PushNotificationService extends ChangeNotifier {
         'repeat': 'daily_motivation',
         'hour': hour,
         'minute': minute,
-        if (quote != null) 'quote': quote,
       },
     );
   }
@@ -516,6 +564,7 @@ class PushNotificationService extends ChangeNotifier {
       }
 
       notifyListeners();
+  await _persistSchedules();
       if (kDebugMode) {
         debugPrint('⏰ Notification scheduled: $title for ${targetTime.toString()}');
       }
@@ -547,6 +596,7 @@ class PushNotificationService extends ChangeNotifier {
         }
       }
       notifyListeners();
+      await _persistSchedules();
       if (kDebugMode) {
         debugPrint('❌ Notification cancelled: $id');
       }
@@ -557,6 +607,95 @@ class PushNotificationService extends ChangeNotifier {
     } catch (e) {
       _log('Cancel failed for $id: $e');
       rethrow;
+    }
+  }
+
+  // Action: user marked medication/test/reminder as taken/completed
+  Future<void> actionMarkTaken(NotificationMessage message) async {
+    try {
+      final rid = _coerceInt(message.data['reminder_id']);
+      final prefs = await PreferencesService.getInstance();
+      final userId = prefs.getCurrentUserId();
+      // Log action
+      await DatabaseHelper.instance.insertReminderLog(
+        reminderId: rid ?? -1,
+        userId: userId,
+        action: 'taken',
+        actionDate: DateTime.now(),
+        scheduledTime: null,
+        metadata: jsonEncode({'notification_id': message.id}),
+      );
+      // Update streaks if reminder_id valid
+      if (rid != null && rid >= 0) {
+        final streak = await DatabaseHelper.instance.getReminderStreak(rid, userId: userId);
+        final last = streak['last_completed_date'] as String?;
+        final today = DateTime.now();
+        final todayStr = today.toIso8601String().split('T').first;
+        int current = (streak['current_streak'] as int?) ?? 0;
+        int longest = (streak['longest_streak'] as int?) ?? 0;
+        if (last == null) {
+          current = 1;
+        } else {
+          final lastDate = DateTime.tryParse(last);
+          if (lastDate != null) {
+            final diffDays = today.difference(DateTime(lastDate.year, lastDate.month, lastDate.day)).inDays;
+            if (diffDays == 0) {
+              // already counted today; keep as-is
+            } else if (diffDays == 1) {
+              current += 1;
+            } else {
+              current = 1;
+            }
+          } else {
+            current = 1;
+          }
+        }
+        if (current > longest) longest = current;
+        await DatabaseHelper.instance.upsertReminderStreak(
+          reminderId: rid,
+          userId: userId,
+          currentStreak: current,
+          longestStreak: longest,
+          lastCompletedDate: todayStr,
+        );
+      }
+      _log('Action taken recorded for ${message.id} (rid=${rid ?? 'n/a'})');
+    } catch (e) {
+      _log('Action taken failed: $e');
+    }
+  }
+
+  // Action: snooze notification and log it
+  Future<String?> actionSnooze(NotificationMessage message, {int minutes = 10}) async {
+    try {
+      final rid = _coerceInt(message.data['reminder_id']);
+      final prefs = await PreferencesService.getInstance();
+      final userId = prefs.getCurrentUserId();
+      await DatabaseHelper.instance.insertReminderLog(
+        reminderId: rid ?? -1,
+        userId: userId,
+        action: 'snooze',
+        actionDate: DateTime.now(),
+        scheduledTime: null,
+        metadata: jsonEncode({'minutes': minutes, 'notification_id': message.id}),
+      );
+      final id = await snoozeReceived(message: message, delay: Duration(minutes: minutes));
+      return id;
+    } catch (e) {
+      _log('Action snooze failed: $e');
+      return null;
+    }
+  }
+
+  // Handle notification tap (deep link helper)
+  String? handleTap(NotificationMessage message) {
+    try {
+      final deeplink = message.data['deeplink'];
+      _log('Tap handled. deeplink=$deeplink');
+      return deeplink is String ? deeplink : null;
+    } catch (e) {
+      _log('Tap handle failed: $e');
+      return null;
     }
   }
 
@@ -623,6 +762,75 @@ class PushNotificationService extends ChangeNotifier {
       return id;
     } catch (e) {
       _log('Snooze (scheduled) failed: $e');
+      rethrow;
+    }
+  }
+
+  // Dismiss notification for today (cancel today's occurrence, reschedule for tomorrow if repeating)
+  Future<void> dismissForToday({
+    NotificationMessage? received,
+    ScheduledNotification? scheduled,
+  }) async {
+    try {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final tomorrow = today.add(const Duration(days: 1));
+      
+      if (received != null) {
+        // For received notifications, check if it's repeating
+        final repeat = received.data['repeat'];
+        if (repeat == 'daily' || repeat == 'weekly' || repeat == 'monthly' || repeat == 'daily_motivation') {
+          // Reschedule for tomorrow at the same time
+          final hour = _coerceInt(received.data['hour']) ?? 9;
+          final minute = _coerceInt(received.data['minute']) ?? 0;
+          final nextTime = DateTime(tomorrow.year, tomorrow.month, tomorrow.day, hour, minute);
+          
+          await scheduleNotification(
+            title: received.title,
+            body: received.body,
+            scheduledTime: nextTime,
+            type: received.type,
+            data: {
+              ...received.data,
+              'dismissed_today': true,
+              'dismissed_date': today.toIso8601String(),
+            },
+          );
+          _log('Dismissed received ${received.id} for today, rescheduled for tomorrow');
+        } else {
+          // Non-repeating, just cancel
+          _log('Dismissed non-repeating received ${received.id} for today');
+        }
+      } else if (scheduled != null) {
+        // Cancel the scheduled notification
+        await cancelNotification(scheduled.id);
+        
+        // Check if it's repeating
+        final repeat = scheduled.data['repeat'];
+        if (repeat == 'daily' || repeat == 'weekly' || repeat == 'monthly' || repeat == 'daily_motivation') {
+          // Reschedule for tomorrow at the same time
+          final hour = _coerceInt(scheduled.data['hour']) ?? scheduled.scheduledTime.hour;
+          final minute = _coerceInt(scheduled.data['minute']) ?? scheduled.scheduledTime.minute;
+          final nextTime = DateTime(tomorrow.year, tomorrow.month, tomorrow.day, hour, minute);
+          
+          await scheduleNotification(
+            title: scheduled.title,
+            body: scheduled.body,
+            scheduledTime: nextTime,
+            type: scheduled.type,
+            data: {
+              ...scheduled.data,
+              'dismissed_today': true,
+              'dismissed_date': today.toIso8601String(),
+            },
+          );
+          _log('Dismissed scheduled ${scheduled.id} for today, rescheduled for tomorrow');
+        } else {
+          _log('Dismissed non-repeating scheduled ${scheduled.id} for today');
+        }
+      }
+    } catch (e) {
+      _log('Dismiss for today failed: $e');
       rethrow;
     }
   }

@@ -7,6 +7,8 @@ import '../services/cache_service.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../utils/app_constants.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -429,18 +431,39 @@ class AboutScreen extends StatelessWidget {
     Share.share(shareText);
   }
 
-  void _contactSupport(BuildContext context, LocalizationService loc) {
+  void _contactSupport(BuildContext context, LocalizationService loc) async {
     final analytics = Provider.of<AnalyticsService>(context, listen: false);
     analytics.trackEvent('contact_support_clicked');
     
-    // Copy email to clipboard
-    Clipboard.setData(ClipboardData(text: loc.getString('support_email')));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${loc.getString('support_email')} ${loc.getString('copy')}'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    try {
+      // Open support portal URL
+      final uri = Uri.parse(AppConstants.supportUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        // Fallback: Copy email to clipboard
+        Clipboard.setData(ClipboardData(text: AppConstants.supportEmail));
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${loc.getString('support_email') ?? AppConstants.supportEmail} ${loc.getString('copy') ?? 'copied'}'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Fallback: Copy email to clipboard
+      Clipboard.setData(ClipboardData(text: AppConstants.supportEmail));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${loc.getString('support_email') ?? AppConstants.supportEmail} ${loc.getString('copy') ?? 'copied'}'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   void _clearCache(BuildContext context, LocalizationService loc) {

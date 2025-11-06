@@ -161,6 +161,10 @@ class HemoAICache {
     return _familyCache.get('family_$userId');
   }
 
+  void clearFamilyMembers(int userId) {
+    _familyCache.remove('family_$userId');
+  }
+
   void putFamilyMembers(int userId, List<Map<String, dynamic>> members) {
     _familyCache.put('family_$userId', members);
   }

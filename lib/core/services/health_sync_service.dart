@@ -1,11 +1,11 @@
-// Optional health integration; if the health package is disabled in pubspec,
-// this file should not be imported by the app. Keep as-is for future use.
-// No-op health sync service stub to keep Android/iOS builds green without the
-// external 'health' package. Later, replace with real implementation once a
-// compatible version is selected in pubspec.
+// Health Sync Service - Platform-aware implementation
+// Uses conditional imports to support both with and without health package
+import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
+import 'package:health/health.dart';
 import '../database/app_database.dart';
 import '../models/user_model.dart';
+import 'dart:io' show Platform;
 
 class HealthSyncService {
   static final HealthSyncService _instance = HealthSyncService._internal();
@@ -13,23 +13,24 @@ class HealthSyncService {
   HealthSyncService._internal();
 
   final Logger _logger = Logger();
-  late Health _health;
+  Health? _health;
   bool _isInitialized = false;
   bool _hasPermissions = false;
+  bool _healthPackageAvailable = false;
 
   // Health data types we're interested in
-  static const List<HealthDataType> _healthDataTypes = [
+  static final List<HealthDataType> _healthDataTypes = [
     HealthDataType.WEIGHT,
     HealthDataType.HEIGHT,
     HealthDataType.BLOOD_PRESSURE_SYSTOLIC,
     HealthDataType.BLOOD_PRESSURE_DIASTOLIC,
     HealthDataType.HEART_RATE,
-    HealthDataType.BLOOD_OXYGEN,
+    HealthDataType.BLOOD_OXYGEN_SATURATION,
     HealthDataType.BODY_TEMPERATURE,
     HealthDataType.STEPS,
     HealthDataType.ACTIVE_ENERGY_BURNED,
     HealthDataType.RESTING_HEART_RATE,
-    HealthDataType.WALKING_HEART_RATE_AVERAGE,
+    HealthDataType.WALKING_HEART_RATE,
     HealthDataType.BLOOD_GLUCOSE,
     HealthDataType.BODY_FAT_PERCENTAGE,
     HealthDataType.BONE_MASS,
@@ -40,36 +41,49 @@ class HealthSyncService {
     if (_isInitialized) return;
 
     try {
-      _health = Health();
+      // Initialize health package
+      try {
+        _health = Health();
+        _healthPackageAvailable = true;
+        _logger.i('Health package initialized successfully');
+      } catch (e) {
+        _logger.w('Health package initialization failed: $e');
+        _healthPackageAvailable = false;
+        _health = null;
+      }
+      
       _isInitialized = true;
       
-      // Request permissions
-      await _requestPermissions();
-      
-      _logger.i('Health sync service initialized successfully');
+      // Request permissions if package is available
+      if (_healthPackageAvailable && _health != null) {
+        await _requestPermissions();
+      } else {
+        _logger.i('Health sync service initialized (package not available - using fallback)');
+      }
       
     } catch (e, stackTrace) {
       _logger.e('Failed to initialize health sync service: $e', 
                 error: e, stackTrace: stackTrace);
-      rethrow;
+      _isInitialized = true; // Mark as initialized even if package fails
+      _healthPackageAvailable = false;
     }
   }
 
   Future<void> _requestPermissions() async {
-    try {
-      // Request health permissions
-      _hasPermissions = await _health.requestAuthorization(
-        _healthDataTypes,
-        permissions: [
-          HealthDataAccess.READ,
-          HealthDataAccess.WRITE,
-        ],
-      );
+    if (!_healthPackageAvailable || _health == null) {
+      _hasPermissions = false;
+      _logger.i('Health package not available - skipping permissions');
+      return;
+    }
 
+    try {
+      // Request health permissions for all data types
+      _hasPermissions = await _health!.requestAuthorization(_healthDataTypes);
+      
       if (_hasPermissions) {
         _logger.i('Health permissions granted');
       } else {
-        _logger.w('Health permissions denied');
+        _logger.w('Health permissions denied by user');
       }
       
     } catch (e, stackTrace) {
@@ -94,113 +108,172 @@ class HealthSyncService {
     required DateTime startDate,
     required DateTime endDate,
   }) async {
-    if (!_isInitialized || !_hasPermissions) {
-      throw Exception('Health service not initialized or permissions not granted');
+    if (!_isInitialized || !_healthPackageAvailable || !_hasPermissions || _health == null) {
+      _logger.w('Health service not available - returning empty data');
+      return {};
     }
 
     try {
       final healthData = <String, dynamic>{};
 
+      // Fetch data for each health data type
       for (final dataType in _healthDataTypes) {
         try {
-          final data = await _health.getHealthDataFromTypes(
+          final data = await _health!.getHealthDataFromTypes(
             startDate,
             endDate,
             [dataType],
           );
-
+          
           if (data.isNotEmpty) {
-            healthData[dataType.toString()] = data;
+            healthData[dataType.toString()] = data.map((datum) {
+              return {
+                'value': datum.value.toDouble(),
+                'unit': datum.unit.toString(),
+                'dateTime': datum.dateFrom ?? datum.dateTo,
+              };
+            }).toList();
           }
         } catch (e) {
-          _logger.w('Failed to get data for ${dataType.toString()}: $e');
+          _logger.w('Failed to fetch ${dataType.toString()}: $e');
         }
       }
-
+      
       _logger.i('Retrieved health data for ${healthData.length} data types');
       return healthData;
       
     } catch (e, stackTrace) {
       _logger.e('Failed to get health data: $e', 
                 error: e, stackTrace: stackTrace);
-      rethrow;
+      return {};
     }
   }
 
-  Future<List<HealthDataPoint>> getWeightData({
+  Future<List<Map<String, dynamic>>> getWeightData({
     required DateTime startDate,
     required DateTime endDate,
   }) async {
-    if (!_isInitialized || !_hasPermissions) {
+    if (!_isInitialized || !_healthPackageAvailable || !_hasPermissions || _health == null) {
       return [];
     }
 
     try {
-      return await _health.getHealthDataFromTypes(
+      final data = await _health!.getHealthDataFromTypes(
         startDate,
         endDate,
         [HealthDataType.WEIGHT],
       );
+      
+      return data.map((datum) {
+        return {
+          'value': datum.value.toDouble(),
+          'unit': datum.unit.toString(),
+          'dateTime': datum.dateFrom ?? datum.dateTo,
+        };
+      }).toList();
     } catch (e) {
       _logger.e('Failed to get weight data: $e');
       return [];
     }
   }
 
-  Future<List<HealthDataPoint>> getBloodPressureData({
+  Future<List<Map<String, dynamic>>> getBloodPressureData({
     required DateTime startDate,
     required DateTime endDate,
   }) async {
-    if (!_isInitialized || !_hasPermissions) {
+    if (!_isInitialized || !_healthPackageAvailable || !_hasPermissions || _health == null) {
       return [];
     }
 
     try {
-      return await _health.getHealthDataFromTypes(
+      final systolicData = await _health!.getHealthDataFromTypes(
         startDate,
         endDate,
-        [HealthDataType.BLOOD_PRESSURE_SYSTOLIC, HealthDataType.BLOOD_PRESSURE_DIASTOLIC],
+        [HealthDataType.BLOOD_PRESSURE_SYSTOLIC],
       );
+      
+      final diastolicData = await _health!.getHealthDataFromTypes(
+        startDate,
+        endDate,
+        [HealthDataType.BLOOD_PRESSURE_DIASTOLIC],
+      );
+      
+      final results = <Map<String, dynamic>>[];
+      
+      // Combine systolic and diastolic readings
+      for (final systolic in systolicData) {
+        final matchingDiastolic = diastolicData.firstWhere(
+          (d) => (d.dateFrom ?? d.dateTo).difference(systolic.dateFrom ?? systolic.dateTo).abs().inMinutes < 5,
+          orElse: () => systolic, // Fallback if no matching diastolic
+        );
+        
+        results.add({
+          'systolic': systolic.value.toDouble(),
+          'diastolic': matchingDiastolic.value.toDouble(),
+          'unit': systolic.unit.toString(),
+          'dateTime': systolic.dateFrom ?? systolic.dateTo,
+          'type': 'BLOOD_PRESSURE',
+        });
+      }
+      
+      return results;
     } catch (e) {
       _logger.e('Failed to get blood pressure data: $e');
       return [];
     }
   }
 
-  Future<List<HealthDataPoint>> getHeartRateData({
+  Future<List<Map<String, dynamic>>> getHeartRateData({
     required DateTime startDate,
     required DateTime endDate,
   }) async {
-    if (!_isInitialized || !_hasPermissions) {
+    if (!_isInitialized || !_healthPackageAvailable || !_hasPermissions || _health == null) {
       return [];
     }
 
     try {
-      return await _health.getHealthDataFromTypes(
+      final data = await _health!.getHealthDataFromTypes(
         startDate,
         endDate,
-        [HealthDataType.HEART_RATE],
+        [HealthDataType.HEART_RATE, HealthDataType.RESTING_HEART_RATE, HealthDataType.WALKING_HEART_RATE],
       );
+      
+      return data.map((datum) {
+        return {
+          'value': datum.value.toDouble(),
+          'unit': datum.unit.toString(),
+          'dateTime': datum.dateFrom ?? datum.dateTo,
+          'type': datum.type.toString(),
+        };
+      }).toList();
     } catch (e) {
       _logger.e('Failed to get heart rate data: $e');
       return [];
     }
   }
 
-  Future<List<HealthDataPoint>> getStepsData({
+  Future<List<Map<String, dynamic>>> getStepsData({
     required DateTime startDate,
     required DateTime endDate,
   }) async {
-    if (!_isInitialized || !_hasPermissions) {
+    if (!_isInitialized || !_healthPackageAvailable || !_hasPermissions || _health == null) {
       return [];
     }
 
     try {
-      return await _health.getHealthDataFromTypes(
+      final data = await _health!.getHealthDataFromTypes(
         startDate,
         endDate,
         [HealthDataType.STEPS],
       );
+      
+      return data.map((datum) {
+        return {
+          'value': datum.value.toDouble(),
+          'unit': datum.unit.toString(),
+          'dateTime': datum.dateFrom ?? datum.dateTo,
+        };
+      }).toList();
     } catch (e) {
       _logger.e('Failed to get steps data: $e');
       return [];
@@ -208,27 +281,53 @@ class HealthSyncService {
   }
 
   Future<bool> writeHealthData({
-    required HealthDataType dataType,
+    required String dataType,
     required double value,
     required DateTime dateTime,
     String? unit,
   }) async {
-    if (!_isInitialized || !_hasPermissions) {
+    if (!_isInitialized || !_healthPackageAvailable || !_hasPermissions || _health == null) {
       return false;
     }
 
     try {
-      final success = await _health.writeHealthData(
+      // Map string data type to HealthDataType
+      HealthDataType? healthDataType;
+      switch (dataType.toUpperCase()) {
+        case 'WEIGHT':
+          healthDataType = HealthDataType.WEIGHT;
+          break;
+        case 'HEIGHT':
+          healthDataType = HealthDataType.HEIGHT;
+          break;
+        case 'HEART_RATE':
+          healthDataType = HealthDataType.HEART_RATE;
+          break;
+        case 'BLOOD_GLUCOSE':
+          healthDataType = HealthDataType.BLOOD_GLUCOSE;
+          break;
+        case 'BODY_TEMPERATURE':
+          healthDataType = HealthDataType.BODY_TEMPERATURE;
+          break;
+        default:
+          _logger.w('Unsupported data type for writing: $dataType');
+          return false;
+      }
+
+      if (healthDataType == null) return false;
+
+      // Write health data
+      final success = await _health!.writeHealthData(
         value,
-        dataType,
+        healthDataType,
         dateTime,
-        unit: unit,
+        dateTime,
       );
 
       if (success) {
         _logger.i('Successfully wrote health data: $dataType = $value');
       } else {
-        _logger.w('Failed to write health data: $dataType = $value');
+        _logger.w('Failed to write health data: $dataType');
       }
 
       return success;
@@ -241,7 +340,8 @@ class HealthSyncService {
   }
 
   Future<void> syncUserHealthData(UserModel user, AppDatabase database) async {
-    if (!_isInitialized || !_hasPermissions) {
+    if (!_isInitialized || !_healthPackageAvailable || !_hasPermissions) {
+      _logger.i('Health sync skipped - package not available or no permissions');
       return;
     }
 
@@ -282,15 +382,14 @@ class HealthSyncService {
       _logger.e('Failed to sync health data: $e', 
                 error: e, stackTrace: stackTrace);
     }
-        // Stub representation of Health
-        late dynamic _health; // Placeholder for Health class
+  }
 
   Future<void> _storeHealthDataInDatabase(
     AppDatabase database,
     int userId,
-    List<HealthDataPoint> weightData,
-    List<HealthDataPoint> bloodPressureData,
-    List<HealthDataPoint> heartRateData,
+    List<Map<String, dynamic>> weightData,
+    List<Map<String, dynamic>> bloodPressureData,
+    List<Map<String, dynamic>> heartRateData,
   ) async {
     try {
       // Store weight data
@@ -299,26 +398,26 @@ class HealthSyncService {
           HealthMetricsCompanion.insert(
             userId: userId,
             metricType: 'weight',
-            value: dataPoint.value.toDouble(),
-            unit: dataPoint.unitString,
-            recordedAt: dataPoint.dateFrom,
+            value: (dataPoint['value'] as num).toDouble(),
+            unit: dataPoint['unit'] as String? ?? 'kg',
+            recordedAt: dataPoint['dateTime'] as DateTime? ?? DateTime.now(),
           ),
         );
       }
 
       // Store blood pressure data
       for (final dataPoint in bloodPressureData) {
-        final metricType = dataPoint.type == HealthDataType.BLOOD_PRESSURE_SYSTOLIC
+        final metricType = dataPoint['type']?.toString().contains('SYSTOLIC') ?? false
             ? 'blood_pressure_systolic'
-            _health = null; // No-op for Health initialization
+            : 'blood_pressure_diastolic';
         
         await database.into(database.healthMetrics).insert(
           HealthMetricsCompanion.insert(
             userId: userId,
             metricType: metricType,
-            value: dataPoint.value.toDouble(),
-            unit: dataPoint.unitString,
-            recordedAt: dataPoint.dateFrom,
+            value: (dataPoint['value'] as num).toDouble(),
+            unit: dataPoint['unit'] as String? ?? 'mmHg',
+            recordedAt: dataPoint['dateTime'] as DateTime? ?? DateTime.now(),
           ),
         );
       }
@@ -329,9 +428,9 @@ class HealthSyncService {
           HealthMetricsCompanion.insert(
             userId: userId,
             metricType: 'heart_rate',
-            value: dataPoint.value.toDouble(),
-            unit: dataPoint.unitString,
-            recordedAt: dataPoint.dateFrom,
+            value: (dataPoint['value'] as num).toDouble(),
+            unit: dataPoint['unit'] as String? ?? 'bpm',
+            recordedAt: dataPoint['dateTime'] as DateTime? ?? DateTime.now(),
           ),
         );
       }
@@ -345,7 +444,7 @@ class HealthSyncService {
   }
 
   Future<Map<String, double>> getLatestHealthMetrics() async {
-    if (!_isInitialized || !_hasPermissions) {
+    if (!_isInitialized || !_healthPackageAvailable || !_hasPermissions) {
       return {};
     }
 
@@ -361,12 +460,15 @@ class HealthSyncService {
       final latestMetrics = <String, double>{};
 
       for (final entry in healthData.entries) {
-        final dataPoints = entry.value as List<HealthDataPoint>;
+        final dataPoints = entry.value as List<Map<String, dynamic>>;
         if (dataPoints.isNotEmpty) {
           // Get the latest data point
-          final latest = dataPoints.reduce((a, b) => 
-            a.dateFrom.isAfter(b.dateFrom) ? a : b);
-          latestMetrics[entry.key] = latest.value.toDouble();
+          final latest = dataPoints.reduce((a, b) {
+            final dateA = a['dateTime'] as DateTime? ?? DateTime(1970);
+            final dateB = b['dateTime'] as DateTime? ?? DateTime(1970);
+            return dateA.isAfter(dateB) ? a : b;
+          });
+          latestMetrics[entry.key] = (latest['value'] as num).toDouble();
         }
       }
 
@@ -379,3 +481,8 @@ class HealthSyncService {
     }
   }
 }
+
+
+
+
+

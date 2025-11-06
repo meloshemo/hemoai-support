@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="HemoAI Support - Get help with your hemogram tracking and health management app">
+    <meta name="keywords" content="HemoAI, support, help, hemogram, health tracking">
+    <meta name="author" content="HemoAI Team">
+    <title>HemoAI Support - Destek</title>
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://meloshemo.github.io/hemoai-support/">
+    <meta property="og:title" content="HemoAI Support">
+    <meta property="og:description" content="Get help with HemoAI - Smart Hemogram Analysis & Health Tracking">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://meloshemo.github.io/hemoai-support/">
+    <meta property="twitter:title" content="HemoAI Support">
+    <meta property="twitter:description" content="Get help with HemoAI - Smart Hemogram Analysis & Health Tracking">
+    
+    <style>
+        :root {
+            --primary-color: #E53E3E;
+            --primary-dark: #C53030;
+            --primary-light: #FC8181;
+            --background: #FFFFFF;
+            --surface: #F7FAFC;
+            --text-primary: #1A202C;
+            --text-secondary: #4A5568;
+            --border: #E2E8F0;
+            --success: #48BB78;
+            --error: #F56565;
+            --shadow: rgba(0, 0, 0, 0.1);
+        }
+        
+        [data-theme="dark"] {
+            --background: #1A202C;
+            --surface: #2D3748;
+            --text-primary: #F7FAFC;
+            --text-secondary: #CBD5E0;
+            --border: #4A5568;
+            --shadow: rgba(0, 0, 0, 0.3);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            line-height: 1.6;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white;
+            border-radius: 12px;
+            margin-bottom: 40px;
+            box-shadow: 0 4px 6px var(--shadow);
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+        
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--surface);
+            border: 2px solid var(--border);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            box-shadow: 0 2px 8px var(--shadow);
+        }
+        
+        .theme-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+        
+        .language-selector {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: var(--surface);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        
+        .language-selector select {
+            padding: 10px 15px;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            background: var(--background);
+            color: var(--text-primary);
+            font-size: 1rem;
+            cursor: pointer;
+            min-width: 200px;
+        }
+        
+        .language-selector select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        .card {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px var(--shadow);
+            border: 1px solid var(--border);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: var(--background);
+            color: var(--text-primary);
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        .form-group textarea {
+            min-height: 150px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        
+        .required {
+            color: var(--primary-color);
+        }
+        
+        .honeypot {
+            position: absolute;
+            left: -9999px;
+            opacity: 0;
+        }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 4px 6px var(--shadow);
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px var(--shadow);
+        }
+        
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+        
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .message.success {
+            background: #C6F6D5;
+            color: #22543D;
+            border: 2px solid var(--success);
+        }
+        
+        .message.error {
+            background: #FED7D7;
+            color: #742A2A;
+            border: 2px solid var(--error);
+        }
+        
+        [data-theme="dark"] .message.success {
+            background: #22543D;
+            color: #C6F6D5;
+        }
+        
+        [data-theme="dark"] .message.error {
+            background: #742A2A;
+            color: #FED7D7;
+        }
+        
+        .faq-section {
+            margin-top: 40px;
+        }
+        
+        .faq-item {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: var(--surface);
+            border-radius: 8px;
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .faq-question {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+        
+        .faq-answer {
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+        
+        .links-section {
+            text-align: center;
+            padding: 30px;
+            background: var(--surface);
+            border-radius: 12px;
+            margin-top: 40px;
+        }
+        
+        .links-section a {
+            color: var(--primary-color);
+            text-decoration: none;
+            margin: 0 15px;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        
+        .links-section a:hover {
+            color: var(--primary-dark);
+            text-decoration: underline;
+        }
+        
+        .email-link {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 10px 20px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background 0.3s ease;
+        }
+        
+        .email-link:hover {
+            background: var(--primary-dark);
+        }
+        
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2rem;
+            }
+            
+            .theme-toggle {
+                top: 10px;
+                right: 10px;
+                width: 40px;
+                height: 40px;
+                font-size: 1.2rem;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+        }
+        
+        [dir="rtl"] {
+            text-align: right;
+        }
+        
+        [dir="rtl"] .theme-toggle {
+            right: auto;
+            left: 20px;
+        }
+        
+        [dir="rtl"] .faq-item {
+            border-left: none;
+            border-right: 4px solid var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+        🌙
+    </button>
+    
+    <div class="container">
+        <header>
+            <h1 id="headerTitle">HemoAI Destek</h1>
+            <p id="headerSubtitle">Sorununuzu veya önerinizi bize iletebilirsiniz</p>
+        </header>
+        
+        <div class="language-selector">
+            <label for="languageSelect" style="margin-bottom: 10px; display: block; font-weight: 600;">
+                <span id="languageLabel">Dil / Language:</span>
+            </label>
+            <select id="languageSelect">
+                <option value="tr">Türkçe</option>
+                <option value="en">English</option>
+                <option value="es">Español</option>
+                <option value="fr">Français</option>
+                <option value="de">Deutsch</option>
+                <option value="ar">العربية</option>
+                <option value="it">Italiano</option>
+                <option value="pt">Português</option>
+                <option value="ru">Русский</option>
+            </select>
+        </div>
+        
+        <div class="card">
+            <div id="successMessage" class="message success"></div>
+            <div id="errorMessage" class="message error"></div>
+            
+            <form id="supportForm" action="https://formspree.io/f/YOUR_FORM_ID" method="POST">
+                <!-- Honeypot field for spam protection -->
+                <input type="text" name="_gotcha" class="honeypot" tabindex="-1" autocomplete="off">
+                
+                <div class="form-group">
+                    <label for="name">
+                        <span id="nameLabel">İsim</span>
+                        <span class="required"> *</span>
+                    </label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">
+                        <span id="emailLabel">E-posta</span>
+                        <span class="required"> *</span>
+                    </label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="subject">
+                        <span id="subjectLabel">Konu</span>
+                        <span class="required"> *</span>
+                    </label>
+                    <select id="subject" name="subject" required>
+                        <option value="" id="selectSubject">-- Seçiniz --</option>
+                        <option value="bug" id="optionBug">Hata Bildirimi</option>
+                        <option value="feature" id="optionFeature">Özellik İsteği</option>
+                        <option value="payment" id="optionPayment">Ödeme Sorunu</option>
+                        <option value="question" id="optionQuestion">Genel Soru</option>
+                        <option value="other" id="optionOther">Diğer</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="message">
+                        <span id="messageLabel">Mesaj</span>
+                        <span class="required"> *</span>
+                    </label>
+                    <textarea id="message" name="message" required placeholder="" id="messagePlaceholder"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="version">
+                        <span id="versionLabel">Uygulama Versiyonu</span>
+                        <span id="versionOptional"> (Opsiyonel)</span>
+                    </label>
+                    <input type="text" id="version" name="version" placeholder="Örn: 4.0.0">
+                </div>
+                
+                <div class="form-group">
+                    <label for="device">
+                        <span id="deviceLabel">Cihaz</span>
+                        <span id="deviceOptional"> (Opsiyonel)</span>
+                    </label>
+                    <select id="device" name="device">
+                        <option value="" id="selectDevice">-- Seçiniz --</option>
+                        <option value="android" id="optionAndroid">Android</option>
+                        <option value="ios" id="optionIOS">iOS</option>
+                        <option value="web" id="optionWeb">Web</option>
+                        <option value="windows" id="optionWindows">Windows</option>
+                        <option value="macos" id="optionMacOS">macOS</option>
+                        <option value="linux" id="optionLinux">Linux</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    <span id="submitText">Gönder</span>
+                </button>
+            </form>
+        </div>
+        
+        <div class="card faq-section">
+            <h2 id="faqTitle" style="margin-bottom: 20px; color: var(--primary-color);">Sık Sorulan Sorular</h2>
+            
+            <div class="faq-item">
+                <div class="faq-question" id="faq1Q">Nasıl destek talebi oluşturabilirim?</div>
+                <div class="faq-answer" id="faq1A">Yukarıdaki formu doldurarak bize ulaşabilirsiniz. E-posta adresinizi doğru girdiğinizden emin olun, böylece size geri dönebiliriz.</div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question" id="faq2Q">Yanıt süresi ne kadar?</div>
+                <div class="faq-answer" id="faq2A">Genellikle 24-48 saat içinde yanıt veriyoruz. Acil durumlar için lütfen e-posta başlığında "URGENT" yazın.</div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question" id="faq3Q">Ödeme sorunlarım var, ne yapmalıyım?</div>
+                <div class="faq-answer" id="faq3A">Lütfen formda "Ödeme Sorunu" konusunu seçin ve işlem ID'sini (varsa) mesajınıza ekleyin. Mümkün olan en kısa sürede size yardımcı olacağız.</div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question" id="faq4Q">Verilerim güvende mi?</div>
+                <div class="faq-answer" id="faq4A">Evet, tüm verileriniz yerel olarak cihazınızda saklanır ve şifrelenir. Privacy Policy sayfamızı inceleyebilirsiniz.</div>
+            </div>
+        </div>
+        
+        <div class="links-section">
+            <h3 id="contactTitle" style="margin-bottom: 20px;">İletişim ve Yasal Bilgiler</h3>
+            <div>
+                <a href="https://meloshemo.github.io" target="_blank" id="privacyLink">Privacy Policy</a>
+                <a href="https://meloshemo.github.io/HemoAI" target="_blank" id="termsLink">Terms of Use</a>
+            </div>
+            <a href="mailto:support@hemoai.com" class="email-link" id="emailLink">
+                📧 support@hemoai.com
+            </a>
+        </div>
+    </div>
+    
+    <script>
+        // Translations
+        const translations = {
+            tr: {
+                headerTitle: 'HemoAI Destek',
+                headerSubtitle: 'Sorununuzu veya önerinizi bize iletebilirsiniz',
+                nameLabel: 'İsim',
+                emailLabel: 'E-posta',
+                subjectLabel: 'Konu',
+                messageLabel: 'Mesaj',
+                versionLabel: 'Uygulama Versiyonu',
+                versionOptional: ' (Opsiyonel)',
+                deviceLabel: 'Cihaz',
+                deviceOptional: ' (Opsiyonel)',
+                selectSubject: '-- Seçiniz --',
+                optionBug: 'Hata Bildirimi',
+                optionFeature: 'Özellik İsteği',
+                optionPayment: 'Ödeme Sorunu',
+                optionQuestion: 'Genel Soru',
+                optionOther: 'Diğer',
+                selectDevice: '-- Seçiniz --',
+                optionAndroid: 'Android',
+                optionIOS: 'iOS',
+                optionWeb: 'Web',
+                optionWindows: 'Windows',
+                optionMacOS: 'macOS',
+                optionLinux: 'Linux',
+                messagePlaceholder: 'Lütfen sorununuzu veya önerinizi detaylı bir şekilde açıklayın...',
+                submitText: 'Gönder',
+                submitSending: 'Gönderiliyor...',
+                successMessage: 'Mesajınız başarıyla gönderildi! En kısa sürede size dönüş yapacağız.',
+                errorMessage: 'Bir hata oluştu. Lütfen tekrar deneyin veya doğrudan support@hemoai.com adresine e-posta gönderin.',
+                faqTitle: 'Sık Sorulan Sorular',
+                faq1Q: 'Nasıl destek talebi oluşturabilirim?',
+                faq1A: 'Yukarıdaki formu doldurarak bize ulaşabilirsiniz. E-posta adresinizi doğru girdiğinizden emin olun, böylece size geri dönebiliriz.',
+                faq2Q: 'Yanıt süresi ne kadar?',
+                faq2A: 'Genellikle 24-48 saat içinde yanıt veriyoruz. Acil durumlar için lütfen e-posta başlığında "URGENT" yazın.',
+                faq3Q: 'Ödeme sorunlarım var, ne yapmalıyım?',
+                faq3A: 'Lütfen formda "Ödeme Sorunu" konusunu seçin ve işlem ID\'sini (varsa) mesajınıza ekleyin. Mümkün olan en kısa sürede size yardımcı olacağız.',
+                faq4Q: 'Verilerim güvende mi?',
+                faq4A: 'Evet, tüm verileriniz yerel olarak cihazınızda saklanır ve şifrelenir. Privacy Policy sayfamızı inceleyebilirsiniz.',
+                contactTitle: 'İletişim ve Yasal Bilgiler',
+                privacyLink: 'Gizlilik Politikası',
+                termsLink: 'Kullanım Koşulları',
+                languageLabel: 'Dil:'
+            },
+            en: {
+                headerTitle: 'HemoAI Support',
+                headerSubtitle: 'Contact us with your issue or suggestion',
+                nameLabel: 'Name',
+                emailLabel: 'Email',
+                subjectLabel: 'Subject',
+                messageLabel: 'Message',
+                versionLabel: 'App Version',
+                versionOptional: ' (Optional)',
+                deviceLabel: 'Device',
+                deviceOptional: ' (Optional)',
+                selectSubject: '-- Select --',
+                optionBug: 'Bug Report',
+                optionFeature: 'Feature Request',
+                optionPayment: 'Payment Issue',
+                optionQuestion: 'General Question',
+                optionOther: 'Other',
+                selectDevice: '-- Select --',
+                optionAndroid: 'Android',
+                optionIOS: 'iOS',
+                optionWeb: 'Web',
+                optionWindows: 'Windows',
+                optionMacOS: 'macOS',
+                optionLinux: 'Linux',
+                messagePlaceholder: 'Please describe your issue or suggestion in detail...',
+                submitText: 'Submit',
+                submitSending: 'Sending...',
+                successMessage: 'Your message has been sent successfully! We will get back to you as soon as possible.',
+                errorMessage: 'An error occurred. Please try again or email us directly at support@hemoai.com.',
+                faqTitle: 'Frequently Asked Questions',
+                faq1Q: 'How can I create a support request?',
+                faq1A: 'You can contact us by filling out the form above. Please make sure to enter your email address correctly so we can get back to you.',
+                faq2Q: 'What is the response time?',
+                faq2A: 'We usually respond within 24-48 hours. For urgent matters, please write "URGENT" in the email subject.',
+                faq3Q: 'I have payment issues, what should I do?',
+                faq3A: 'Please select "Payment Issue" in the form and include the transaction ID (if available) in your message. We will help you as soon as possible.',
+                faq4Q: 'Is my data secure?',
+                faq4A: 'Yes, all your data is stored locally on your device and encrypted. You can review our Privacy Policy page.',
+                contactTitle: 'Contact & Legal Information',
+                privacyLink: 'Privacy Policy',
+                termsLink: 'Terms of Use',
+                languageLabel: 'Language:'
+            },
+            es: {
+                headerTitle: 'Soporte HemoAI',
+                headerSubtitle: 'Contáctenos con su problema o sugerencia',
+                nameLabel: 'Nombre',
+                emailLabel: 'Correo electrónico',
+                subjectLabel: 'Asunto',
+                messageLabel: 'Mensaje',
+                versionLabel: 'Versión de la App',
+                versionOptional: ' (Opcional)',
+                deviceLabel: 'Dispositivo',
+                deviceOptional: ' (Opcional)',
+                selectSubject: '-- Seleccione --',
+                optionBug: 'Informe de Error',
+                optionFeature: 'Solicitud de Función',
+                optionPayment: 'Problema de Pago',
+                optionQuestion: 'Pregunta General',
+                optionOther: 'Otro',
+                selectDevice: '-- Seleccione --',
+                optionAndroid: 'Android',
+                optionIOS: 'iOS',
+                optionWeb: 'Web',
+                optionWindows: 'Windows',
+                optionMacOS: 'macOS',
+                optionLinux: 'Linux',
+                messagePlaceholder: 'Por favor describa su problema o sugerencia en detalle...',
+                submitText: 'Enviar',
+                submitSending: 'Enviando...',
+                successMessage: '¡Su mensaje ha sido enviado con éxito! Nos pondremos en contacto con usted lo antes posible.',
+                errorMessage: 'Ocurrió un error. Por favor intente nuevamente o envíenos un correo directamente a support@hemoai.com.',
+                faqTitle: 'Preguntas Frecuentes',
+                faq1Q: '¿Cómo puedo crear una solicitud de soporte?',
+                faq1A: 'Puede contactarnos completando el formulario anterior. Asegúrese de ingresar su dirección de correo electrónico correctamente para que podamos responderle.',
+                faq2Q: '¿Cuál es el tiempo de respuesta?',
+                faq2A: 'Generalmente respondemos en 24-48 horas. Para asuntos urgentes, por favor escriba "URGENTE" en el asunto del correo.',
+                faq3Q: 'Tengo problemas de pago, ¿qué debo hacer?',
+                faq3A: 'Por favor seleccione "Problema de Pago" en el formulario e incluya el ID de transacción (si está disponible) en su mensaje. Le ayudaremos lo antes posible.',
+                faq4Q: '¿Están seguros mis datos?',
+                faq4A: 'Sí, todos sus datos se almacenan localmente en su dispositivo y están encriptados. Puede revisar nuestra página de Política de Privacidad.',
+                contactTitle: 'Información de Contacto y Legal',
+                privacyLink: 'Política de Privacidad',
+                termsLink: 'Términos de Uso',
+                languageLabel: 'Idioma:'
+            },
+            fr: {
+                headerTitle: 'Support HemoAI',
+                headerSubtitle: 'Contactez-nous avec votre problème ou suggestion',
+                nameLabel: 'Nom',
+                emailLabel: 'E-mail',
+                subjectLabel: 'Sujet',
+                messageLabel: 'Message',
+                versionLabel: 'Version de l\'App',
+                versionOptional: ' (Optionnel)',
+                deviceLabel: 'Appareil',
+                deviceOptional: ' (Optionnel)',
+                selectSubject: '-- Sélectionnez --',
+                optionBug: 'Rapport de Bug',
+                optionFeature: 'Demande de Fonctionnalité',
+                optionPayment: 'Problème de Paiement',
+                optionQuestion: 'Question Générale',
+                optionOther: 'Autre',
+                selectDevice: '-- Sélectionnez --',
+                optionAndroid: 'Android',
+                optionIOS: 'iOS',
+                optionWeb: 'Web',
+                optionWindows: 'Windows',
+                optionMacOS: 'macOS',
+                optionLinux: 'Linux',
+                messagePlaceholder: 'Veuillez décrire votre problème ou suggestion en détail...',
+                submitText: 'Envoyer',
+                submitSending: 'Envoi en cours...',
+                successMessage: 'Votre message a été envoyé avec succès! Nous vous répondrons dans les plus brefs délais.',
+                errorMessage: 'Une erreur s\'est produite. Veuillez réessayer ou nous envoyer un e-mail directement à support@hemoai.com.',
+                faqTitle: 'Questions Fréquemment Posées',
+                faq1Q: 'Comment puis-je créer une demande de support?',
+                faq1A: 'Vous pouvez nous contacter en remplissant le formulaire ci-dessus. Assurez-vous de saisir correctement votre adresse e-mail pour que nous puissions vous répondre.',
+                faq2Q: 'Quel est le délai de réponse?',
+                faq2A: 'Nous répondons généralement dans les 24-48 heures. Pour les questions urgentes, veuillez écrire "URGENT" dans l\'objet de l\'e-mail.',
+                faq3Q: 'J\'ai des problèmes de paiement, que dois-je faire?',
+                faq3A: 'Veuillez sélectionner "Problème de Paiement" dans le formulaire et inclure l\'ID de transaction (si disponible) dans votre message. Nous vous aiderons dans les plus brefs délais.',
+                faq4Q: 'Mes données sont-elles sécurisées?',
+                faq4A: 'Oui, toutes vos données sont stockées localement sur votre appareil et chiffrées. Vous pouvez consulter notre page de Politique de Confidentialité.',
+                contactTitle: 'Informations de Contact et Légales',
+                privacyLink: 'Politique de Confidentialité',
+                termsLink: 'Conditions d\'Utilisation',
+                languageLabel: 'Langue:'
+            },
+            de: {
+                headerTitle: 'HemoAI Support',
+                headerSubtitle: 'Kontaktieren Sie uns mit Ihrem Problem oder Vorschlag',
+                nameLabel: 'Name',
+                emailLabel: 'E-Mail',
+                subjectLabel: 'Betreff',
+                messageLabel: 'Nachricht',
+                versionLabel: 'App-Version',
+                versionOptional: ' (Optional)',
+                deviceLabel: 'Gerät',
+                deviceOptional: ' (Optional)',
+                selectSubject: '-- Auswählen --',
+                optionBug: 'Fehlerbericht',
+                optionFeature: 'Funktionsanfrage',
+                optionPayment: 'Zahlungsproblem',
+                optionQuestion: 'Allgemeine Frage',
+                optionOther: 'Andere',
+                selectDevice: '-- Auswählen --',
+                optionAndroid: 'Android',
+                optionIOS: 'iOS',
+                optionWeb: 'Web',
+                optionWindows: 'Windows',
+                optionMacOS: 'macOS',
+                optionLinux: 'Linux',
+                messagePlaceholder: 'Bitte beschreiben Sie Ihr Problem oder Ihren Vorschlag im Detail...',
+                submitText: 'Senden',
+                submitSending: 'Wird gesendet...',
+                successMessage: 'Ihre Nachricht wurde erfolgreich gesendet! Wir werden uns so schnell wie möglich bei Ihnen melden.',
+                errorMessage: 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut oder senden Sie uns eine E-Mail direkt an support@hemoai.com.',
+                faqTitle: 'Häufig Gestellte Fragen',
+                faq1Q: 'Wie kann ich eine Support-Anfrage erstellen?',
+                faq1A: 'Sie können uns kontaktieren, indem Sie das obige Formular ausfüllen. Bitte stellen Sie sicher, dass Sie Ihre E-Mail-Adresse korrekt eingeben, damit wir Ihnen antworten können.',
+                faq2Q: 'Wie lange ist die Antwortzeit?',
+                faq2A: 'Wir antworten normalerweise innerhalb von 24-48 Stunden. Für dringende Angelegenheiten schreiben Sie bitte "URGENT" in den E-Mail-Betreff.',
+                faq3Q: 'Ich habe Zahlungsprobleme, was soll ich tun?',
+                faq3A: 'Bitte wählen Sie "Zahlungsproblem" im Formular aus und fügen Sie die Transaktions-ID (falls verfügbar) in Ihre Nachricht ein. Wir werden Ihnen so schnell wie möglich helfen.',
+                faq4Q: 'Sind meine Daten sicher?',
+                faq4A: 'Ja, alle Ihre Daten werden lokal auf Ihrem Gerät gespeichert und verschlüsselt. Sie können unsere Datenschutzrichtlinien-Seite überprüfen.',
+                contactTitle: 'Kontakt & Rechtliche Informationen',
+                privacyLink: 'Datenschutzrichtlinie',
+                termsLink: 'Nutzungsbedingungen',
+                languageLabel: 'Sprache:'
+            },
+            ar: {
+                headerTitle: 'دعم HemoAI',
+                headerSubtitle: 'اتصل بنا مع مشكلتك أو اقتراحك',
+                nameLabel: 'الاسم',
+                emailLabel: 'البريد الإلكتروني',
+                subjectLabel: 'الموضوع',
+                messageLabel: 'الرسالة',
+                versionLabel: 'إصدار التطبيق',
+                versionOptional: ' (اختياري)',
+                deviceLabel: 'الجهاز',
+                deviceOptional: ' (اختياري)',
+                selectSubject: '-- اختر --',
+                optionBug: 'تقرير خطأ',
+                optionFeature: 'طلب ميزة',
+                optionPayment: 'مشكلة في الدفع',
+                optionQuestion: 'سؤال عام',
+                optionOther: 'أخرى',
+                selectDevice: '-- اختر --',
+                optionAndroid: 'Android',
+                optionIOS: 'iOS',
+                optionWeb: 'Web',
+                optionWindows: 'Windows',
+                optionMacOS: 'macOS',
+                optionLinux: 'Linux',
+                messagePlaceholder: 'يرجى وصف مشكلتك أو اقتراحك بالتفصيل...',
+                submitText: 'إرسال',
+                submitSending: 'جاري الإرسال...',
+                successMessage: 'تم إرسال رسالتك بنجاح! سنعود إليك في أقرب وقت ممكن.',
+                errorMessage: 'حدث خطأ. يرجى المحاولة مرة أخرى أو إرسال بريد إلكتروني إلينا مباشرة على support@hemoai.com.',
+                faqTitle: 'الأسئلة الشائعة',
+                faq1Q: 'كيف يمكنني إنشاء طلب دعم?',
+                faq1A: 'يمكنك الاتصال بنا من خلال ملء النموذج أعلاه. يرجى التأكد من إدخال عنوان بريدك الإلكتروني بشكل صحيح حتى نتمكن من الرد عليك.',
+                faq2Q: 'ما هو وقت الاستجابة?',
+                faq2A: 'نرد عادة خلال 24-48 ساعة. للأمور العاجلة، يرجى كتابة "عاجل" في موضوع البريد الإلكتروني.',
+                faq3Q: 'لدي مشاكل في الدفع، ماذا يجب أن أفعل?',
+                faq3A: 'يرجى اختيار "مشكلة في الدفع" في النموذج وإضافة معرف المعاملة (إن وجد) في رسالتك. سنساعدك في أقرب وقت ممكن.',
+                faq4Q: 'هل بياناتي آمنة?',
+                faq4A: 'نعم، يتم تخزين جميع بياناتك محليًا على جهازك وتشفيرها. يمكنك مراجعة صفحة سياسة الخصوصية الخاصة بنا.',
+                contactTitle: 'معلومات الاتصال والقانونية',
+                privacyLink: 'سياسة الخصوصية',
+                termsLink: 'شروط الاستخدام',
+                languageLabel: 'اللغة:'
+            },
+            it: {
+                headerTitle: 'Supporto HemoAI',
+                headerSubtitle: 'Contattaci con il tuo problema o suggerimento',
+                nameLabel: 'Nome',
+                emailLabel: 'Email',
+                subjectLabel: 'Oggetto',
+                messageLabel: 'Messaggio',
+                versionLabel: 'Versione App',
+                versionOptional: ' (Opzionale)',
+                deviceLabel: 'Dispositivo',
+                deviceOptional: ' (Opzionale)',
+                selectSubject: '-- Seleziona --',
+                optionBug: 'Segnalazione Bug',
+                optionFeature: 'Richiesta Funzionalità',
+                optionPayment: 'Problema di Pagamento',
+                optionQuestion: 'Domanda Generale',
+                optionOther: 'Altro',
+                selectDevice: '-- Seleziona --',
+                optionAndroid: 'Android',
+                optionIOS: 'iOS',
+                optionWeb: 'Web',
+                optionWindows: 'Windows',
+                optionMacOS: 'macOS',
+                optionLinux: 'Linux',
+                messagePlaceholder: 'Si prega di descrivere il problema o suggerimento in dettaglio...',
+                submitText: 'Invia',
+                submitSending: 'Invio in corso...',
+                successMessage: 'Il tuo messaggio è stato inviato con successo! Ti risponderemo il prima possibile.',
+                errorMessage: 'Si è verificato un errore. Si prega di riprovare o inviarci una email direttamente a support@hemoai.com.',
+                faqTitle: 'Domande Frequenti',
+                faq1Q: 'Come posso creare una richiesta di supporto?',
+                faq1A: 'Puoi contattarci compilando il modulo sopra. Assicurati di inserire correttamente il tuo indirizzo email in modo che possiamo risponderti.',
+                faq2Q: 'Qual è il tempo di risposta?',
+                faq2A: 'Di solito rispondiamo entro 24-48 ore. Per questioni urgenti, si prega di scrivere "URGENTE" nell\'oggetto dell\'email.',
+                faq3Q: 'Ho problemi di pagamento, cosa devo fare?',
+                faq3A: 'Si prega di selezionare "Problema di Pagamento" nel modulo e includere l\'ID della transazione (se disponibile) nel messaggio. Ti aiuteremo il prima possibile.',
+                faq4Q: 'I miei dati sono sicuri?',
+                faq4A: 'Sì, tutti i tuoi dati sono memorizzati localmente sul tuo dispositivo e crittografati. Puoi rivedere la nostra pagina Informativa sulla Privacy.',
+                contactTitle: 'Informazioni di Contatto e Legali',
+                privacyLink: 'Informativa sulla Privacy',
+                termsLink: 'Termini di Utilizzo',
+                languageLabel: 'Lingua:'
+            },
+            pt: {
+                headerTitle: 'Suporte HemoAI',
+                headerSubtitle: 'Entre em contato conosco com seu problema ou sugestão',
+                nameLabel: 'Nome',
+                emailLabel: 'E-mail',
+                subjectLabel: 'Assunto',
+                messageLabel: 'Mensagem',
+                versionLabel: 'Versão do App',
+                versionOptional: ' (Opcional)',
+                deviceLabel: 'Dispositivo',
+                deviceOptional: ' (Opcional)',
+                selectSubject: '-- Selecione --',
+                optionBug: 'Relatório de Bug',
+                optionFeature: 'Solicitação de Recurso',
+                optionPayment: 'Problema de Pagamento',
+                optionQuestion: 'Pergunta Geral',
+                optionOther: 'Outro',
+                selectDevice: '-- Selecione --',
+                optionAndroid: 'Android',
+                optionIOS: 'iOS',
+                optionWeb: 'Web',
+                optionWindows: 'Windows',
+                optionMacOS: 'macOS',
+                optionLinux: 'Linux',
+                messagePlaceholder: 'Por favor descreva seu problema ou sugestão em detalhes...',
+                submitText: 'Enviar',
+                submitSending: 'Enviando...',
+                successMessage: 'Sua mensagem foi enviada com sucesso! Entraremos em contato o mais breve possível.',
+                errorMessage: 'Ocorreu um erro. Por favor tente novamente ou envie-nos um e-mail diretamente para support@hemoai.com.',
+                faqTitle: 'Perguntas Frequentes',
+                faq1Q: 'Como posso criar uma solicitação de suporte?',
+                faq1A: 'Você pode entrar em contato conosco preenchendo o formulário acima. Certifique-se de inserir seu endereço de e-mail corretamente para que possamos responder.',
+                faq2Q: 'Qual é o tempo de resposta?',
+                faq2A: 'Normalmente respondemos em 24-48 horas. Para assuntos urgentes, por favor escreva "URGENTE" no assunto do e-mail.',
+                faq3Q: 'Tenho problemas de pagamento, o que devo fazer?',
+                faq3A: 'Por favor selecione "Problema de Pagamento" no formulário e inclua o ID da transação (se disponível) em sua mensagem. Ajudaremos você o mais breve possível.',
+                faq4Q: 'Meus dados estão seguros?',
+                faq4A: 'Sim, todos os seus dados são armazenados localmente em seu dispositivo e criptografados. Você pode revisar nossa página de Política de Privacidade.',
+                contactTitle: 'Informações de Contato e Legais',
+                privacyLink: 'Política de Privacidade',
+                termsLink: 'Termos de Uso',
+                languageLabel: 'Idioma:'
+            },
+            ru: {
+                headerTitle: 'Поддержка HemoAI',
+                headerSubtitle: 'Свяжитесь с нами с вашей проблемой или предложением',
+                nameLabel: 'Имя',
+                emailLabel: 'Электронная почта',
+                subjectLabel: 'Тема',
+                messageLabel: 'Сообщение',
+                versionLabel: 'Версия приложения',
+                versionOptional: ' (Необязательно)',
+                deviceLabel: 'Устройство',
+                deviceOptional: ' (Необязательно)',
+                selectSubject: '-- Выберите --',
+                optionBug: 'Сообщение об ошибке',
+                optionFeature: 'Запрос функции',
+                optionPayment: 'Проблема с оплатой',
+                optionQuestion: 'Общий вопрос',
+                optionOther: 'Другое',
+                selectDevice: '-- Выберите --',
+                optionAndroid: 'Android',
+                optionIOS: 'iOS',
+                optionWeb: 'Web',
+                optionWindows: 'Windows',
+                optionMacOS: 'macOS',
+                optionLinux: 'Linux',
+                messagePlaceholder: 'Пожалуйста, опишите вашу проблему или предложение подробно...',
+                submitText: 'Отправить',
+                submitSending: 'Отправка...',
+                successMessage: 'Ваше сообщение успешно отправлено! Мы свяжемся с вами как можно скорее.',
+                errorMessage: 'Произошла ошибка. Пожалуйста, попробуйте снова или отправьте нам письмо напрямую на support@hemoai.com.',
+                faqTitle: 'Часто Задаваемые Вопросы',
+                faq1Q: 'Как я могу создать запрос в службу поддержки?',
+                faq1A: 'Вы можете связаться с нами, заполнив форму выше. Пожалуйста, убедитесь, что вы правильно ввели свой адрес электронной почты, чтобы мы могли вам ответить.',
+                faq2Q: 'Каково время ответа?',
+                faq2A: 'Обычно мы отвечаем в течение 24-48 часов. По срочным вопросам, пожалуйста, напишите "СРОЧНО" в теме письма.',
+                faq3Q: 'У меня проблемы с оплатой, что мне делать?',
+                faq3A: 'Пожалуйста, выберите "Проблема с оплатой" в форме и укажите идентификатор транзакции (если доступен) в вашем сообщении. Мы поможем вам как можно скорее.',
+                faq4Q: 'Безопасны ли мои данные?',
+                faq4A: 'Да, все ваши данные хранятся локально на вашем устройстве и зашифрованы. Вы можете просмотреть нашу страницу Политики конфиденциальности.',
+                contactTitle: 'Контактная и Юридическая Информация',
+                privacyLink: 'Политика конфиденциальности',
+                termsLink: 'Условия использования',
+                languageLabel: 'Язык:'
+            }
+        };
+        
+        // Current language
+        let currentLang = localStorage.getItem('hemoai_support_lang') || 'tr';
+        
+        // Theme management
+        const themeToggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+        let isDark = localStorage.getItem('hemoai_support_theme') === 'dark';
+        
+        function updateTheme() {
+            if (isDark) {
+                html.setAttribute('data-theme', 'dark');
+                themeToggle.textContent = '☀️';
+            } else {
+                html.removeAttribute('data-theme');
+                themeToggle.textContent = '🌙';
+            }
+        }
+        
+        themeToggle.addEventListener('click', () => {
+            isDark = !isDark;
+            localStorage.setItem('hemoai_support_theme', isDark ? 'dark' : 'light');
+            updateTheme();
+        });
+        
+        updateTheme();
+        
+        // Language management
+        const languageSelect = document.getElementById('languageSelect');
+        languageSelect.value = currentLang;
+        
+        function updateLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('hemoai_support_lang', lang);
+            const t = translations[lang];
+            
+            // Update all text elements
+            document.getElementById('headerTitle').textContent = t.headerTitle;
+            document.getElementById('headerSubtitle').textContent = t.headerSubtitle;
+            document.getElementById('nameLabel').textContent = t.nameLabel;
+            document.getElementById('emailLabel').textContent = t.emailLabel;
+            document.getElementById('subjectLabel').textContent = t.subjectLabel;
+            document.getElementById('messageLabel').textContent = t.messageLabel;
+            document.getElementById('versionLabel').textContent = t.versionLabel;
+            document.getElementById('versionOptional').textContent = t.versionOptional;
+            document.getElementById('deviceLabel').textContent = t.deviceLabel;
+            document.getElementById('deviceOptional').textContent = t.deviceOptional;
+            document.getElementById('selectSubject').textContent = t.selectSubject;
+            document.getElementById('optionBug').textContent = t.optionBug;
+            document.getElementById('optionFeature').textContent = t.optionFeature;
+            document.getElementById('optionPayment').textContent = t.optionPayment;
+            document.getElementById('optionQuestion').textContent = t.optionQuestion;
+            document.getElementById('optionOther').textContent = t.optionOther;
+            document.getElementById('selectDevice').textContent = t.selectDevice;
+            document.getElementById('optionAndroid').textContent = t.optionAndroid;
+            document.getElementById('optionIOS').textContent = t.optionIOS;
+            document.getElementById('optionWeb').textContent = t.optionWeb;
+            document.getElementById('optionWindows').textContent = t.optionWindows;
+            document.getElementById('optionMacOS').textContent = t.optionMacOS;
+            document.getElementById('optionLinux').textContent = t.optionLinux;
+            document.getElementById('message').placeholder = t.messagePlaceholder;
+            document.getElementById('submitText').textContent = t.submitText;
+            document.getElementById('faqTitle').textContent = t.faqTitle;
+            document.getElementById('faq1Q').textContent = t.faq1Q;
+            document.getElementById('faq1A').textContent = t.faq1A;
+            document.getElementById('faq2Q').textContent = t.faq2Q;
+            document.getElementById('faq2A').textContent = t.faq2A;
+            document.getElementById('faq3Q').textContent = t.faq3Q;
+            document.getElementById('faq3A').textContent = t.faq3A;
+            document.getElementById('faq4Q').textContent = t.faq4Q;
+            document.getElementById('faq4A').textContent = t.faq4A;
+            document.getElementById('contactTitle').textContent = t.contactTitle;
+            document.getElementById('privacyLink').textContent = t.privacyLink;
+            document.getElementById('termsLink').textContent = t.termsLink;
+            document.getElementById('languageLabel').textContent = t.languageLabel;
+            
+            // Update RTL for Arabic
+            if (lang === 'ar') {
+                html.setAttribute('dir', 'rtl');
+                html.setAttribute('lang', 'ar');
+            } else {
+                html.setAttribute('dir', 'ltr');
+                html.setAttribute('lang', lang);
+            }
+        }
+        
+        languageSelect.addEventListener('change', (e) => {
+            updateLanguage(e.target.value);
+        });
+        
+        updateLanguage(currentLang);
+        
+        // Form handling
+        const form = document.getElementById('supportForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const successMessage = document.getElementById('successMessage');
+        const errorMessage = document.getElementById('errorMessage');
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Hide previous messages
+            successMessage.style.display = 'none';
+            errorMessage.style.display = 'none';
+            
+            // Disable submit button
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="loading"></span>' + translations[currentLang].submitSending;
+            
+            try {
+                const formData = new FormData(form);
+                
+                // Add app name
+                formData.append('_subject', 'HemoAI Support Request');
+                formData.append('_format', 'plain');
+                
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    successMessage.textContent = translations[currentLang].successMessage;
+                    successMessage.style.display = 'block';
+                    form.reset();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                    const data = await response.json();
+                    if (data.errors) {
+                        errorMessage.textContent = data.errors.map(e => e.message).join(', ');
+                    } else {
+                        errorMessage.textContent = translations[currentLang].errorMessage;
+                    }
+                    errorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                errorMessage.textContent = translations[currentLang].errorMessage;
+                errorMessage.style.display = 'block';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = translations[currentLang].submitText;
+            }
+        });
+        
+        // Form validation
+        const inputs = form.querySelectorAll('input[required], select[required], textarea[required]');
+        inputs.forEach(input => {
+            input.addEventListener('invalid', (e) => {
+                e.preventDefault();
+                input.style.borderColor = 'var(--error)';
+            });
+            
+            input.addEventListener('input', () => {
+                if (input.checkValidity()) {
+                    input.style.borderColor = 'var(--border)';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+

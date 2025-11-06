@@ -1,12 +1,17 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
+import '../utils/color_compat.dart';
 import 'package:provider/provider.dart';
 import '../services/database_helper.dart';
 import '../services/audit_log_service.dart';
 import '../services/preferences_service.dart';
 import '../services/export_service.dart';
 import '../services/localization_service.dart';
+import '../services/analysis_service.dart';
 import '../widgets/app_drawer.dart';
-import 'export_options_screen.dart';
+import '../widgets/unified_app_bar.dart';
+import 'export_options_screen_simple.dart' as export_options;
 
 class AnalysisScreen extends StatefulWidget {
   final Map<String, double> hemogramValues;
@@ -20,107 +25,261 @@ class AnalysisScreen extends StatefulWidget {
   State<AnalysisScreen> createState() => _AnalysisScreenState();
 }
 
-class _AnalysisScreenState extends State<AnalysisScreen> {
+class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStateMixin {
   final PreferencesService _prefsService = PreferencesService();
   final ExportService _exportService = ExportService();
+  final AnalysisService _analysisService = AnalysisService();
   
   Map<String, double> currentValues = {};
   List<Map<String, dynamic>> testHistory = [];
   bool _isExporting = false;
+  AnalysisResult? _result;
+  bool _loadingAnalysis = false;
+  String? _errorMessage;
+  late AnimationController _fadeController;
+  late AnimationController _slideController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
 
   // Reference ranges keyed by canonical parameter codes
   final Map<String, Map<String, double>> referenceRanges = {
     'hemoglobin': {'min': 12.0, 'max': 17.0},
+    'glucose': {'min': 70.0, 'max': 100.0},
+    'calcium': {'min': 8.6, 'max': 10.2},
+    'sodium': {'min': 135.0, 'max': 145.0},
+    'potassium': {'min': 3.5, 'max': 5.1},
+    'chloride': {'min': 98.0, 'max': 107.0},
+    'alt': {'min': 7.0, 'max': 56.0},
+    'ast': {'min': 10.0, 'max': 40.0},
+    'ggt': {'min': 9.0, 'max': 48.0},
+    'total_bilirubin': {'min': 0.1, 'max': 1.2},
+    'direct_bilirubin': {'min': 0.0, 'max': 0.3},
+    'crp': {'min': 0.0, 'max': 5.0},
     'iron': {'min': 60.0, 'max': 170.0},
-    'white_blood_cells': {'min': 4.0, 'max': 11.0},
-    'platelets': {'min': 150.0, 'max': 450.0},
-    'hematocrit': {'min': 35.0, 'max': 50.0},
-    'mcv': {'min': 80.0, 'max': 100.0},
-    'mch': {'min': 27.0, 'max': 32.0},
-    'mchc': {'min': 32.0, 'max': 36.0},
-    'rdw': {'min': 11.5, 'max': 14.5},
-    'ferritin': {'min': 15.0, 'max': 150.0},
+    'uibc': {'min': 110.0, 'max': 370.0},
+    'tibc': {'min': 240.0, 'max': 450.0},
+    'tsh': {'min': 0.4, 'max': 4.0},
+    'free_t3': {'min': 2.0, 'max': 4.4},
+    'free_t4': {'min': 0.8, 'max': 1.8},
+    'vitamin_d3': {'min': 20.0, 'max': 50.0},
+    'vitamin_b12': {'min': 200.0, 'max': 900.0},
   };
 
   @override
   void initState() {
     super.initState();
     currentValues = Map.from(widget.hemogramValues);
+    
+    // Initialize animations
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _slideController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeIn,
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _slideController,
+      curve: Curves.easeOutCubic,
+    ));
+    
     _loadTestHistory();
+    _runAnalysis();
+    
+    // Start animations
+    _fadeController.forward();
+    _slideController.forward();
+    
     // Background audit: analysis viewed
-    AuditLogService().logAction('analysis_viewed', data: {
-      'params_count': currentValues.length,
-    });
+    try {
+      AuditLogService().logAction('analysis_viewed', data: {
+        'params_count': currentValues.length,
+      });
+    } catch (e) {
+      debugPrint('Audit log error: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    _slideController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadTestHistory() async {
     try {
-      int? userId = _prefsService.getCurrentUserId();
+      final userId = _prefsService.getCurrentUserId();
       if (userId != null) {
-        // Prefer unified DatabaseHelper for cross-platform storage
         final db = DatabaseHelper.instance;
         final rows = await db.getHemogramTests(userId);
-        setState(() {
-          testHistory = rows;
-        });
+        if (mounted) {
+          setState(() {
+            testHistory = rows;
+            _errorMessage = null;
+          });
+        }
       }
     } catch (e) {
-      print('Error loading test history: $e');
+      debugPrint('Error loading test history: $e');
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Failed to load test history: ${e.toString()}';
+        });
+      }
+    }
+  }
+
+  Future<void> _runAnalysis() async {
+    if (currentValues.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'No values to analyze';
+          _loadingAnalysis = false;
+        });
+      }
+      return;
+    }
+
+    try {
+      if (mounted) {
+        setState(() {
+          _loadingAnalysis = true;
+          _errorMessage = null;
+        });
+      }
+      
+      final uid = _prefsService.getCurrentUserId() ?? 0;
+      final res = await _analysisService.analyze(
+        userId: uid,
+        currentValues: currentValues,
+      );
+      
+      if (mounted) {
+        setState(() {
+          _result = res;
+          _errorMessage = null;
+        });
+      }
+    } catch (e, stackTrace) {
+      debugPrint('Analysis error: $e\n$stackTrace');
+      if (mounted) {
+        final loc = Provider.of<LocalizationService>(context, listen: false);
+        setState(() {
+          _errorMessage = '${loc.getString('error_prefix')} ${e.toString()}';
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_errorMessage!),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _loadingAnalysis = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final localizationService = Provider.of<LocalizationService>(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: Theme.of(context).brightness == Brightness.dark 
-        ? const Color(0xFF0D1117) 
-        : Colors.grey[50],
+      backgroundColor: isDark ? const Color(0xFF0D1117) : Colors.grey[50],
       drawer: const AppDrawer(currentRoute: '/analysis'),
-      appBar: AppBar(
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: Icon(
-              Icons.menu,
-              color: Colors.white,
-              size: 24,
-            ),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-            tooltip: localizationService.getString('menu'),
-            splashColor: Colors.white.withValues(alpha: 0.2),
-            highlightColor: Colors.white.withValues(alpha: 0.1),
-          ),
-        ),
-        title: Text(
-          localizationService.getString('analysis_results'),
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: Theme.of(context).brightness == Brightness.dark 
-          ? const Color(0xFF161B22) 
-          : const Color(0xFFE53E3E),
-        elevation: 0,
-        iconTheme: const IconThemeData(
-          color: Colors.white,
-          size: 24,
-        ),
+      appBar: UnifiedAppBar(
+        title: localizationService.getString('analysis_results'),
+        currentRoute: '/analysis',
         actions: [
           IconButton(
+            icon: const Icon(Icons.upload_file, color: Colors.white),
+            tooltip: localizationService.getString('import'),
+            onPressed: () => Navigator.of(context).pushNamed('/data_import'),
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
+            tooltip: localizationService.getString('refresh'),
             onPressed: () {
-              setState(() {
-                _loadTestHistory();
-              });
+              _loadTestHistory();
+              _runAnalysis();
             },
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
+      body: _loadingAnalysis
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE53E3E)),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    localizationService.getString('analyzing') ?? 'Analyzing...',
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black87,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : _errorMessage != null && _result == null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: Colors.red[300],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          _errorMessage!,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: isDark ? Colors.white : Colors.black87,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton.icon(
+                          onPressed: _runAnalysis,
+                          icon: const Icon(Icons.refresh),
+                          label: Text(localizationService.getString('retry')),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFE53E3E),
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SlideTransition(
+                    position: _slideAnimation,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        children: [
             // Main Analysis Header
             Container(
               width: double.infinity,
@@ -134,7 +293,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFE53E3E).withValues(alpha: 0.3),
+                    color: const Color(0xFFE53E3E).withOpacity(0.3),
                     spreadRadius: 2,
                     blurRadius: 10,
                     offset: const Offset(0, 4),
@@ -160,7 +319,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    _getOverallAssessment(),
+                    _result?.summary ?? _getOverallAssessment(),
                     style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 16,
@@ -169,7 +328,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                   ),
                   const SizedBox(height: 12),
                   Builder(builder: (context) {
-                    final rl = _getRiskLevel();
+                    final rl = _mapRiskToLocalized(_result?.riskLabel) ?? _getRiskLevel();
                     Color c = Colors.green;
                     if (rl == Provider.of<LocalizationService>(context, listen: false).getString('risk_level_medium')) {
                       c = Colors.orange;
@@ -181,9 +340,9 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                     return Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
+                        color: Colors.white.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: c.withValues(alpha: 0.9), width: 1.2),
+                        border: Border.all(color: c.withOpacity(0.9), width: 1.2),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -204,12 +363,27 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             
             const SizedBox(height: 24),
 
+            // AI Insights Card with Chart
+            _buildAIInsightsCard(),
+            
+            const SizedBox(height: 24),
+
             // Smart Summary Card
             _buildSmartSummaryCard(),
             
             const SizedBox(height: 24),
+
+            // Trend Analysis
+            if (_result != null && _result!.trends.isNotEmpty) _buildTrendsCard(),
             
-            // Hemogram Values List
+            const SizedBox(height: 24),
+            
+            // Health Score Visualization
+            _buildHealthScoreVisualization(),
+            
+            const SizedBox(height: 24),
+            
+            // Hemogram Values List (popular markers, locale-ordered)
             _buildParametersList(localizationService),
             
             const SizedBox(height: 24),
@@ -287,7 +461,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
+                    color: Colors.black.withOpacity(0.1),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -352,7 +526,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                           label: Text(localizationService.getString('quick_pdf')),
                           onPressed: () => _quickExportPDF(context),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white.withValues(alpha: 0.9),
+                            backgroundColor: Colors.white.withOpacity(0.9),
                             foregroundColor: Colors.red[700],
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -366,7 +540,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                           label: Text(localizationService.getString('quick_excel')),
                           onPressed: () => _quickExportExcel(context),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white.withValues(alpha: 0.9),
+                            backgroundColor: Colors.white.withOpacity(0.9),
                             foregroundColor: Colors.green[700],
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -380,14 +554,24 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             ),
           ],
         ),
-      ),
-    );
+                    ),
+                  ),
+                ),
+              );
   }
 
   Widget _buildSmartSummaryCard() {
     final loc = Provider.of<LocalizationService>(context);
-    final score = _computeRiskScore();
-    final flags = _getTopFlags(3);
+    final score = _result?.riskScore ?? _computeRiskScore();
+    final flags = _result?.flags
+            .take(3)
+            .map((f) => {
+                  'key': f.key,
+                  'direction': f.direction,
+                  'severity': f.severity,
+                })
+            .toList() ??
+        _getTopFlags(3);
     // color scale: 0-33 green, 34-66 orange, 67-100 red
     Color scoreColor;
     if (score <= 33) {
@@ -422,7 +606,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: scoreColor.withValues(alpha: 0.15),
+                    color: scoreColor.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -461,7 +645,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: c.withValues(alpha: 0.1),
+                      color: c.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
@@ -541,8 +725,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     return score;
   }
 
-  List<Map<String, Object>> _getTopFlags(int count) {
-    final List<Map<String, Object>> flags = [];
+  List<Map<String, dynamic>> _getTopFlags(int count) {
+    final List<Map<String, dynamic>> flags = [];
     currentValues.forEach((key, value) {
       final range = referenceRanges[key];
       if (range == null) return;
@@ -584,6 +768,46 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     return veryHigh;
   }
 
+  List<String> _orderedMarkerKeys(LocalizationService loc) {
+    // Default order as provided (popular set)
+    final def = [
+      'hemoglobin',
+      'glucose',
+      'calcium',
+      'sodium',
+      'potassium',
+      'chloride',
+      'alt',
+      'ast',
+      'ggt',
+      'total_bilirubin',
+      'direct_bilirubin',
+      'crp',
+      'iron',
+      'uibc',
+      'tibc',
+      'tsh',
+      'free_t3',
+      'free_t4',
+      'vitamin_d3',
+      'vitamin_b12',
+    ];
+    final lang = loc.currentLanguageCode;
+    // Locale-specific tweaks (can be expanded later)
+    if (lang == 'tr') {
+      return def; // matches requested order
+    } else if (lang == 'en') {
+      // Slightly adjust to reflect common panel grouping
+      return [
+        'glucose', 'sodium', 'potassium', 'chloride', 'calcium',
+        'alt', 'ast', 'ggt', 'total_bilirubin', 'direct_bilirubin', 'crp',
+        'hemoglobin', 'iron', 'uibc', 'tibc',
+        'tsh', 'free_t3', 'free_t4', 'vitamin_d3', 'vitamin_b12',
+      ];
+    }
+    return def;
+  }
+
   Widget _buildParametersList(LocalizationService localizationService) {
     return Card(
       elevation: 4,
@@ -608,9 +832,10 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            ...currentValues.entries.map((entry) {
-              return _buildParameterRow(entry.key, entry.value);
-            }).toList(),
+            ..._orderedMarkerKeys(localizationService)
+                .where((k) => currentValues.containsKey(k))
+                .map((k) => _buildParameterRow(k, currentValues[k]!))
+                .toList(),
           ],
         ),
       ),
@@ -619,7 +844,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
 
   Widget _buildParameterRow(String parameter, double value) {
     final loc = Provider.of<LocalizationService>(context, listen: false);
-    final range = referenceRanges[parameter];
+    final range = _result?.referenceRanges[parameter] ?? referenceRanges[parameter];
     Color statusColor = Colors.green;
     String statusKey = 'status_normal';
 
@@ -692,7 +917,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: statusColor.withValues(alpha: 0.2),
+                color: statusColor.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -737,7 +962,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          color: cardColor.withValues(alpha: 0.1),
+          color: cardColor.withOpacity(0.1),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -786,7 +1011,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   }
 
   Widget _buildRecommendations(LocalizationService localizationService) {
-    List<String> recommendations = _generateRecommendations();
+    List<String> recommendations = _result?.recommendations ?? _generateRecommendations();
     
     return Card(
       elevation: 4,
@@ -836,6 +1061,105 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     );
   }
 
+  Widget _buildTrendsCard() {
+    final loc = Provider.of<LocalizationService>(context, listen: false);
+    final items = _result!.trends
+        .toList()
+        ..sort((a, b) => b.percentChange.abs().compareTo(a.percentChange.abs()));
+    final top = items.take(5).toList();
+    String dirLabel(TrendDirection d) {
+      switch (d) {
+        case TrendDirection.up:
+          return loc.getString('trend_up');
+        case TrendDirection.down:
+          return loc.getString('trend_down');
+        case TrendDirection.stable:
+          return loc.getString('trend_stable');
+      }
+    }
+    Color dirColor(TrendDirection d) {
+      switch (d) {
+        case TrendDirection.up:
+          return Colors.orange;
+        case TrendDirection.down:
+          return Colors.green;
+        case TrendDirection.stable:
+          return Colors.blueGrey;
+      }
+    }
+    IconData dirIcon(TrendDirection d) {
+      switch (d) {
+        case TrendDirection.up:
+          return Icons.trending_up;
+        case TrendDirection.down:
+          return Icons.trending_down;
+        case TrendDirection.stable:
+          return Icons.trending_flat;
+      }
+    }
+
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.timeline, color: Color(0xFFE53E3E)),
+                const SizedBox(width: 8),
+                Text(
+                  loc.getString('trend_last_6_months'),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFE53E3E),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ...top.map((t) {
+              final label = _localizedParamName(t.key);
+              final dir = dirLabel(t.direction);
+              final pct = t.percentChange.toStringAsFixed(1);
+              final chipColor = dirColor(t.direction);
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border(left: BorderSide(width: 4, color: chipColor)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(dirIcon(t.direction), color: chipColor),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        loc.getStringWithParams('trend_change_template', {
+                          'param': label,
+                          'direction': dir,
+                          'percent': pct,
+                        }),
+                        style: TextStyle(color: Colors.grey[800], fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text('${t.sampleCount}x', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                  ],
+                ),
+              );
+            }).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
   // Normalize string by converting to lowercase and stripping common Turkish diacritics
   String _normalizeAscii(String input) {
   final lower = input.toLowerCase();
@@ -852,37 +1176,31 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     final loc = Provider.of<LocalizationService>(context, listen: false);
     // If already canonical key, translate directly
     const canonicalKeys = {
-      'hemoglobin',
-      'iron',
-      'white_blood_cells',
-      'red_blood_cells',
-      'hematocrit',
-      'platelets',
-      'mcv',
-      'mch',
-      'mchc',
-      'rdw',
-      'ferritin',
-      'neutrophil',
-      'lymphocyte',
-      'monocyte',
-      'eosinophil',
-      'basophil',
+      'hemoglobin','glucose','calcium','sodium','potassium','chloride','alt','ast','ggt','total_bilirubin','direct_bilirubin','crp','iron','uibc','tibc','tsh','free_t3','free_t4','vitamin_d3','vitamin_b12',
     };
     if (canonicalKeys.contains(raw)) return loc.getString(raw);
 
     final lower = _normalizeAscii(raw);
+    if (lower.contains('glucose') || lower.contains('glikoz')) return loc.getString('glucose');
+    if (lower.contains('calcium') || lower.contains('kalsiyum')) return loc.getString('calcium');
+    if (lower.contains('sodium') || lower.contains('sodyum')) return loc.getString('sodium');
+    if (lower.contains('potassium') || lower.contains('potasyum')) return loc.getString('potassium');
+    if (lower.contains('chloride') || lower.contains('klor') || lower.contains('chlor')) return loc.getString('chloride');
+    if (lower.contains('bilirubin') && lower.contains('total')) return loc.getString('total_bilirubin');
+    if (lower.contains('bilirubin') && (lower.contains('direct') || lower.contains('direkt'))) return loc.getString('direct_bilirubin');
+    if (lower.contains('tsh')) return loc.getString('tsh');
+    if (lower.contains('free t3') || lower.contains('ft3')) return loc.getString('free_t3');
+    if (lower.contains('free t4') || lower.contains('ft4')) return loc.getString('free_t4');
+    if (lower.contains('vitamin d')) return loc.getString('vitamin_d3');
+    if (lower.contains('b12')) return loc.getString('vitamin_b12');
+    if (lower.contains('uibc')) return loc.getString('uibc');
+    if (lower.contains('tibc')) return loc.getString('tibc');
+    if (lower.contains('crp')) return loc.getString('crp');
+    if (lower.contains('alt')) return loc.getString('alt');
+    if (lower.contains('ast')) return loc.getString('ast');
+    if (lower.contains('ggt')) return loc.getString('ggt');
     if (lower.contains('hemoglobin')) return loc.getString('hemoglobin');
     if (lower.contains('demir') || lower.contains('iron')) return loc.getString('iron');
-    if (lower.contains('lokosit') || lower.contains('wbc')) return loc.getString('white_blood_cells');
-    if (lower.contains('eritrosit') || lower.contains('rbc') || lower.contains('red blood')) return loc.getString('red_blood_cells');
-    if (lower.contains('trombosit') || lower.contains('platelet') || lower.contains('plt')) return loc.getString('platelets');
-    if (lower.contains('hematokrit') || lower.contains('hct')) return loc.getString('hematocrit');
-    if (lower.contains('mcv')) return loc.getString('mcv');
-    if (lower.contains('mchc')) return loc.getString('mchc');
-    if (lower.contains('mch')) return loc.getString('mch');
-    if (lower.contains('rdw')) return loc.getString('rdw');
-    if (lower.contains('ferritin')) return loc.getString('ferritin');
     return raw;
   }
 
@@ -1013,7 +1331,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: riskColor.withValues(alpha: 0.2),
+                  color: riskColor.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -1073,27 +1391,35 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   List<String> _generateRecommendations() {
     List<String> recommendations = [];
     
-  // Hemoglobin check
-  double? hb = currentValues['hemoglobin'];
+    final loc = Provider.of<LocalizationService>(context, listen: false);
+    // Hemoglobin low
+    final hb = currentValues['hemoglobin'];
     if (hb != null && hb < 12.0) {
-      recommendations.add(Provider.of<LocalizationService>(context, listen: false).getString('hemoglobin_low_recommendation'));
+      recommendations.add(loc.getString('hemoglobin_low_recommendation'));
     }
-    
-  // Iron check
-  double? iron = currentValues['iron'];
+    // Iron low
+    final iron = currentValues['iron'];
     if (iron != null && iron < 60.0) {
-      recommendations.add(Provider.of<LocalizationService>(context, listen: false).getString('iron_low_recommendation'));
+      recommendations.add(loc.getString('iron_low_recommendation'));
     }
-    
-  // Leukocyte (WBC) check
-  double? wbc = currentValues['white_blood_cells'];
-    if (wbc != null && wbc > 11.0) {
-      recommendations.add(Provider.of<LocalizationService>(context, listen: false).getString('wbc_high_recommendation'));
+    // Glucose high (fasting)
+    final glucose = currentValues['glucose'];
+    if (glucose != null && glucose > 100.0) {
+      recommendations.add(loc.getString('glucose_high_recommendation'));
+    }
+    // Vitamin D3 low
+    final vD = currentValues['vitamin_d3'];
+    if (vD != null && vD < 20.0) {
+      recommendations.add(loc.getString('vitamin_d3_low_recommendation'));
+    }
+    // TSH abnormal
+    final tsh = currentValues['tsh'];
+    if (tsh != null && (tsh < 0.4 || tsh > 4.0)) {
+      recommendations.add(loc.getString('tsh_abnormal_recommendation'));
     }
     
   // General recommendations
     if (recommendations.isEmpty) {
-      final loc = Provider.of<LocalizationService>(context, listen: false);
       recommendations.addAll([
         loc.getString('recommendation_default_1'),
         loc.getString('recommendation_default_2'),
@@ -1216,7 +1542,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   void _navigateToExportOptions(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => ExportOptionsScreen(
+        builder: (context) => export_options.ExportOptionsScreen(
           patientName: Provider.of<LocalizationService>(context, listen: false).getString('patient_placeholder'), // TODO: Get from user profile
           hemogramValues: currentValues,
           analysisResult: _getOverallAssessment(),
@@ -1341,5 +1667,353 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     } else {
       return Provider.of<LocalizationService>(context, listen: false).getString('risk_level_high');
     }
+  }
+
+  String? _mapRiskToLocalized(String? risk) {
+    if (risk == null) return null;
+    final loc = Provider.of<LocalizationService>(context, listen: false);
+    switch (risk) {
+      case 'low':
+        return loc.getString('risk_level_low');
+      case 'medium':
+        return loc.getString('risk_level_medium');
+      case 'high':
+        return loc.getString('risk_level_high');
+      case 'very_high':
+        return loc.getString('risk_level_very_high');
+      default:
+        return null;
+    }
+  }
+
+  Widget _buildAIInsightsCard() {
+    final loc = Provider.of<LocalizationService>(context, listen: false);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+  // Get top 3 abnormal parameters for visualization, normalized to Map shape
+  final List<Map<String, dynamic>> topParams = _result != null
+    ? _result!.flags
+      .take(3)
+      .map((f) => {
+          'key': f.key,
+          'direction': f.direction,
+          'severity': f.severity,
+        })
+      .toList()
+    : _getTopFlags(3);
+    
+    return Card(
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark
+                ? [const Color(0xFF1A1F2E), const Color(0xFF0F1419)]
+                : [Colors.white, Colors.grey.shade50],
+          ),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE53E3E).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.psychology, color: Color(0xFFE53E3E), size: 28),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'AI Insights',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                      Text(
+                        'Powered by advanced analysis',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            // Mini chart for top parameters
+            if (topParams.isNotEmpty) ...[
+              SizedBox(
+                height: 120,
+                child: BarChart(
+                  BarChartData(
+                    alignment: BarChartAlignment.spaceAround,
+                    maxY: 100,
+                    barTouchData: BarTouchData(enabled: false),
+                    titlesData: FlTitlesData(
+                      show: true,
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          getTitlesWidget: (value, meta) {
+                            if (value.toInt() >= topParams.length) return const Text('');
+                            final param = topParams[value.toInt()];
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: Text(
+                                _localizedParamName(param['key'] as String).substring(0, _localizedParamName(param['key'] as String).length > 4 ? 4 : _localizedParamName(param['key'] as String).length),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      leftTitles: AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      topTitles: AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      rightTitles: AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                    ),
+                    gridData: FlGridData(show: false),
+                    borderData: FlBorderData(show: false),
+                    barGroups: topParams.asMap().entries.map((entry) {
+                      final idx = entry.key;
+                      final param = entry.value;
+                      final severity = (param['severity'] as num).toDouble() * 100;
+                      final isHigh = (param['direction'] as String).contains('high');
+                      return BarChartGroupData(
+                        x: idx,
+                        barRods: [
+                          BarChartRodData(
+                            toY: severity.clamp(0, 100),
+                            color: isHigh ? Colors.red : Colors.orange,
+                            width: 20,
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            // Key insights
+            ..._buildKeyInsights(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildKeyInsights() {
+    final loc = Provider.of<LocalizationService>(context, listen: false);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final insights = <Widget>[];
+    
+    final abnormalCount = _countAbnormal();
+    final hasVeryHigh = _hasVeryHigh();
+    
+    if (abnormalCount == 0) {
+      insights.add(_insightItem(
+        icon: Icons.check_circle,
+        color: Colors.green,
+        text: loc.getString('all_values_normal_message'),
+        isDark: isDark,
+      ));
+    } else {
+      if (hasVeryHigh) {
+        insights.add(_insightItem(
+          icon: Icons.warning,
+          color: Colors.red,
+          text: 'Critical values detected - immediate attention recommended',
+          isDark: isDark,
+        ));
+      }
+      if (abnormalCount >= 3) {
+        insights.add(_insightItem(
+          icon: Icons.insights,
+          color: Colors.orange,
+          text: 'Multiple parameters require monitoring',
+          isDark: isDark,
+        ));
+      }
+      insights.add(_insightItem(
+        icon: Icons.trending_up,
+        color: Colors.blue,
+        text: 'Consider follow-up testing in 3-6 months',
+        isDark: isDark,
+      ));
+    }
+    
+    return insights;
+  }
+
+  Widget _insightItem({
+    required IconData icon,
+    required Color color,
+    required String text,
+    required bool isDark,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 14,
+                color: isDark ? Colors.white : Colors.black87,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHealthScoreVisualization() {
+    final loc = Provider.of<LocalizationService>(context, listen: false);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final score = _result?.riskScore ?? _computeRiskScore();
+    final normalizedScore = (100 - score) / 100; // Invert for health score
+    
+    Color scoreColor;
+    String scoreLabel;
+    if (score <= 33) {
+      scoreColor = Colors.green;
+      scoreLabel = 'Excellent';
+    } else if (score <= 66) {
+      scoreColor = Colors.orange;
+      scoreLabel = 'Good';
+    } else {
+      scoreColor = Colors.red;
+      scoreLabel = 'Needs Attention';
+    }
+    
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.favorite, color: Color(0xFFE53E3E)),
+                const SizedBox(width: 8),
+                Text(
+                  'Health Score',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: scoreColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    scoreLabel,
+                    style: TextStyle(
+                      color: scoreColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            // Circular progress indicator
+            Center(
+              child: SizedBox(
+                width: 150,
+                height: 150,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    CircularProgressIndicator(
+                      value: normalizedScore,
+                      strokeWidth: 12,
+                      backgroundColor: Colors.grey.withOpacity(0.2),
+                      valueColor: AlwaysStoppedAnimation<Color>(scoreColor),
+                    ),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '${(normalizedScore * 100).toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontSize: 36,
+                            fontWeight: FontWeight.bold,
+                            color: scoreColor,
+                          ),
+                        ),
+                        Text(
+                          '/ 100',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDark ? Colors.grey[400] : Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Center(
+              child: Text(
+                'Based on ${currentValues.length} parameters',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

@@ -5,6 +5,7 @@ import '../services/data_import_service.dart';
 import '../services/localization_service.dart';
 import '../services/preferences_service.dart';
 import '../services/database_helper.dart';
+import '../services/ocr_mapping_service.dart';
 import '../widgets/app_drawer.dart';
 import '../utils/responsive_helper.dart';
 import '../models/blood_test_model.dart';
@@ -398,6 +399,14 @@ class _DataImportScreenState extends State<DataImportScreen> with TickerProvider
                     ),
                     const SizedBox(width: 12),
                     Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _isImporting ? null : () => _mapAndSaveFromPastedText(loc),
+                        icon: const Icon(Icons.auto_fix_high),
+                        label: Text(loc.getString('match_and_save')),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
                       child: ElevatedButton(
                         onPressed: _isImporting ? null : () => _importFromText(context, loc),
                         child: _isImporting
@@ -443,6 +452,38 @@ class _DataImportScreenState extends State<DataImportScreen> with TickerProvider
       setState(() {
         _isImporting = false;
       });
+    }
+  }
+
+  Future<void> _mapAndSaveFromPastedText(LocalizationService loc) async {
+    final text = _pastedTextController.text.trim();
+    if (text.isEmpty) {
+      _showMessage(loc.getString('no_text_provided'), isError: true);
+      return;
+    }
+    setState(() {
+      _isImporting = true;
+      _importStatus = 'Mapping OCR fields...';
+    });
+    try {
+      final mapped = OcrMappingService.mapHemogramFromText(text);
+      if (mapped.isEmpty) {
+        _showMessage('Metinden alan bulunamadı', isError: true);
+      } else {
+        final userId = _prefsService?.getCurrentUserId();
+        if (userId == null) {
+          _showMessage(loc.getString('login_required_for_save'), isError: true);
+        } else {
+          mapped['user_id'] = userId;
+          mapped['test_date'] = DateTime.now().toIso8601String().substring(0, 10);
+          await _dbHelper.insertHemogramTest(mapped);
+          _showMessage('Eşlenen değerler kaydedildi');
+        }
+      }
+    } catch (e) {
+      _showMessage('Eşleme hatası', isError: true);
+    } finally {
+      setState(() { _isImporting = false; });
     }
   }
 

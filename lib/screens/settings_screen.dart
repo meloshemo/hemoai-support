@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../widgets/app_drawer.dart';
+import '../widgets/unified_app_bar.dart';
 import '../services/localization_service.dart';
 import '../services/preferences_service.dart';
 import '../services/push_notification_service.dart';
@@ -9,11 +11,17 @@ import '../services/analytics_service.dart';
 import '../utils/backup_encryption.dart';
 import '../utils/performance_optimizer.dart';
 import '../services/theme_service.dart';
+import '../services/auto_backup_service.dart';
+import '../services/cloud_sync_service.dart';
+import '../services/premium_service.dart';
+import '../services/database_helper.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
-import 'dart:typed_data';
+import 'package:url_launcher/url_launcher.dart';
 import 'restore_preview_screen.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'emergency_contact_screen.dart';
+import '../utils/app_constants.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -25,32 +33,345 @@ class SettingsScreen extends StatelessWidget {
         final canPop = Navigator.of(context).canPop();
         final isDark = themeService.isDarkMode;
         final isRTL = loc.isRTL;
+        const bool compact = true; // Condensed, modern settings layout
+
+        if (compact) {
+          return Directionality(
+            textDirection: loc.textDirection,
+            child: Scaffold(
+              backgroundColor: isDark ? const Color(0xFF0D1117) : const Color(0xFFF6F8FA),
+              drawer: const AppDrawer(currentRoute: '/settings'),
+              appBar: UnifiedAppBar(
+                title: loc.getString('settings'),
+                currentRoute: '/settings',
+              ),
+              body: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _Header(
+                      isDark: isDark,
+                      title: loc.getString('settings'),
+                      subtitle: loc.getString('customize_your_experience'),
+                    ),
+
+                    // Account & Language
+                    _Section(
+                      icon: Icons.person,
+                      title: loc.getString('settings_personal_data'),
+                      isDark: isDark,
+                      children: [
+                        _Tile(
+                          icon: Icons.account_circle,
+                          title: loc.getString('edit_profile'),
+                          subtitle: loc.getString('edit_profile_desc'),
+                          isDark: isDark,
+                          onTap: () => Navigator.pushNamed(context, '/personal_info'),
+                        ),
+                        _Tile(
+                          icon: Icons.translate,
+                          title: loc.getString('language_settings'),
+                          subtitle: '${loc.getString('change_language_desc')} • ${loc.currentLanguageName}',
+                          isDark: isDark,
+                          onTap: () => Navigator.pushNamed(context, '/language_settings'),
+                        ),
+                      ],
+                    ),
+
+                    // Privacy & Data
+                    _Section(
+                      icon: Icons.privacy_tip,
+                      title: 'Privacy & Data',
+                      isDark: isDark,
+                      children: [
+                        _Tile(
+                          icon: Icons.download_outlined,
+                          title: loc.getString('export_data') == 'export_data' ? 'Export Data' : loc.getString('export_data'),
+                          subtitle: 'JSON/PDF export • Self-service data portability',
+                          isDark: isDark,
+                          onTap: () => Navigator.pushNamed(context, '/export_options'),
+                        ),
+                        _Tile(
+                          icon: Icons.upload_outlined,
+                          title: loc.getString('import_data') == 'import_data' ? 'Import Data' : loc.getString('import_data'),
+                          subtitle: 'Restore from backup',
+                          isDark: isDark,
+                          onTap: () => Navigator.pushNamed(context, '/data_import'),
+                        ),
+                        _Tile(
+                          icon: Icons.delete_forever_outlined,
+                          title: 'Delete Account & Data',
+                          subtitle: 'KVKK/GDPR compliant right to erasure',
+                          isDark: isDark,
+                          onTap: () => _confirmDeleteAccount(context),
+                        ),
+                        _Tile(
+                          icon: Icons.policy,
+                          title: loc.getString('privacy_policy') == 'privacy_policy' ? 'Privacy Policy' : loc.getString('privacy_policy'),
+                          subtitle: loc.getString('privacy_policy_desc') == 'privacy_policy_desc' ? 'View our privacy policy' : loc.getString('privacy_policy_desc'),
+                          isDark: isDark,
+                          onTap: () async {
+                            try {
+                              final uri = Uri.parse(AppConstants.privacyPolicyUrl);
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              } else {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(loc.getString('could_not_open_privacy'))),
+                                  );
+                                }
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(loc.getStringWithParams('error_opening_privacy', {'error': e.toString()}))),
+                                );
+                              }
+                            }
+                          },
+                        ),
+                        _Tile(
+                          icon: Icons.gavel,
+                          title: loc.getString('terms_of_use') == 'terms_of_use' ? 'Terms of Use' : loc.getString('terms_of_use'),
+                          subtitle: loc.getString('terms_of_use_desc') == 'terms_of_use_desc' ? 'View terms and conditions' : loc.getString('terms_of_use_desc'),
+                          isDark: isDark,
+                          onTap: () async {
+                            try {
+                              final uri = Uri.parse(AppConstants.termsOfUseUrl);
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              } else {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(loc.getString('could_not_open_terms'))),
+                                  );
+                                }
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(loc.getStringWithParams('error_opening_terms', {'error': e.toString()}))),
+                                );
+                              }
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+
+                    // Motivation & Challenges
+                    _Section(
+                      icon: Icons.emoji_events_outlined,
+                      title: loc.getString('motivation_challenges'),
+                      isDark: isDark,
+                      children: [
+                        _Tile(
+                          icon: Icons.workspace_premium,
+                          title: 'Open Challenges',
+                          subtitle: 'Progress, badges, shared diets',
+                          isDark: isDark,
+                          onTap: () => Navigator.pushNamed(context, '/challenges'),
+                        ),
+                        _ChallengeSwitchTile(
+                          icon: Icons.directions_walk,
+                          title: 'Weekly Steps Challenge',
+                          subtitle: 'Join weekly step goal challenge',
+                          isDark: isDark,
+                          getValue: () async {
+                            final prefs = await PreferencesService.getInstance();
+                            return prefs.getChallengeSteps();
+                          },
+                          setValue: (v) async {
+                            final prefs = await PreferencesService.getInstance();
+                            await prefs.setChallengeEnabled(steps: v);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(v ? 'Steps challenge enabled' : 'Steps challenge disabled')),
+                              );
+                            }
+                          },
+                        ),
+                        _ChallengeSwitchTile(
+                          icon: Icons.water_drop,
+                          title: 'Weekly Water Challenge',
+                          subtitle: 'Hydration streak & badges',
+                          isDark: isDark,
+                          getValue: () async {
+                            final prefs = await PreferencesService.getInstance();
+                            return prefs.getChallengeWater();
+                          },
+                          setValue: (v) async {
+                            final prefs = await PreferencesService.getInstance();
+                            await prefs.setChallengeEnabled(water: v);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(v ? 'Water challenge enabled' : 'Water challenge disabled')),
+                              );
+                            }
+                          },
+                        ),
+                        _ChallengeSwitchTile(
+                          icon: Icons.nightlight_round,
+                          title: 'Weekly Sleep Challenge',
+                          subtitle: 'Consistent sleep schedule',
+                          isDark: isDark,
+                          getValue: () async {
+                            final prefs = await PreferencesService.getInstance();
+                            return prefs.getChallengeSleep();
+                          },
+                          setValue: (v) async {
+                            final prefs = await PreferencesService.getInstance();
+                            await prefs.setChallengeEnabled(sleep: v);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(v ? 'Sleep challenge enabled' : 'Sleep challenge disabled')),
+                              );
+                            }
+                          },
+                        ),
+                        _Tile(
+                          icon: Icons.speaker_notes,
+                          title: 'Motivation Tone',
+                          subtitle: 'Select message style (Gentle / Active)',
+                          isDark: isDark,
+                          onTap: () async {
+                            final prefs = await PreferencesService.getInstance();
+                            final tone = await showDialog<String>(
+                              context: context,
+                              builder: (ctx) => SimpleDialog(
+                                title: Text(loc.getString('motivation_tone')),
+                                children: [
+                                  SimpleDialogOption(onPressed: () => Navigator.pop(ctx, 'gentle'), child: Text(loc.getString('gentle'))),
+                                  SimpleDialogOption(onPressed: () => Navigator.pop(ctx, 'active'), child: Text(loc.getString('active'))),
+                                ],
+                              ),
+                            );
+                            if (tone != null) {
+                              await prefs.setMotivationTone(tone);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(loc.getStringWithParams('tone_set', {'tone': tone}))));
+                              }
+                            }
+                          },
+                        ),
+                        _Tile(
+                          icon: Icons.schedule,
+                          title: 'Daily Summary Time',
+                          subtitle: 'Set a daily notification summary time',
+                          isDark: isDark,
+                          onTap: () async {
+                            final prefs = await PreferencesService.getInstance();
+                            final initial = TimeOfDay(hour: prefs.getDailySummaryHour(), minute: prefs.getDailySummaryMinute());
+                            final picked = await showTimePicker(context: context, initialTime: initial);
+                            if (picked != null) {
+                              await prefs.setDailySummaryTime(picked.hour, picked.minute);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(loc.getStringWithParams('daily_summary_set', {'time': picked.format(context)}))));
+                              }
+                            }
+                          },
+                        ),
+                        _Tile(
+                          icon: Icons.share,
+                          title: 'Share Weekly Progress',
+                          subtitle: 'Badges and streaks summary',
+                          isDark: isDark,
+                          onTap: () async {
+                            // Simple share payload; integrate with real stats if available
+                            final text = 'My HemoAI weekly progress: hydration streak on track, tests up to date! #HemoAI';
+                            await Share.share(text);
+                          },
+                        ),
+                      ],
+                    ),
+
+                    // Premium
+                    _Section(
+                      icon: Icons.star,
+                      title: loc.getString('premium') == 'premium' ? 'Premium' : loc.getString('premium'),
+                      isDark: isDark,
+                      children: [
+                        Consumer<PremiumService>(
+                          builder: (context, premiumService, _) {
+                            return _Tile(
+                              icon: Icons.star_outline,
+                              title: loc.getString('premium') == 'premium' ? 'Premium Features' : loc.getString('premium'),
+                              subtitle: premiumService.getStatusText(loc),
+                              isDark: isDark,
+                              onTap: () => Navigator.pushNamed(context, '/premium'),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+
+                    // About & Legal
+                    _Section(
+                      icon: Icons.info_outline,
+                      title: 'About HemoAI',
+                      isDark: isDark,
+                      children: [
+                        _Tile(
+                          icon: Icons.approval_outlined,
+                          title: 'Medical Disclaimer',
+                          subtitle: 'Educational insights only; not a medical diagnosis.',
+                          isDark: isDark,
+                          onTap: () => _showInfo(
+                            context,
+                            'Medical Disclaimer',
+                            'HemoAI provides educational insights and is not a substitute for professional medical diagnosis or treatment. Always consult a physician for medical decisions.'
+                          ),
+                        ),
+                        _Tile(
+                          icon: Icons.policy_outlined,
+                          title: 'KVKK/GDPR & Data Protection',
+                          subtitle: 'Encryption, consent, purpose limitation, retention control.',
+                          isDark: isDark,
+                          onTap: () => _showInfo(
+                            context,
+                            'KVKK/GDPR & Data Protection',
+                            'Your data is encrypted at rest and in transit, processed with explicit consent and purpose limitation. You may export or delete data at any time.'
+                          ),
+                        ),
+                        FutureBuilder<PackageInfo>(
+                          future: PackageInfo.fromPlatform(),
+                          builder: (context, snap) {
+                            final ver = snap.hasData ? '${snap.data!.version} (${snap.data!.buildNumber})' : '—';
+                            return _Tile(
+                              icon: Icons.new_releases_outlined,
+                              title: 'Version',
+                              subtitle: ver,
+                              isDark: isDark,
+                              onTap: () {},
+                            );
+                          },
+                        ),
+                        _Tile(
+                          icon: Icons.support_agent_outlined,
+                          title: loc.getString('support_contact'),
+                          subtitle: loc.getString('open_support_portal'),
+                          isDark: isDark,
+                          onTap: () => _openSupportPortal(context, loc),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
 
         return Directionality(
           textDirection: loc.textDirection,
           child: Scaffold(
             backgroundColor: isDark ? const Color(0xFF0D1117) : const Color(0xFFF6F8FA),
-            drawer: canPop ? null : const AppDrawer(currentRoute: '/settings'),
-            appBar: AppBar(
-              leading: canPop
-                  ? IconButton(
-                      icon: Icon(isRTL ? Icons.arrow_forward_ios : Icons.arrow_back_ios),
-                      onPressed: () => Navigator.of(context).maybePop(),
-                    )
-                  : Builder(
-                      builder: (context) => IconButton(
-                        icon: const Icon(Icons.menu),
-                        onPressed: () => Scaffold.of(context).openDrawer(),
-                        tooltip: loc.getString('menu'),
-                      ),
-                    ),
-              title: Text(
-                loc.getString('settings'),
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
-              ),
-              backgroundColor: isDark ? const Color(0xFF161B22) : Colors.white,
-              foregroundColor: isDark ? Colors.white : Colors.black87,
-              elevation: 0,
+            drawer: const AppDrawer(currentRoute: '/settings'),
+            appBar: UnifiedAppBar(
+              title: loc.getString('settings'),
+              currentRoute: '/settings',
             ),
             body: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -61,6 +382,70 @@ class SettingsScreen extends StatelessWidget {
                     isDark: isDark,
                     title: loc.getString('settings'),
                     subtitle: loc.getString('customize_your_experience'),
+                  ),
+
+                  // Medical Records & History
+                  _Section(
+                    icon: Icons.medical_services_outlined,
+                    title: loc.getString('medical_records_history'),
+                    isDark: isDark,
+                    children: [
+                      _Tile(
+                        icon: Icons.history_outlined,
+                        title: loc.getString('medical_history_management'),
+                        subtitle: loc.getString('medical_history_management_desc'),
+                        isDark: isDark,
+                        onTap: () => _showInfo(context, loc.getString('medical_history_management'), loc.getString('medical_history_management_body')),
+                      ),
+                      _Tile(
+                        icon: Icons.file_copy_outlined,
+                        title: loc.getString('lab_reports_archive'),
+                        subtitle: loc.getString('lab_reports_archive_desc'),
+                        isDark: isDark,
+                        onTap: () => _showInfo(context, loc.getString('lab_reports_archive'), loc.getString('lab_reports_archive_body')),
+                      ),
+                      _Tile(
+                        icon: Icons.assignment_outlined,
+                        title: loc.getString('prescription_tracking'),
+                        subtitle: loc.getString('prescription_tracking_desc'),
+                        isDark: isDark,
+                        onTap: () => _showInfo(context, loc.getString('prescription_tracking'), loc.getString('prescription_tracking_body')),
+                      ),
+                      _SwitchTile(
+                        icon: Icons.access_time_outlined,
+                        title: loc.getString('appointment_history'),
+                        subtitle: loc.getString('appointment_history_desc'),
+                        prefKey: 'appointment_history_enabled',
+                        isDark: isDark,
+                      ),
+                      _Tile(
+                        icon: Icons.health_and_safety_outlined,
+                        title: loc.getString('allergies_conditions'),
+                        subtitle: loc.getString('allergies_conditions_desc'),
+                        isDark: isDark,
+                        onTap: () => _showInfo(context, loc.getString('allergies_conditions'), loc.getString('allergies_conditions_body')),
+                      ),
+                    ],
+                  ),
+
+                  // Premium & Subscription
+                  _Section(
+                    icon: Icons.star,
+                    title: loc.getString('premium') == 'premium' ? 'Premium' : loc.getString('premium'),
+                    isDark: isDark,
+                    children: [
+                      Consumer<PremiumService>(
+                        builder: (context, premiumService, _) {
+                          return _Tile(
+                            icon: Icons.star_outline,
+                            title: loc.getString('premium') == 'premium' ? 'Premium Özellikler' : loc.getString('premium'),
+                            subtitle: premiumService.getStatusText(loc),
+                            isDark: isDark,
+                            onTap: () => Navigator.pushNamed(context, '/premium'),
+                          );
+                        },
+                      ),
+                    ],
                   ),
 
                   // Personal data & language
@@ -99,27 +484,49 @@ class SettingsScreen extends StatelessWidget {
                     title: loc.getString('settings_privacy'),
                     isDark: isDark,
                     children: [
-                      _Tile(
-                        icon: Icons.policy,
-                        title: loc.getString('privacy_policy'),
-                        subtitle: loc.getString('privacy_policy_desc'),
+                      _SwitchTile(
+                        icon: Icons.notifications_active,
+                        title: loc.getString('privacy_allow_in_app_reminders'),
+                        subtitle: loc.getString('privacy_allow_in_app_reminders_desc'),
+                        prefKey: 'privacy_allow_in_app_reminders',
                         isDark: isDark,
-                        onTap: () => _showInfo(
-                          context,
-                          loc.getString('privacy_policy'),
-                          loc.getString('privacy_policy_body'),
-                        ),
+                        onChanged: (v) async {
+                          final prefs = await PreferencesService.getInstance();
+                          await prefs.setPrivacyFlag('allow_in_app_reminders', v);
+                        },
                       ),
-                      _Tile(
-                        icon: Icons.gavel,
-                        title: loc.getString('terms_of_use'),
-                        subtitle: loc.getString('terms_of_use_desc'),
+                      _SwitchTile(
+                        icon: Icons.notifications_none,
+                        title: loc.getString('privacy_allow_push_notifications'),
+                        subtitle: loc.getString('privacy_allow_push_notifications_desc'),
+                        prefKey: 'privacy_allow_push_notifications',
                         isDark: isDark,
-                        onTap: () => _showInfo(
-                          context,
-                          loc.getString('terms_of_use'),
-                          loc.getString('terms_of_use_body'),
-                        ),
+                        onChanged: (v) async {
+                          final prefs = await PreferencesService.getInstance();
+                          await prefs.setPrivacyFlag('allow_push_notifications', v);
+                        },
+                      ),
+                      _SwitchTile(
+                        icon: Icons.medication_outlined,
+                        title: loc.getString('privacy_allow_medication_access'),
+                        subtitle: loc.getString('privacy_allow_medication_access_desc'),
+                        prefKey: 'privacy_allow_medication_access',
+                        isDark: isDark,
+                        onChanged: (v) async {
+                          final prefs = await PreferencesService.getInstance();
+                          await prefs.setPrivacyFlag('allow_medication_access', v);
+                        },
+                      ),
+                      _SwitchTile(
+                        icon: Icons.group_outlined,
+                        title: loc.getString('privacy_allow_family_features'),
+                        subtitle: loc.getString('privacy_allow_family_features_desc'),
+                        prefKey: 'privacy_allow_family_features',
+                        isDark: isDark,
+                        onChanged: (v) async {
+                          final prefs = await PreferencesService.getInstance();
+                          await prefs.setPrivacyFlag('allow_family_features', v);
+                        },
                       ),
                       _SwitchTile(
                         icon: Icons.analytics_outlined,
@@ -130,6 +537,498 @@ class SettingsScreen extends StatelessWidget {
                         onChanged: (v) =>
                             Provider.of<AnalyticsService>(context, listen: false).setOptIn(v),
                       ),
+                      _Tile(
+                        icon: Icons.verified_user,
+                        title: loc.getString('secure_pii_title'),
+                        subtitle: loc.getString('secure_pii_desc'),
+                        isDark: isDark,
+                        onTap: () async {
+                          final prefs = await PreferencesService.getInstance();
+                          await prefs.ensurePiiSecured();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(loc.getString('pii_migrated_success'))),
+                            );
+                          }
+                        },
+                      ),
+                      _Tile(
+                        icon: Icons.lock,
+                        title: loc.getString('set_backup_password'),
+                        subtitle: loc.getString('set_backup_password_desc'),
+                        isDark: isDark,
+                        onTap: () async {
+                          final pwd = await _askPassword(context, loc, confirm: true);
+                          if (pwd == null || pwd.isEmpty) return;
+                          final prefs = await PreferencesService.getInstance();
+                          await prefs.setCloudBackupPassword(pwd);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(loc.getString('password_saved'))),
+                            );
+                          }
+                        },
+                      ),
+                      _Tile(
+                        icon: Icons.lock_open,
+                        title: loc.getString('clear_backup_password'),
+                        subtitle: loc.getString('clear_backup_password_desc'),
+                        isDark: isDark,
+                        onTap: () async {
+                          final prefs = await PreferencesService.getInstance();
+                          await prefs.clearCloudBackupPassword();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(loc.getString('password_cleared'))),
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+
+              // About HemoAI (Professional health app info)
+              _Section(
+                icon: Icons.info_outline,
+                title: 'About HemoAI',
+                isDark: isDark,
+                children: [
+                  _Tile(
+                    icon: Icons.approval_outlined,
+                    title: 'Medical Disclaimer',
+                    subtitle: 'HemoAI provides educational health insights and is not a substitute for professional medical diagnosis or treatment. Always consult a qualified physician for medical decisions.',
+                    isDark: isDark,
+                    onTap: () => _showInfo(
+                      context,
+                      'Medical Disclaimer',
+                      'HemoAI does not provide medical services. The insights and recommendations are generated for educational purposes based on your self-reported or synchronized health data. In urgent or severe cases, contact emergency services or your physician. Use of HemoAI constitutes acceptance of this disclaimer.'
+                    ),
+                  ),
+
+                  // Motivation & Challenges
+                  _Section(
+                    icon: Icons.emoji_events_outlined,
+                    title: 'Motivation & Challenges',
+                    isDark: isDark,
+                    children: [
+                      _SwitchTile(
+                        icon: Icons.directions_walk,
+                        title: 'Weekly Steps Challenge',
+                        subtitle: 'Join weekly step goal challenge',
+                        prefKey: 'challenge_steps',
+                        isDark: isDark,
+                        onChanged: (v) async {
+                          final prefs = await PreferencesService.getInstance();
+                          await prefs.setChallengeEnabled(steps: v);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(v ? 'Steps challenge enabled' : 'Steps challenge disabled')),
+                            );
+                          }
+                        },
+                      ),
+                      _SwitchTile(
+                        icon: Icons.water_drop,
+                        title: 'Weekly Water Challenge',
+                        subtitle: 'Hydration streak & badges',
+                        prefKey: 'challenge_water',
+                        isDark: isDark,
+                        onChanged: (v) async {
+                          final prefs = await PreferencesService.getInstance();
+                          await prefs.setChallengeEnabled(water: v);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(v ? 'Water challenge enabled' : 'Water challenge disabled')),
+                            );
+                          }
+                        },
+                      ),
+                      _SwitchTile(
+                        icon: Icons.nightlight_round,
+                        title: 'Weekly Sleep Challenge',
+                        subtitle: 'Consistent sleep schedule',
+                        prefKey: 'challenge_sleep',
+                        isDark: isDark,
+                        onChanged: (v) async {
+                          final prefs = await PreferencesService.getInstance();
+                          await prefs.setChallengeEnabled(sleep: v);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(v ? 'Sleep challenge enabled' : 'Sleep challenge disabled')),
+                            );
+                          }
+                        },
+                      ),
+                      _Tile(
+                        icon: Icons.speaker_notes,
+                        title: 'Motivation Tone',
+                        subtitle: 'Select message style (Gentle / Active)',
+                        isDark: isDark,
+                        onTap: () async {
+                          final prefs = await PreferencesService.getInstance();
+                          final tone = await showDialog<String>(
+                            context: context,
+                            builder: (ctx) => SimpleDialog(
+                              title: Text(loc.getString('motivation_tone')),
+                              children: [
+                                SimpleDialogOption(onPressed: () => Navigator.pop(ctx, 'gentle'), child: Text(loc.getString('gentle'))),
+                                SimpleDialogOption(onPressed: () => Navigator.pop(ctx, 'active'), child: Text(loc.getString('active'))),
+                              ],
+                            ),
+                          );
+                          if (tone != null) {
+                            await prefs.setMotivationTone(tone);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(loc.getStringWithParams('tone_set', {'tone': tone}))));
+                            }
+                          }
+                        },
+                      ),
+                      _Tile(
+                        icon: Icons.schedule,
+                        title: 'Daily Summary Time',
+                        subtitle: 'Set a daily notification summary time',
+                        isDark: isDark,
+                        onTap: () async {
+                          final prefs = await PreferencesService.getInstance();
+                          final initial = TimeOfDay(hour: prefs.getDailySummaryHour(), minute: prefs.getDailySummaryMinute());
+                          final picked = await showTimePicker(context: context, initialTime: initial);
+                          if (picked != null) {
+                            await prefs.setDailySummaryTime(picked.hour, picked.minute);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(loc.getStringWithParams('daily_summary_set', {'time': picked.format(context)}))));
+                            }
+                          }
+                        },
+                      ),
+                      _Tile(
+                        icon: Icons.share,
+                        title: 'Share Weekly Progress',
+                        subtitle: 'Badges and streaks summary',
+                        isDark: isDark,
+                        onTap: () async {
+                          // Simple share payload; integrate with real stats if available
+                          final text = 'My HemoAI weekly progress: hydration streak on track, tests up to date! #HemoAI';
+                          await Share.share(text);
+                        },
+                      ),
+                    ],
+                  ),
+                  _Tile(
+                    icon: Icons.policy_outlined,
+                    title: 'KVKK/GDPR & Data Protection',
+                    subtitle: 'Your personal and health data are processed with your explicit consent and stored securely with encryption. You may request export or deletion at any time from Settings > Privacy.',
+                    isDark: isDark,
+                    onTap: () => _showInfo(
+                      context,
+                      'KVKK/GDPR & Data Protection',
+                      'We apply data minimization, purpose limitation, and retention controls. Access is restricted and logged. Data is encrypted at rest and in transit. For detailed policy and DPO contact, visit hemoai.app/privacy.'
+                    ),
+                  ),
+                  FutureBuilder<PackageInfo>(
+                    future: PackageInfo.fromPlatform(),
+                    builder: (context, snap) {
+                      final ver = snap.hasData ? '${snap.data!.version} (${snap.data!.buildNumber})' : '—';
+                      return _Tile(
+                        icon: Icons.new_releases_outlined,
+                        title: 'Version',
+                        subtitle: ver,
+                        isDark: isDark,
+                        onTap: () {},
+                      );
+                    },
+                  ),
+                  _Tile(
+                    icon: Icons.support_agent_outlined,
+                    title: loc.getString('support_contact'),
+                    subtitle: loc.getString('open_support_portal'),
+                    isDark: isDark,
+                    onTap: () => _openSupportPortal(context, loc),
+                  ),
+                ],
+              ),
+
+                  // Health monitoring settings
+                  _Section(
+                    icon: Icons.favorite_outline,
+                    title: loc.getString('settings_health_monitoring'),
+                    isDark: isDark,
+                    children: [
+                      _SwitchTile(
+                        icon: Icons.apple,
+                        title: loc.getString('health_sync_apple_health'),
+                        subtitle: loc.getString('health_sync_apple_health_desc'),
+                        prefKey: 'health_sync_apple_health',
+                        isDark: isDark,
+                      ),
+                      _SwitchTile(
+                        icon: Icons.fitness_center,
+                        title: loc.getString('health_sync_google_fit'),
+                        subtitle: loc.getString('health_sync_google_fit_desc'),
+                        prefKey: 'health_sync_google_fit',
+                        isDark: isDark,
+                      ),
+                      _SwitchTile(
+                        icon: Icons.watch,
+                        title: loc.getString('health_sync_samsung_health'),
+                        subtitle: loc.getString('health_sync_samsung_health_desc'),
+                        prefKey: 'health_sync_samsung_health',
+                        isDark: isDark,
+                      ),
+                      _Tile(
+                        icon: Icons.straighten,
+                        title: loc.getString('health_units_title'),
+                        subtitle: loc.getString('health_units_title_desc'),
+                        isDark: isDark,
+                        onTap: () => _showUnitSelector(context, loc, isDark),
+                      ),
+                      _Tile(
+                        icon: Icons.timeline,
+                        title: loc.getString('health_test_frequency'),
+                        subtitle: loc.getString('health_test_frequency_desc'),
+                        isDark: isDark,
+                        onTap: () => _showFrequencySelector(context, loc, isDark),
+                      ),
+                      _SwitchTile(
+                        icon: Icons.warning_amber,
+                        title: loc.getString('health_critical_alert'),
+                        subtitle: loc.getString('health_critical_alert_desc'),
+                        prefKey: 'health_critical_alert',
+                        isDark: isDark,
+                      ),
+                      _SwitchTile(
+                        icon: Icons.trending_up,
+                        title: loc.getString('health_trend_analysis'),
+                        subtitle: loc.getString('health_trend_analysis_desc'),
+                        prefKey: 'health_trend_analysis',
+                        isDark: isDark,
+                      ),
+                      _Tile(
+                        icon: Icons.storage_outlined,
+                        title: loc.getString('health_data_retention'),
+                        subtitle: loc.getString('health_data_retention_desc'),
+                        isDark: isDark,
+                        onTap: () => _showRetentionSelector(context, loc, isDark),
+                      ),
+                      _SwitchTile(
+                        icon: Icons.restaurant_menu,
+                        title: loc.getString('health_diet_auto_sync'),
+                        subtitle: loc.getString('health_diet_auto_sync_desc'),
+                        prefKey: 'health_diet_auto_sync',
+                        isDark: isDark,
+                      ),
+                      _Tile(
+                        icon: Icons.share_outlined,
+                        title: loc.getString('health_sharing'),
+                        subtitle: loc.getString('health_sharing_desc'),
+                        isDark: isDark,
+                        onTap: () => _showSharingOptions(context, loc, isDark),
+                      ),
+                      _Tile(
+                        icon: Icons.balance_outlined,
+                        title: loc.getString('health_reference_ranges'),
+                        subtitle: loc.getString('health_reference_ranges_desc'),
+                        isDark: isDark,
+                        onTap: () => _showReferenceRanges(context, loc, isDark),
+                      ),
+                      // Emergency & Medical Info
+                      _Tile(
+                        icon: Icons.emergency_outlined,
+                        title: loc.getString('health_emergency_contact'),
+                        subtitle: loc.getString('health_emergency_contact_desc'),
+                        isDark: isDark,
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const EmergencyContactScreen())),
+                      ),
+                      _Tile(
+                        icon: Icons.history_outlined,
+                        title: loc.getString('health_medical_history'),
+                        subtitle: loc.getString('health_medical_history_desc'),
+                        isDark: isDark,
+                        onTap: () => _showInfo(context, loc.getString('health_medical_history'), '${loc.getString('health_medical_history_desc')} Özellik geliştiriliyor...'),
+                      ),
+                      _Tile(
+                        icon: Icons.bloodtype,
+                        title: loc.getString('health_blood_type'),
+                        subtitle: loc.getString('health_blood_type_desc'),
+                        isDark: isDark,
+                        onTap: () => _showBloodTypeSelector(context, loc, isDark),
+                      ),
+                      _SwitchTile(
+                        icon: Icons.medication,
+                        title: loc.getString('health_medications'),
+                        subtitle: loc.getString('health_medications_desc'),
+                        prefKey: 'health_medications_tracking',
+                        isDark: isDark,
+                      ),
+                      _SwitchTile(
+                        icon: Icons.directions_run,
+                        title: loc.getString('health_activity_tracking'),
+                        subtitle: loc.getString('health_activity_tracking_desc'),
+                        prefKey: 'health_activity_tracking',
+                        isDark: isDark,
+                      ),
+                      _SwitchTile(
+                        icon: Icons.bedtime_outlined,
+                        title: loc.getString('health_sleep_tracking'),
+                        subtitle: loc.getString('health_sleep_tracking_desc'),
+                        prefKey: 'health_sleep_tracking',
+                        isDark: isDark,
+                      ),
+                      _Tile(
+                        icon: Icons.notifications_active_outlined,
+                        title: loc.getString('health_reminder_sound'),
+                        subtitle: loc.getString('health_reminder_sound_desc'),
+                        isDark: isDark,
+                        onTap: () => _showInfo(context, loc.getString('health_reminder_sound'), '${loc.getString('health_reminder_sound_desc')} Özellik geliştiriliyor...'),
+                      ),
+                      _SwitchTile(
+                        icon: Icons.backup_outlined,
+                        title: loc.getString('health_auto_backup'),
+                        subtitle: loc.getString('health_auto_backup_desc'),
+                        prefKey: 'health_auto_backup_enabled',
+                        isDark: isDark,
+                      ),
+                      _Tile(
+                        icon: Icons.picture_as_pdf,
+                        title: loc.getString('health_report_format'),
+                        subtitle: loc.getString('health_report_format_desc'),
+                        isDark: isDark,
+                        onTap: () => _showReportFormatSelector(context, loc, isDark),
+                      ),
+                    ],
+                  ),
+
+                  // Advanced Health Analytics
+                  _Section(
+                    icon: Icons.insights_outlined,
+                    title: loc.getString('advanced_health_analytics'),
+                    isDark: isDark,
+                    children: [
+                      _Tile(
+                        icon: Icons.timeline_outlined,
+                        title: loc.getString('trend_prediction'),
+                        subtitle: loc.getString('trend_prediction_desc'),
+                        isDark: isDark,
+                        onTap: () => _showInfo(context, loc.getString('trend_prediction'), loc.getString('trend_prediction_body')),
+                      ),
+                      _SwitchTile(
+                        icon: Icons.warning_outlined,
+                        title: loc.getString('smart_alert_thresholds'),
+                        subtitle: loc.getString('smart_alert_thresholds_desc'),
+                        prefKey: 'smart_alert_thresholds_enabled',
+                        isDark: isDark,
+                      ),
+                      _Tile(
+                        icon: Icons.compare_arrows_outlined,
+                        title: loc.getString('comparative_analysis'),
+                        subtitle: loc.getString('comparative_analysis_desc'),
+                        isDark: isDark,
+                        onTap: () => _showInfo(context, loc.getString('comparative_analysis'), loc.getString('comparative_analysis_body')),
+                      ),
+                      _SwitchTile(
+                        icon: Icons.auto_graph,
+                        title: loc.getString('ai_recommendations'),
+                        subtitle: loc.getString('ai_recommendations_desc'),
+                        prefKey: 'ai_recommendations_enabled',
+                        isDark: isDark,
+                      ),
+                      _Tile(
+                        icon: Icons.assessment_outlined,
+                        title: loc.getString('health_score_calculation'),
+                        subtitle: loc.getString('health_score_calculation_desc'),
+                        isDark: isDark,
+                        onTap: () => _showInfo(context, loc.getString('health_score_calculation'), loc.getString('health_score_calculation_body')),
+                      ),
+                    ],
+                  ),
+
+                  // Data Sharing & Export
+                  _Section(
+                    icon: Icons.share_outlined,
+                    title: loc.getString('data_sharing_export'),
+                    isDark: isDark,
+                    children: [
+                      _Tile(
+                        icon: Icons.medical_information_outlined,
+                        title: loc.getString('export_to_doctor'),
+                        subtitle: loc.getString('export_to_doctor_desc'),
+                        isDark: isDark,
+                        onTap: () => _showInfo(context, loc.getString('export_to_doctor'), loc.getString('export_to_doctor_body')),
+                      ),
+                      _Tile(
+                        icon: Icons.cloud_upload_outlined,
+                        title: loc.getString('cloud_storage_integration'),
+                        subtitle: loc.getString('cloud_storage_integration_desc'),
+                        isDark: isDark,
+                        onTap: () => _showInfo(context, loc.getString('cloud_storage_integration'), loc.getString('cloud_storage_integration_body')),
+                      ),
+                      _Tile(
+                        icon: Icons.folder_shared_outlined,
+                        title: loc.getString('family_sharing'),
+                        subtitle: loc.getString('family_sharing_desc'),
+                        isDark: isDark,
+                        onTap: () => _showInfo(context, loc.getString('family_sharing'), loc.getString('family_sharing_body')),
+                      ),
+                      _SwitchTile(
+                        icon: Icons.autorenew_outlined,
+                        title: loc.getString('auto_sync_enabled'),
+                        subtitle: loc.getString('auto_sync_enabled_desc'),
+                        prefKey: 'auto_sync_enabled',
+                        isDark: isDark,
+                      ),
+                    ],
+                  ),
+
+                  // Automatic Backup Section
+                  _Section(
+                    icon: Icons.cloud_upload_outlined,
+                    title: loc.getString('automatic_backup'),
+                    isDark: isDark,
+                    children: [
+                      _SwitchTile(
+                        icon: Icons.cloud_sync_outlined,
+                        title: loc.getString('auto_backup_enabled'),
+                        subtitle: loc.getString('auto_backup_enabled_desc'),
+                        prefKey: 'auto_backup_enabled',
+                        isDark: isDark,
+                        onChanged: (enabled) async {
+                          final autoBackup = AutoBackupService();
+                          await autoBackup.setEnabled(enabled);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(enabled 
+                                  ? loc.getString('auto_backup_enabled_success')
+                                  : loc.getString('auto_backup_disabled_success')),
+                                backgroundColor: enabled 
+                                  ? Theme.of(context).colorScheme.primary 
+                                  : Colors.orange, // Warning color - keep semantic
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                      _Tile(
+                        icon: Icons.schedule_outlined,
+                        title: loc.getString('backup_interval'),
+                        subtitle: loc.getString('backup_interval_desc'),
+                        isDark: isDark,
+                        onTap: () => _showBackupIntervalSelector(context, loc, isDark),
+                      ),
+                      _Tile(
+                        icon: Icons.backup_outlined,
+                        title: loc.getString('backup_now'),
+                        subtitle: loc.getString('backup_now_desc'),
+                        isDark: isDark,
+                        onTap: () => _triggerManualBackup(context, loc),
+                      ),
+                      _Tile(
+                        icon: Icons.restore_outlined,
+                        title: loc.getString('restore_from_cloud'),
+                        subtitle: loc.getString('restore_from_cloud_desc'),
+                        isDark: isDark,
+                        onTap: () => _triggerCloudRestore(context, loc),
+                      ),
                     ],
                   ),
 
@@ -139,6 +1038,30 @@ class SettingsScreen extends StatelessWidget {
                     title: loc.getString('settings_security'),
                     isDark: isDark,
                     children: [
+                      _Tile(
+                        icon: Icons.notifications_active_outlined,
+                        title: loc.getString('notification_settings_title'),
+                        subtitle: Provider.of<PushNotificationService>(context).permissionGranted
+                            ? loc.getString('permission_granted')
+                            : loc.getString('allow_notifications_desc'),
+                        isDark: isDark,
+                        onTap: () async {
+                          final svc = Provider.of<PushNotificationService>(context, listen: false);
+                          await svc.requestPermissions();
+                          if (!context.mounted) return;
+                          final granted = svc.permissionGranted;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(granted ? loc.getString('done') : loc.getString('permission_denied'))),
+                          );
+                        },
+                      ),
+                      _Tile(
+                        icon: Icons.settings_outlined,
+                        title: loc.getString('open_system_settings'),
+                        subtitle: loc.getString('open_system_settings_desc'),
+                        isDark: isDark,
+                        onTap: () => Provider.of<PushNotificationService>(context, listen: false).openSystemSettings(),
+                      ),
                       _Tile(
                         icon: Icons.privacy_tip_outlined,
                         title: loc.getString('privacy_summary_title'),
@@ -558,6 +1481,58 @@ class SettingsScreen extends StatelessWidget {
                     isDark: isDark,
                     children: [
                       _Tile(
+                        icon: Icons.policy,
+                        title: loc.getString('privacy_policy') == 'privacy_policy' ? 'Privacy Policy' : loc.getString('privacy_policy'),
+                        subtitle: loc.getString('privacy_policy_desc') == 'privacy_policy_desc' ? 'View our privacy policy' : loc.getString('privacy_policy_desc'),
+                        isDark: isDark,
+                        onTap: () async {
+                          try {
+                            final uri = Uri.parse(AppConstants.privacyPolicyUrl);
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            } else {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Could not open Privacy Policy')),
+                                );
+                              }
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error opening Privacy Policy: $e')),
+                              );
+                            }
+                          }
+                        },
+                      ),
+                      _Tile(
+                        icon: Icons.gavel,
+                        title: loc.getString('terms_of_use') == 'terms_of_use' ? 'Terms of Use' : loc.getString('terms_of_use'),
+                        subtitle: loc.getString('terms_of_use_desc') == 'terms_of_use_desc' ? 'View terms and conditions' : loc.getString('terms_of_use_desc'),
+                        isDark: isDark,
+                        onTap: () async {
+                          try {
+                            final uri = Uri.parse(AppConstants.termsOfUseUrl);
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            } else {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Could not open Terms of Use')),
+                                );
+                              }
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error opening Terms of Use: $e')),
+                              );
+                            }
+                          }
+                        },
+                      ),
+                      _Tile(
                         icon: Icons.ios_share,
                         title: loc.getString('export_options_title'),
                         subtitle: loc.getString('export_options_subtitle'),
@@ -622,6 +1597,68 @@ class SettingsScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  void _openSupportPortal(BuildContext context, LocalizationService loc) async {
+    try {
+      final uri = Uri.parse(AppConstants.supportUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(loc.getString('unable_to_open_url') ?? 'Unable to open support portal'),
+              action: SnackBarAction(
+                label: loc.getString('copy') ?? 'Copy',
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: AppConstants.supportUrl));
+                },
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${loc.getString('error') ?? 'Error'}: ${e.toString()}'),
+          ),
+        );
+      }
+    }
+  }
+
+  void _confirmDeleteAccount(BuildContext context) async {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final loc = Provider.of<LocalizationService>(context, listen: false);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(loc.getString('delete_account_data')),
+        content: Text(loc.getString('delete_account_warning')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(loc.getString('cancel'))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: cs.error, foregroundColor: cs.onError),
+            onPressed: () async {
+              try {
+                await DatabaseHelper.instance.clearDatabase();
+                final prefs = await PreferencesService.getInstance();
+                await prefs.clearAllLocal();
+              } catch (_) {}
+              if (context.mounted) {
+                Navigator.pop(ctx);
+                Navigator.of(context).pushNamedAndRemoveUntil('/login', (r) => false);
+              }
+            },
+            child: Text(loc.getString('delete')),
+          ),
+        ],
+      ),
     );
   }
 
@@ -734,6 +1771,541 @@ class SettingsScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  void _showUnitSelector(BuildContext context, LocalizationService loc, bool isDark) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(loc.getString('health_units_title')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.straighten),
+              title: Text(loc.getString('health_units_metric')),
+              onTap: () async {
+                final prefs = await PreferencesService.getInstance();
+                await prefs.saveCustomSettings('health_units', 'metric');
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(loc.getString('done'))),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.straighten),
+              title: Text(loc.getString('health_units_imperial')),
+              onTap: () async {
+                final prefs = await PreferencesService.getInstance();
+                await prefs.saveCustomSettings('health_units', 'imperial');
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(loc.getString('done'))),
+                  );
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(loc.getString('cancel')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFrequencySelector(BuildContext context, LocalizationService loc, bool isDark) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(loc.getString('health_test_frequency')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text(loc.getString('health_frequency_weekly')),
+              onTap: () async {
+                final prefs = await PreferencesService.getInstance();
+                await prefs.saveCustomSettings('health_test_frequency', 'weekly');
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(loc.getString('done'))),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              title: Text(loc.getString('health_frequency_monthly')),
+              onTap: () async {
+                final prefs = await PreferencesService.getInstance();
+                await prefs.saveCustomSettings('health_test_frequency', 'monthly');
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(loc.getString('done'))),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              title: Text(loc.getString('health_frequency_quarterly')),
+              onTap: () async {
+                final prefs = await PreferencesService.getInstance();
+                await prefs.saveCustomSettings('health_test_frequency', 'quarterly');
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(loc.getString('done'))),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              title: Text(loc.getString('health_frequency_biannual')),
+              onTap: () async {
+                final prefs = await PreferencesService.getInstance();
+                await prefs.saveCustomSettings('health_test_frequency', 'biannual');
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(loc.getString('done'))),
+                  );
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(loc.getString('cancel')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showRetentionSelector(BuildContext context, LocalizationService loc, bool isDark) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(loc.getString('health_data_retention')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text(loc.getString('health_retention_1_year')),
+              onTap: () async {
+                final prefs = await PreferencesService.getInstance();
+                await prefs.saveCustomSettings('health_data_retention', '1_year');
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(loc.getString('done'))),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              title: Text(loc.getString('health_retention_3_years')),
+              onTap: () async {
+                final prefs = await PreferencesService.getInstance();
+                await prefs.saveCustomSettings('health_data_retention', '3_years');
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(loc.getString('done'))),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              title: Text(loc.getString('health_retention_unlimited')),
+              onTap: () async {
+                final prefs = await PreferencesService.getInstance();
+                await prefs.saveCustomSettings('health_data_retention', 'unlimited');
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(loc.getString('done'))),
+                  );
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(loc.getString('cancel')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSharingOptions(BuildContext context, LocalizationService loc, bool isDark) {
+    _showInfo(
+      context,
+      loc.getString('health_sharing'),
+      'Bu özellik yakında eklenecek. Doktorlarınız ve aile üyelerinizle veri paylaşımı için hazırlıklarımız devam ediyor.',
+    );
+  }
+
+  void _showReferenceRanges(BuildContext context, LocalizationService loc, bool isDark) {
+    _showInfo(
+      context,
+      loc.getString('health_reference_ranges'),
+      'Referans aralıkları özelleştirmesi yakında kullanıma sunulacak.',
+    );
+  }
+
+  void _showBloodTypeSelector(BuildContext context, LocalizationService loc, bool isDark) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(loc.getString('health_blood_type')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text(loc.getString('blood_type_a_plus')),
+              onTap: () async {
+                final prefs = await PreferencesService.getInstance();
+                await prefs.saveCustomSettings('health_blood_type', 'A+');
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(loc.getString('done'))),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              title: Text(loc.getString('blood_type_a_minus')),
+              onTap: () async {
+                final prefs = await PreferencesService.getInstance();
+                await prefs.saveCustomSettings('health_blood_type', 'A-');
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(loc.getString('done'))),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              title: Text(loc.getString('blood_type_b_plus')),
+              onTap: () async {
+                final prefs = await PreferencesService.getInstance();
+                await prefs.saveCustomSettings('health_blood_type', 'B+');
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(loc.getString('done'))),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              title: Text(loc.getString('blood_type_b_minus')),
+              onTap: () async {
+                final prefs = await PreferencesService.getInstance();
+                await prefs.saveCustomSettings('health_blood_type', 'B-');
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(loc.getString('done'))),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              title: Text(loc.getString('blood_type_ab_plus')),
+              onTap: () async {
+                final prefs = await PreferencesService.getInstance();
+                await prefs.saveCustomSettings('health_blood_type', 'AB+');
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(loc.getString('done'))),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              title: Text(loc.getString('blood_type_ab_minus')),
+              onTap: () async {
+                final prefs = await PreferencesService.getInstance();
+                await prefs.saveCustomSettings('health_blood_type', 'AB-');
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(loc.getString('done'))),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              title: Text(loc.getString('blood_type_o_plus')),
+              onTap: () async {
+                final prefs = await PreferencesService.getInstance();
+                await prefs.saveCustomSettings('health_blood_type', 'O+');
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(loc.getString('done'))),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              title: Text(loc.getString('blood_type_o_minus')),
+              onTap: () async {
+                final prefs = await PreferencesService.getInstance();
+                await prefs.saveCustomSettings('health_blood_type', 'O-');
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(loc.getString('done'))),
+                  );
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showReportFormatSelector(BuildContext context, LocalizationService loc, bool isDark) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(loc.getString('health_report_format')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text(loc.getString('format_pdf')),
+              leading: const Icon(Icons.picture_as_pdf),
+              onTap: () async {
+                final prefs = await PreferencesService.getInstance();
+                await prefs.saveCustomSettings('health_report_format', 'pdf');
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(loc.getString('done'))),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              title: Text(loc.getString('format_excel')),
+              leading: const Icon(Icons.table_chart),
+              onTap: () async {
+                final prefs = await PreferencesService.getInstance();
+                await prefs.saveCustomSettings('health_report_format', 'excel');
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(loc.getString('done'))),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              title: Text(loc.getString('format_json')),
+              leading: const Icon(Icons.code),
+              onTap: () async {
+                final prefs = await PreferencesService.getInstance();
+                await prefs.saveCustomSettings('health_report_format', 'json');
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(loc.getString('done'))),
+                  );
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Auto Backup Methods
+  void _showBackupIntervalSelector(BuildContext context, LocalizationService loc, bool isDark) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(loc.getString('backup_interval')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text(loc.getString('every_1_hour')),
+              onTap: () async {
+                final autoBackup = AutoBackupService();
+                await autoBackup.setBackupInterval(1);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(loc.getString('done'))),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              title: Text(loc.getString('every_6_hours')),
+              onTap: () async {
+                final autoBackup = AutoBackupService();
+                await autoBackup.setBackupInterval(6);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(loc.getString('done'))),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              title: Text(loc.getString('every_12_hours')),
+              onTap: () async {
+                final autoBackup = AutoBackupService();
+                await autoBackup.setBackupInterval(12);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(loc.getString('done'))),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              title: Text(loc.getString('every_24_hours')),
+              onTap: () async {
+                final autoBackup = AutoBackupService();
+                await autoBackup.setBackupInterval(24);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(loc.getString('done'))),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              title: Text(loc.getString('every_7_days')),
+              onTap: () async {
+                final autoBackup = AutoBackupService();
+                await autoBackup.setBackupInterval(168); // 7 days = 168 hours
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(loc.getString('done'))),
+                  );
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(loc.getString('cancel')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _triggerManualBackup(BuildContext context, LocalizationService loc) async {
+    final password = await _askPassword(context, loc, confirm: false);
+    if (password == null || password.isEmpty) return;
+
+    if (!context.mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final autoBackup = AutoBackupService();
+      final success = await autoBackup.backupNow(password);
+
+      if (context.mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success 
+              ? loc.getString('export_success')
+              : loc.getString('export_failed')),
+            backgroundColor: success ? Colors.green : Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${loc.getString('error')}: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _triggerCloudRestore(BuildContext context, LocalizationService loc) async {
+    final password = await _askPassword(context, loc, confirm: false);
+    if (password == null || password.isEmpty) return;
+
+    if (!context.mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final cloudSync = CloudSyncService();
+      await cloudSync.signInAnonymously();
+      final success = await cloudSync.restoreLatest(password, strategy: 'merge');
+
+      if (context.mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success 
+              ? loc.getString('export_success')
+              : loc.getString('export_failed')),
+            backgroundColor: success ? Colors.green : Colors.orange,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${loc.getString('error')}: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
 
@@ -1133,6 +2705,135 @@ class _PerformanceAnimationTileState extends State<_PerformanceAnimationTile> {
                           fontSize: 15,
                           fontWeight: FontWeight.w500,
                           color: widget.isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch(
+                  value: _value,
+                  onChanged: _loaded ? _toggle : null,
+                  thumbColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return const Color(0xFFE53E3E);
+                    }
+                    return Theme.of(context).colorScheme.outlineVariant;
+                  }),
+                  trackColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return const Color(0xFFE53E3E).withValues(alpha: 0.5);
+                    }
+                    return Theme.of(context).colorScheme.outlineVariant;
+                  }),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChallengeSwitchTile extends StatefulWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Future<bool> Function() getValue;
+  final Future<void> Function(bool) setValue;
+  final bool isDark;
+  const _ChallengeSwitchTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.getValue,
+    required this.setValue,
+    required this.isDark,
+  });
+
+  @override
+  State<_ChallengeSwitchTile> createState() => _ChallengeSwitchTileState();
+}
+
+class _ChallengeSwitchTileState extends State<_ChallengeSwitchTile> {
+  bool _value = false;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final v = await widget.getValue();
+    if (mounted) {
+      setState(() {
+        _value = v;
+        _loaded = true;
+      });
+    }
+  }
+
+  Future<void> _toggle(bool v) async {
+    await widget.setValue(v);
+    if (mounted) {
+      setState(() => _value = v);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: widget.isDark ? const Color(0xFF161B22) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: widget.isDark ? const Color(0xFF30363D) : Colors.grey.shade200,
+          width: 1,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _loaded ? () => _toggle(!_value) : null,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: widget.isDark ? const Color(0xFF30363D) : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    widget.icon,
+                    color: widget.isDark ? Colors.white70 : Colors.black87,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.title,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: widget.isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        widget.subtitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: widget.isDark ? Colors.white60 : Colors.black54,
                         ),
                       ),
                     ],

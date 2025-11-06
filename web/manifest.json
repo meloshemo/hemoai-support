@@ -1,11 +1,11 @@
 {
-    "name": "hemoai",
-    "short_name": "hemoai",
+    "name": "HemoAI - Smart Hemogram Analysis",
+    "short_name": "HemoAI",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Smart Hemogram Analysis & Health Tracking with AI-powered insights",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

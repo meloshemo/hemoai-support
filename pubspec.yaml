@@ -1,5 +1,5 @@
 name: hemoai
-description: "A new Flutter project."
+description: "HemoAI - Smart Hemogram Analysis & Health Tracking with AI-powered insights"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -27,10 +27,12 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+  go_router: ^14.3.0
   
   
   # Legacy state management (OS-3 stack)
   provider: ^6.1.2
+  country_picker: ^2.0.21
   
   # Modern State Management
   flutter_riverpod: ^2.5.1
@@ -56,8 +58,10 @@ dependencies:
   
   # Networking & APIs
   dio: ^5.7.0
+  http: ^1.2.2
   retrofit: ^4.4.1
   json_annotation: ^4.9.0
+  connectivity_plus: ^6.0.0
   
   # Charts & Data Visualization
   fl_chart: ^0.69.0
@@ -81,12 +85,20 @@ dependencies:
   cryptography: ^2.7.0
   local_auth: ^2.3.0
   crypto: ^3.0.3
+  flutter_secure_storage: ^9.2.2
   
   # Utilities
   intl: ^0.20.2
   uuid: ^4.5.0
   logger: ^2.4.0
   package_info_plus: ^8.0.2
+  contacts_service: ^0.6.3
+  xml: ^6.5.0
+  html: ^0.15.4
+  
+  # Payments
+  in_app_purchase: ^3.2.0
+  url_launcher: ^6.3.1
   
   # Animations & UI Enhancements
   lottie: ^3.1.2
@@ -94,13 +106,14 @@ dependencies:
   cached_network_image: ^3.4.1
   
   # Background Tasks
-  workmanager: ^0.5.2
+  workmanager: ^0.9.0+3
   
   # Cloud & Sync
   supabase_flutter: ^2.8.0
   
-  # Health & Fitness (optional)
-  # health: ^11.3.0 # Temporarily disabled due to unavailable version; re-enable with a valid version when needed
+  # Health & Fitness
+  # Bumped to resolve intl ^0.20.x compatibility (health >=13 supports intl >=0.20)
+  health: ^13.2.1 # HealthKit/Google Fit integration
   permission_handler: ^11.3.1
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -123,6 +136,9 @@ dev_dependencies:
   # Linting & Analysis
   flutter_lints: ^5.0.0
   very_good_analysis: ^6.0.0
+  
+  # App Icons
+  flutter_launcher_icons: ^0.13.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -136,6 +152,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/hemoai pic 1.O.jpg
+    - assets/lottie/
   # (Removed unused video asset)
 
   # To add assets to your application, add an assets section, like this:
@@ -168,3 +185,17 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Flutter Launcher Icons Configuration
+# Note: Place your 1024x1024 px icon at assets/icon/icon.png
+# Then run: flutter pub get && flutter pub run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true  # iOS icons enabled
+  image_path: "assets/icon/icon.png"  # 1024x1024 px master icon for Android (JPG or PNG)
+  image_path_ios: "assets/icon/ios/icon.png"  # 1024x1024 px master icon for iOS
+  adaptive_icon_background: "#E0E0E0"  # Light gray (matches your icon background)
+  # Note: If you have a separate foreground layer, uncomment the line below:
+  # adaptive_icon_foreground: "assets/icon/icon_foreground.png"
+  remove_alpha_ios: true
+  min_sdk_android: 21  # Android 5.0+

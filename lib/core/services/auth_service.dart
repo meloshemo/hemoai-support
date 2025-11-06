@@ -5,6 +5,10 @@ import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
 import 'encryption_service.dart';
 import 'package:logger/logger.dart';
+import '../../../services/preferences_service.dart';
+import '../../../services/cloud_sync_service.dart';
+import '../../../services/email_service.dart';
+import '../../../services/secure_store_service.dart';
 
 class AuthService {
   final AppDatabase _database;
@@ -45,6 +49,16 @@ class AuthService {
 
       // Convert to UserModel
       final user = _convertToUserModel(userData);
+      
+      // Save user session
+      final prefs = await PreferencesService.getInstance();
+      await prefs.setCurrentUserId(userData.id);
+      await prefs.setUserInfo(user.name, user.email, user.phone);
+      
+      // Trigger cloud sync (background, non-blocking)
+      _triggerCloudSync(userData.id, password).catchError((e) {
+        _logger.w('Cloud sync failed (non-critical): $e');
+      });
       
       // Log successful login
       await _logAuditEvent(userData.id, 'login', {
@@ -104,6 +118,21 @@ class AuthService {
       
       final createdUser = _convertToUserModel(userData);
       
+      // Save user session
+      final prefs = await PreferencesService.getInstance();
+      await prefs.setCurrentUserId(userId);
+      await prefs.setUserInfo(createdUser.name, createdUser.email, createdUser.phone);
+      
+      // Send welcome email (non-blocking)
+      _sendWelcomeEmail(createdUser.email, createdUser.name).catchError((e) {
+        _logger.w('Welcome email failed (non-critical): $e');
+      });
+      
+      // Trigger initial cloud backup (background, non-blocking)
+      _triggerCloudSync(userId, password).catchError((e) {
+        _logger.w('Initial cloud sync failed (non-critical): $e');
+      });
+      
       // Log successful registration
       await _logAuditEvent(userId, 'register', {
         'email': user.email,
@@ -154,29 +183,103 @@ class AuthService {
         return false; // Don't reveal if user exists
       }
 
-      // Generate reset token and send email
-      // This would integrate with an email service
-      final resetToken = _generateResetToken();
+      // Generate reset token
+      final resetToken = await _encryptionService.generateSecureToken();
       
-      // Store reset token (you'd need a reset_tokens table)
-      // await _database.into(_database.resetTokens).insert(
-      //   ResetTokensCompanion.insert(
-      //     userId: userData.id,
-      //     token: resetToken,
-      //     expiresAt: DateTime.now().add(const Duration(hours: 1)),
-      //   ),
-      // );
-
-      // Send reset email
-      // await _emailService.sendPasswordResetEmail(email, resetToken);
+      // Store reset token with expiration (24 hours)
+      final tokenExpiry = DateTime.now().add(const Duration(hours: 24));
+      // Store token in a secure way (for now in SharedPreferences, later in database)
+      final prefs = await PreferencesService.getInstance();
+      await prefs.saveCustomSettings('reset_token_${userData.id}', resetToken);
+      await prefs.saveCustomSettings('reset_token_expiry_${userData.id}', tokenExpiry.toIso8601String());
+      
+      // Send password reset email
+      final emailService = EmailService();
+      // Try to get locale from preferences (default to 'en')
+      String locale = 'en';
+      try {
+        final langCode = prefs.getCustomSetting<String>('language') ?? 'en';
+        locale = langCode.length >= 2 ? langCode.substring(0, 2) : 'en';
+      } catch (_) {
+        locale = 'en';
+      }
+      final emailSent = await emailService.sendPasswordResetEmail(
+        toEmail: email,
+        resetToken: resetToken,
+        locale: locale,
+      );
+      
+      if (!emailSent) {
+        _logger.w('Failed to send password reset email to $email');
+        // Still return true to not reveal if user exists
+      }
 
       // Log password reset request
       await _logAuditEvent(userData.id, 'password_reset_requested', {
         'email': email,
         'timestamp': DateTime.now().toIso8601String(),
+        'status': emailSent ? 'email_sent' : 'email_failed',
       });
 
-      _logger.i('Password reset email sent to: $email');
+      _logger.i('Password reset email ${emailSent ? "sent" : "failed"} for: $email');
+      return true;
+      
+    } catch (e, stackTrace) {
+      _logger.e('Password reset error: $e', error: e, stackTrace: stackTrace);
+      return false;
+    }
+  }
+  
+  // Additional method: Password reset with token verification
+  Future<bool> resetPasswordWithToken(String email, String newPassword, String token) async {
+    try {
+      _logger.i('Password reset with token for: $email');
+      
+      // Find user
+      final users = await _database.select(_database.users)
+        ..where((u) => u.email.equals(email));
+      
+      final userData = await users.getSingleOrNull();
+      
+      if (userData == null) {
+        return false;
+      }
+      
+      // Verify token
+      final prefs = await PreferencesService.getInstance();
+      final storedToken = prefs.getCustomSetting<String>('reset_token_${userData.id}');
+      final expiryStr = prefs.getCustomSetting<String>('reset_token_expiry_${userData.id}');
+      
+      if (storedToken != token || storedToken == null) {
+        _logger.w('Invalid reset token for user: $email');
+        return false;
+      }
+      
+      if (expiryStr != null) {
+        try {
+          final expiry = DateTime.parse(expiryStr);
+          if (DateTime.now().isAfter(expiry)) {
+            _logger.w('Reset token expired for user: $email');
+            // Clean up expired token
+            await prefs.saveCustomSettings('reset_token_${userData.id}', '');
+            return false;
+          }
+        } catch (_) {
+          // Invalid expiry format, allow reset
+        }
+      }
+      
+      // Update password
+      final hashedPassword = _hashPassword(newPassword);
+      await _database.update(_database.users)
+        ..where((u) => u.id.equals(userData.id))
+        ..write(UsersCompanion(passwordHash: Value(hashedPassword), updatedAt: Value(DateTime.now())));
+      
+      // Clear reset token
+      await prefs.saveCustomSettings('reset_token_${userData.id}', '');
+      await prefs.saveCustomSettings('reset_token_expiry_${userData.id}', '');
+      
+      _logger.i('Password reset successful for: $email');
       return true;
       
     } catch (e, stackTrace) {
@@ -188,8 +291,12 @@ class AuthService {
   Future<void> logout() async {
     try {
       _logger.i('User logout');
-      // Clear any session data
-      // You might want to invalidate tokens here
+      
+      // Clear session data via PreferencesService
+      final prefs = await PreferencesService.getInstance();
+      await prefs.logout();
+      
+      _logger.i('User logged out successfully');
     } catch (e, stackTrace) {
       _logger.e('Logout error: $e', error: e, stackTrace: stackTrace);
     }
@@ -197,12 +304,71 @@ class AuthService {
 
   Future<AuthState> getCurrentAuthState() async {
     try {
-      // Check if there's a stored session
-      // This would depend on your session management strategy
+      // Check if there's a stored session using PreferencesService
+      final prefs = await PreferencesService.getInstance();
+      
+      if (prefs.isUserLoggedIn()) {
+        final userId = prefs.getCurrentUserId();
+        if (userId != null) {
+          final user = await getUserById(userId);
+          if (user != null && user.isActive) {
+            _logger.i('Session restored for user: ${user.email}');
+            
+            // Attempt cloud restore if enabled (background, non-blocking)
+            _attemptCloudRestore(userId).catchError((e) {
+              _logger.w('Cloud restore failed (non-critical): $e');
+            });
+            
+            return AuthState.authenticated(user);
+          }
+        }
+      }
+      
       return const AuthState.unauthenticated();
     } catch (e, stackTrace) {
       _logger.e('Get auth state error: $e', error: e, stackTrace: stackTrace);
       return AuthState.unauthenticated(e.toString());
+    }
+  }
+
+  /// Attempt to restore from cloud backup on app launch
+  Future<void> _attemptCloudRestore(int userId) async {
+    try {
+      final cloudSync = CloudSyncService();
+      
+      // Check if there's a newer backup in cloud
+      final cloudMeta = await cloudSync.getLatestMeta();
+      if (cloudMeta == null) {
+        // No cloud backup exists
+        return;
+      }
+      
+      // Get user's password securely (needed for decryption)
+      final password = await SecureStoreService().read('backup_password_for_sync');
+      
+      if (password == null || password.isEmpty) {
+        // No password stored, skip restore
+        _logger.i('No backup password stored, skipping cloud restore');
+        return;
+      }
+      
+      // Check if local data is older than cloud backup
+      // For now, always attempt restore if cloud backup exists
+      // In production, compare timestamps
+      
+      // Attempt restore (merge strategy to preserve local data)
+      final restored = await cloudSync.restoreLatest(
+        password,
+        strategy: 'merge',
+      );
+      
+      if (restored) {
+        _logger.i('Cloud restore completed for user $userId');
+      } else {
+        _logger.w('Cloud restore failed for user $userId');
+      }
+    } catch (e) {
+      _logger.w('Cloud restore error (non-critical): $e');
     }
   }
 
@@ -326,6 +492,73 @@ class AuthService {
       );
     } catch (e) {
       _logger.e('Failed to log audit event: $e');
+    }
+  }
+
+  /// Trigger cloud sync after login/register
+  Future<void> _triggerCloudSync(int userId, String password) async {
+    try {
+      final cloudSync = CloudSyncService();
+      
+      // Get user data
+      final userData = await _database.select(_database.users)
+        ..where((u) => u.id.equals(userId));
+      final user = await userData.getSingleOrNull();
+      
+      if (user == null) return;
+      
+      // Set user identifier for cloud sync (use email as stable identifier)
+      // CloudSyncService uses _userId internally, but we need to set it based on email
+      await cloudSync.signInAnonymously(); // This creates/retrieves a user ID
+      // For cloud sync, we'll use email as the identifier for backups
+      final prefs = await PreferencesService.getInstance();
+      await prefs.saveCustomSettings('cloud_sync_email', user.email);
+      
+      // Store password securely for backup/restore (secure storage)
+      final secureStore = SecureStoreService();
+      await secureStore.write('backup_password_for_sync', password);
+      
+      // Sync tables first (for Supabase)
+      await cloudSync.syncTables(userId: userId);
+      
+      // Then do encrypted backup (use password)
+      final backupSuccess = await cloudSync.backupNow(password);
+      if (backupSuccess) {
+        _logger.i('Cloud backup completed for user $userId');
+        
+        // Also trigger auto backup service to update last backup time
+        final autoBackup = AutoBackupService();
+        await autoBackup.backupNow(password);
+      } else {
+        _logger.w('Cloud backup failed for user $userId (non-critical)');
+      }
+    } catch (e) {
+      _logger.w('Cloud sync error (non-critical): $e');
+    }
+  }
+
+  /// Send welcome email after registration
+  Future<void> _sendWelcomeEmail(String email, String name) async {
+    try {
+      final emailService = EmailService();
+      final prefs = await PreferencesService.getInstance();
+      // Try to get locale from preferences (default to 'en')
+      String locale = 'en';
+      try {
+        final langCode = prefs.getCustomSetting<String>('language') ?? 'en';
+        locale = langCode.length >= 2 ? langCode.substring(0, 2) : 'en';
+      } catch (_) {
+        locale = 'en';
+      }
+      
+      await emailService.sendWelcomeEmail(
+        toEmail: email,
+        userName: name,
+        locale: locale,
+      );
+      _logger.i('Welcome email sent to $email');
+    } catch (e) {
+      _logger.w('Welcome email error (non-critical): $e');
     }
   }
 }

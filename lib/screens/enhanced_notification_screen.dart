@@ -4,6 +4,7 @@ import '../widgets/app_drawer.dart';
 import '../services/push_notification_service.dart';
 import '../services/preferences_service.dart';
 import '../services/localization_service.dart';
+import '../services/daily_advice_service.dart';
 import '../services/audit_log_service.dart';
 
 class EnhancedNotificationScreen extends StatefulWidget {
@@ -18,6 +19,8 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
   bool _isLoading = true;
   TimeOfDay? _dailyMotivationTime;
   String _currentQuote = '';
+  List<String> _quotes = const [];
+  int _quoteIndex = 0;
 
   @override
   void initState() {
@@ -25,7 +28,7 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
     _tabController = TabController(length: 3, vsync: this);
     _initializeNotifications();
     _loadMotivationPrefs();
-    _rotateQuote(initial: true);
+    _initializeQuotes();
   }
 
   @override
@@ -63,18 +66,30 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
     }
   }
 
-  void _rotateQuote({bool initial = false}) {
+  void _initializeQuotes() {
     final loc = LocalizationService();
-    final base = (loc.getString('motivational_custom_quote').isNotEmpty)
-        ? loc.getString('motivational_custom_quote')
-        : loc.getString('motivational_message_long');
-    // For now, just pick base; if we had a list, cycle it. Keep deterministic unless user taps rotate.
+    final svc = DailyAdviceService();
+    final all = svc.getAllQuotes(loc);
+    final todayIdx = all.isEmpty
+        ? 0
+        : (all.indexOf(svc.getTodayQuoteText(loc)).clamp(0, all.length - 1));
     setState(() {
-      _currentQuote = base;
+      _quotes = all;
+      _quoteIndex = todayIdx;
+      _currentQuote = all.isNotEmpty ? all[todayIdx] : (loc.getString('motivational_message_long'));
     });
-    if (!initial) {
-      AuditLogService().logAction('motivation_rotated');
+  }
+
+  void _rotateQuote() {
+    if (_quotes.isEmpty) {
+      _initializeQuotes();
+      return;
     }
+    setState(() {
+      _quoteIndex = (_quoteIndex + 1) % _quotes.length;
+      _currentQuote = _quotes[_quoteIndex];
+    });
+    AuditLogService().logAction('motivation_rotated');
   }
 
   Future<void> _pickDailyMotivationTime() async {
@@ -95,7 +110,7 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
       await prefs.saveCustomSettings('daily_motivation_hour', picked.hour);
       await prefs.saveCustomSettings('daily_motivation_minute', picked.minute);
 
-      await push.scheduleDailyMotivation(hour: picked.hour, minute: picked.minute, quote: _currentQuote);
+  await push.scheduleDailyMotivation(hour: picked.hour, minute: picked.minute, quote: _currentQuote);
 
       if (!mounted) return;
       final formatted = localizations.formatTimeOfDay(picked, alwaysUse24HourFormat: true);
@@ -139,7 +154,7 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
             ),
             const SizedBox(height: 8),
             Text(
-              _currentQuote,
+              _currentQuote.isEmpty ? loc.getString('motivational_message_long') : _currentQuote,
               style: const TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 12),
@@ -157,7 +172,10 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
                   },
                   icon: const Icon(Icons.share),
                   label: Text(loc.getString('share_quote')),
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE53E3E), foregroundColor: Colors.white),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 OutlinedButton.icon(
@@ -213,22 +231,23 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
     }
   }
 
-  Color _getTypeColor(NotificationType type) {
+  Color _getTypeColor(NotificationType type, BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     switch (type) {
       case NotificationType.medication:
-        return Colors.green;
+        return Colors.green; // Semantic color - success
       case NotificationType.appointment:
-        return Colors.blue;
+        return colorScheme.primary; // Use theme primary instead of blue
       case NotificationType.test:
-        return Colors.orange;
+        return Colors.orange; // Semantic color - warning
       case NotificationType.healthAlert:
-        return Colors.red;
+        return colorScheme.error; // Use theme error instead of red
       case NotificationType.reminder:
-        return const Color(0xFFE53E3E);
+        return colorScheme.primary; // Use theme primary
       case NotificationType.system:
-        return Colors.grey;
+        return colorScheme.outline; // Use theme outline instead of grey
       case NotificationType.general:
-        return Colors.purple;
+        return colorScheme.secondary; // Use theme secondary instead of purple
     }
   }
 
@@ -250,7 +269,7 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
   }
 
   Widget _buildNotificationCard(NotificationMessage notification) {
-    final typeColor = _getTypeColor(notification.type);
+    final typeColor = _getTypeColor(notification.type, context);
     final loc = LocalizationService();
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -575,12 +594,12 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: _getTypeColor(notification.type).withValues(alpha: 0.1),
+                            color: _getTypeColor(notification.type, context).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(
                             _getTypeIcon(notification.type),
-                            color: _getTypeColor(notification.type),
+                            color: _getTypeColor(notification.type, context),
                             size: 32,
                           ),
                         ),
@@ -600,7 +619,7 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
                               Text(
                                 _getTypeDisplayName(notification.type),
                                 style: TextStyle(
-                                  color: _getTypeColor(notification.type),
+                                  color: _getTypeColor(notification.type, context),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -673,8 +692,8 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
                       child: ElevatedButton(
                         onPressed: () => Navigator.pop(context),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _getTypeColor(notification.type),
-                          foregroundColor: Colors.white,
+                          backgroundColor: _getTypeColor(notification.type, context),
+                          foregroundColor: Theme.of(context).colorScheme.onPrimary,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                         child: Text(LocalizationService.translate('close')),
@@ -1013,10 +1032,10 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
                                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                 child: ListTile(
                                   leading: CircleAvatar(
-                                    backgroundColor: _getTypeColor(scheduled.type).withValues(alpha: 0.1),
+                                    backgroundColor: _getTypeColor(scheduled.type, context).withValues(alpha: 0.1),
                                     child: Icon(
                                       _getTypeIcon(scheduled.type),
-                                      color: _getTypeColor(scheduled.type),
+                                      color: _getTypeColor(scheduled.type, context),
                                     ),
                                   ),
                                   title: Text(scheduled.title),

@@ -46,8 +46,10 @@ class AppDatabase extends _$AppDatabase {
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     if (kIsWeb) {
-      // Web implementation would use a different approach
-      throw UnsupportedError('Web database not implemented yet');
+      // Web implementation uses SharedPreferences via WebDatabaseHelper
+      // Note: This AppDatabase is only used by HealthSync service
+      // The main app uses DatabaseHelper which properly handles web
+      throw UnsupportedError('AppDatabase not available on web. Use DatabaseHelper instead.');
     } else {
       final dbFolder = await getApplicationDocumentsDirectory();
       final file = File(p.join(dbFolder.path, 'hemoai_v2.db'));

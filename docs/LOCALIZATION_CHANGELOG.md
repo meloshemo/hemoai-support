@@ -1,5 +1,21 @@
+## 2025-10-31
+- UI sweep: localized remaining demo strings in new UI layer
+  - Login: welcome_back, login_subtitle, or, dont_have_account, login_failed, password_min_length_6
+  - Dashboard: welcome_back_name (with {name}), health_insights_await, reused app_name
+  - Quick Actions: quick_actions, analytics, record_new_blood_test, personalized_nutrition, family, manage_family_health
+  - Health Metrics: health_metrics (header), reused view_all
+  - Splash: modern_health_analytics, initializing, ai_powered_health_insights
+  - Reminders relative time: time_days, time_hours, time_minutes, now
+- RecentTestsCard: switched long-date to locale-aware intl DateFormat.yMMMd
+- Fixed undefined loc reference in RecentTestsCard tile
+
 ## 2025-10-08
 - Added keys: `release_name`, `release_label` for OS 4 branding display.
+ - Added diet and alternative medicine keys for new marker-driven recommendations:
+  - Diet UI modern filters and actions: diet_filters_title, diet_filter_all, diet_filter_glucose, diet_filter_liver, diet_filter_bilirubin, diet_filter_crp, diet_filter_thyroid, diet_filter_vitd, diet_filter_b12, diet_filter_electrolytes, diet_filter_calcium, diet_filter_hemoglobin, diet_filter_iron, diet_filter_wbc, diet_view_details, diet_copy_plan, diet_share_plan, diet_personalized_header
+   - Categories: herbal_cat_glucose_control, herbal_cat_liver_support, herbal_cat_bilirubin_support, herbal_cat_thyroid_support, herbal_cat_vitamin_d_support, herbal_cat_b12_support, herbal_cat_electrolyte_balance, herbal_cat_calcium_support
+   - Herbs: cinnamon, fenugreek, milk thistle, artichoke, dandelion, seaweed, Brazil nut, cod liver oil, nutritional yeast, coconut water, sesame/tahini (name/usage/benefits/preparation/warning sets)
+   - Diet programs: diet_glucose_control_*, diet_liver_support_*, diet_bilirubin_support_*, diet_crp_antiinflam_*, diet_thyroid_support_*, diet_vitd_support_*, diet_b12_support_*, diet_electrolyte_balance_*, diet_calcium_support_*
 # Localization Changelog
 
 ## 2025-10-04

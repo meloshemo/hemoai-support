@@ -8,6 +8,9 @@ import '../models/diet_program.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+// Conditional import for web HTML support
+import 'export_service_web_stub.dart' if (dart.library.html) 'export_service_web_impl.dart';
+import 'dart:typed_data';
 import 'package:open_filex/open_filex.dart';
 import '../services/diet_menu_service.dart';
 
@@ -942,16 +945,16 @@ class ExportService {
     required String filename,
     required String contentType,
   }) {
-    // No-op on non-web. On web this will be replaced by proper implementation.
     if (!kIsWeb) {
       if (kDebugMode) {
-    debugPrint('Download ($filename) skipped: not running on web.');
+        debugPrint('Download ($filename) skipped: not running on web.');
       }
     } else {
-      // Web implementation moved out to avoid dart:html import on desktop.
+      // Web implementation via conditional import
       if (kDebugMode) {
-    debugPrint('Web download logic not implemented in this build context.');
+        debugPrint('Downloading text file on web: $filename');
       }
+      downloadWebFile(content: content, filename: filename, contentType: contentType);
     }
   }
 
@@ -962,12 +965,14 @@ class ExportService {
   }) {
     if (!kIsWeb) {
       if (kDebugMode) {
-    debugPrint('Binary download ($filename) skipped: not running on web.');
+        debugPrint('Binary download ($filename) skipped: not running on web.');
       }
     } else {
+      // Web implementation via conditional import
       if (kDebugMode) {
-    debugPrint('Web binary download logic not implemented in this build context.');
+        debugPrint('Downloading file on web: $filename');
       }
+      downloadWebFileBinary(bytes: bytes, filename: filename, contentType: contentType);
     }
   }
 

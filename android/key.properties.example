@@ -1,0 +1,13 @@
+# IMPORTANT: Copy this to key.properties (NOT COMMITTED) with your real values
+
+# Path to the keystore file (relative to android/ or absolute)
+storeFile=app/keystore/release.jks
+
+# Keystore password
+storePassword=YOUR_STORE_PASSWORD
+
+# Key alias
+keyAlias=hemoai
+
+# Key password
+keyPassword=YOUR_KEY_PASSWORD

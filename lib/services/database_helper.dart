@@ -2,6 +2,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:flutter/foundation.dart';
 import 'web_database_helper.dart';
+import 'cache_service.dart';
 
 class DatabaseHelper {
   static DatabaseHelper? _instance;
@@ -30,7 +31,7 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'hemoai.db');
     return await openDatabase(
       path,
-      version: 4,
+      version: 6,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -76,6 +77,20 @@ class DatabaseHelper {
         monocyte REAL,
         eosinophil REAL,
         basophil REAL,
+        glucose REAL,
+        alt REAL,
+        ast REAL,
+        crp REAL,
+        tsh REAL,
+        vitamin_d3 REAL,
+        vitamin_b12 REAL,
+        calcium REAL,
+        sodium REAL,
+        potassium REAL,
+        ggt REAL,
+        bilirubin REAL,
+        creatinine REAL,
+        urea REAL,
         risk_level TEXT,
         doctor_notes TEXT,
         created_at TEXT NOT NULL,
@@ -266,6 +281,36 @@ class DatabaseHelper {
         created_at TEXT NOT NULL
       )
     ''');
+
+    // Emergency contacts table
+    await db.execute('''
+      CREATE TABLE emergency_contacts(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        relation TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+      )
+    ''');
+
+    // Medical history table
+    await db.execute('''
+      CREATE TABLE medical_history(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        condition_type TEXT NOT NULL, -- chronic | surgery | allergy | procedure
+        condition_name TEXT NOT NULL,
+        description TEXT,
+        diagnosis_date TEXT,
+        status TEXT, -- active | resolved | ongoing
+        doctor_name TEXT,
+        notes TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+      )
+    ''');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -325,6 +370,79 @@ class DatabaseHelper {
           metadata TEXT,
           created_at TEXT NOT NULL
         )
+      ''');
+    }
+    if (oldVersion < 5) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS emergency_contacts(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          name TEXT NOT NULL,
+          phone TEXT NOT NULL,
+          relation TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS medical_history(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          condition_type TEXT NOT NULL,
+          condition_name TEXT NOT NULL,
+          description TEXT,
+          diagnosis_date TEXT,
+          status TEXT,
+          doctor_name TEXT,
+          notes TEXT,
+          created_at TEXT NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+        )
+      ''');
+    }
+    if (oldVersion < 6) {
+      // Add extended blood test parameters to hemogram_tests table
+      await db.execute('''
+        ALTER TABLE hemogram_tests ADD COLUMN glucose REAL
+      ''');
+      await db.execute('''
+        ALTER TABLE hemogram_tests ADD COLUMN alt REAL
+      ''');
+      await db.execute('''
+        ALTER TABLE hemogram_tests ADD COLUMN ast REAL
+      ''');
+      await db.execute('''
+        ALTER TABLE hemogram_tests ADD COLUMN crp REAL
+      ''');
+      await db.execute('''
+        ALTER TABLE hemogram_tests ADD COLUMN tsh REAL
+      ''');
+      await db.execute('''
+        ALTER TABLE hemogram_tests ADD COLUMN vitamin_d3 REAL
+      ''');
+      await db.execute('''
+        ALTER TABLE hemogram_tests ADD COLUMN vitamin_b12 REAL
+      ''');
+      await db.execute('''
+        ALTER TABLE hemogram_tests ADD COLUMN calcium REAL
+      ''');
+      await db.execute('''
+        ALTER TABLE hemogram_tests ADD COLUMN sodium REAL
+      ''');
+      await db.execute('''
+        ALTER TABLE hemogram_tests ADD COLUMN potassium REAL
+      ''');
+      await db.execute('''
+        ALTER TABLE hemogram_tests ADD COLUMN ggt REAL
+      ''');
+      await db.execute('''
+        ALTER TABLE hemogram_tests ADD COLUMN bilirubin REAL
+      ''');
+      await db.execute('''
+        ALTER TABLE hemogram_tests ADD COLUMN creatinine REAL
+      ''');
+      await db.execute('''
+        ALTER TABLE hemogram_tests ADD COLUMN urea REAL
       ''');
     }
   }
@@ -421,6 +539,56 @@ class DatabaseHelper {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getReminderStreaksForUser(int userId) async {
+    final db = await database;
+    if (kIsWeb) {
+      // Not implemented for web in this helper; return empty list
+      return [];
+    } else {
+      return await (db as Database).query(
+        'reminder_streaks',
+        where: 'user_id = ? OR user_id IS NULL',
+        whereArgs: [userId],
+        orderBy: 'current_streak DESC, longest_streak DESC',
+      );
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getRecentReminderLogs(int userId, {int days = 7, int limit = 50}) async {
+    final db = await database;
+    final since = DateTime.now().subtract(Duration(days: days)).toIso8601String().split('T')[0];
+    if (kIsWeb) {
+      // Not implemented for web in this helper; return empty list
+      return [];
+    } else {
+      return await (db as Database).query(
+        'reminder_logs',
+        where: '(user_id = ? OR user_id IS NULL) AND action_date >= ?',
+        whereArgs: [userId, since],
+        orderBy: 'action_date DESC, created_at DESC',
+        limit: limit,
+      );
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getMedicationLogsLastDays(int userId, {int days = 7}) async {
+    final db = await database;
+    final since = DateTime.now().subtract(Duration(days: days)).toIso8601String().split('T')[0];
+    if (kIsWeb) {
+      // Not implemented for web in this helper; return empty list
+      return [];
+    } else {
+      final sql = '''
+        SELECT ml.*, m.name AS medication_name
+        FROM medication_logs ml
+        JOIN medications m ON ml.medication_id = m.id
+        WHERE m.user_id = ? AND ml.taken_date >= ?
+        ORDER BY ml.taken_date DESC, ml.created_at DESC
+      ''';
+      return await (db as Database).rawQuery(sql, [userId, since]);
+    }
+  }
+
   // Kullanici islemleri
   Future<int> insertUser(Map<String, dynamic> user) async {
     final db = await database;
@@ -479,9 +647,11 @@ class DatabaseHelper {
   // Hemogram test islemleri
   Future<int> insertHemogramTest(Map<String, dynamic> test) async {
     final db = await database;
-    if (kIsWeb) {
-      return await (db as WebDatabaseHelper).insertHemogramTest(test);
-    } else {
+    final userId = test['user_id'] as int?;
+    
+    final result = kIsWeb
+        ? await (db as WebDatabaseHelper).insertHemogramTest(test)
+        : await (() async {
       // Sanitize map to only include columns that exist in hemogram_tests
       final allowedColumns = <String>{
         'user_id',
@@ -501,6 +671,20 @@ class DatabaseHelper {
         'monocyte',
         'eosinophil',
         'basophil',
+        'glucose',
+        'alt',
+        'ast',
+        'crp',
+        'tsh',
+        'vitamin_d3',
+        'vitamin_b12',
+        'calcium',
+        'sodium',
+        'potassium',
+        'ggt',
+        'bilirubin',
+        'creatinine',
+        'urea',
         'risk_level',
         'doctor_notes',
         'created_at',
@@ -528,26 +712,46 @@ class DatabaseHelper {
       tryAssign('monocytes', 'monocyte');
       tryAssign('eosinophils', 'eosinophil');
       tryAssign('basophils', 'basophil');
+      tryAssign('vitamin_d', 'vitamin_d3');
+      tryAssign('vitamin_d3', 'vitamin_d3');
+      tryAssign('vitamin_b12', 'vitamin_b12');
 
       // Ensure mandatory metadata
       sanitized['created_at'] = DateTime.now().toIso8601String();
 
       return await (db as Database).insert('hemogram_tests', sanitized);
+    })();
+    
+    // Invalidate cache after insert
+    if (userId != null) {
+      final cache = HemoAICache();
+      cache.remove('hemogram_$userId');
     }
+    
+    return result;
   }
 
   Future<List<Map<String, dynamic>>> getHemogramTests(int userId) async {
-    final db = await database;
-    if (kIsWeb) {
-      return await (db as WebDatabaseHelper).getHemogramTests(userId);
-    } else {
-      return await (db as Database).query(
-        'hemogram_tests',
-        where: 'user_id = ?',
-        whereArgs: [userId],
-        orderBy: 'test_date DESC',
-      );
+    // Check cache first
+    final cache = HemoAICache();
+    final cached = cache.getHemogramHistory(userId);
+    if (cached != null) {
+      return cached;
     }
+    
+    final db = await database;
+    final results = kIsWeb
+        ? await (db as WebDatabaseHelper).getHemogramTests(userId)
+        : await (db as Database).query(
+            'hemogram_tests',
+            where: 'user_id = ?',
+            whereArgs: [userId],
+            orderBy: 'test_date DESC',
+          );
+    
+    // Cache results
+    cache.putHemogramHistory(userId, results);
+    return results;
   }
 
   Future<Map<String, dynamic>?> getLatestHemogramTest(int userId) async {
@@ -578,17 +782,25 @@ class DatabaseHelper {
   }
 
   Future<List<Map<String, dynamic>>> getFamilyMembers(int userId) async {
-    if (kIsWeb) {
-      return await _webHelper!.getFamilyMembers(userId);
-    } else {
-      final db = await database;
-      return await db.query(
-        'family_members',
-        where: 'user_id = ?',
-        whereArgs: [userId],
-        orderBy: 'name ASC',
-      );
+    // Check cache first
+    final cache = HemoAICache();
+    final cached = cache.getFamilyMembers(userId);
+    if (cached != null) {
+      return cached;
     }
+    
+    final results = kIsWeb
+        ? await _webHelper!.getFamilyMembers(userId)
+        : await (await database).query(
+            'family_members',
+            where: 'user_id = ?',
+            whereArgs: [userId],
+            orderBy: 'name ASC',
+          );
+    
+    // Cache results
+    cache.putFamilyMembers(userId, results);
+    return results;
   }
 
   Future<int> updateFamilyMember(int id, Map<String, dynamic> member) async {
@@ -680,6 +892,39 @@ class DatabaseHelper {
     );
     
     return logs.isNotEmpty;
+  }
+
+  Future<void> updateMedicationTaken(int medicationId, int userId, bool taken) async {
+    final db = await database;
+    String today = DateTime.now().toIso8601String().substring(0, 10);
+    
+    // Check if log already exists for today
+    final existingLogs = await db.query(
+      'medication_logs',
+      where: 'medication_id = ? AND user_id = ? AND taken_date = ?',
+      whereArgs: [medicationId, userId, today],
+    );
+    
+    if (existingLogs.isNotEmpty) {
+      // Update existing log
+      await db.update(
+        'medication_logs',
+        {'was_taken': taken ? 1 : 0, 'updated_at': DateTime.now().toIso8601String()},
+        where: 'medication_id = ? AND user_id = ? AND taken_date = ?',
+        whereArgs: [medicationId, userId, today],
+      );
+    } else {
+      // Create new log entry
+      await db.insert('medication_logs', {
+        'medication_id': medicationId,
+        'user_id': userId,
+        'taken_date': today,
+        'was_taken': taken ? 1 : 0,
+        'taken_time': DateTime.now().toIso8601String(),
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+    }
   }
 
   // Bildirim islemleri
@@ -887,7 +1132,10 @@ class DatabaseHelper {
         'name': name,
         'dosage': dosage,
         'frequency': frequency,
-        'time': time,
+        // native schema uses time_to_take; store provided time string (e.g., HH:mm)
+        'time_to_take': time,
+        'start_date': DateTime.now().toIso8601String().split('T')[0],
+        'end_date': null,
         'is_active': 1,
         'created_at': DateTime.now().toIso8601String(),
       });
@@ -1218,6 +1466,61 @@ class DatabaseHelper {
       );
     }
   }
+
+  // ===== Emergency Contacts Methods =====
+  Future<List<Map<String, dynamic>>> getEmergencyContacts([int? userId]) async {
+    if (kIsWeb) {
+      _webHelper ??= WebDatabaseHelper.instance;
+      return await _webHelper!.getEmergencyContacts(userId);
+    } else {
+      final db = await database;
+      if (userId != null) {
+        return await (db as Database).query(
+          'emergency_contacts',
+          where: 'user_id = ?',
+          whereArgs: [userId],
+          orderBy: 'name ASC',
+        );
+      }
+      return await (db as Database).query('emergency_contacts', orderBy: 'name ASC');
+    }
+  }
+
+  Future<int> addEmergencyContact({
+    required int userId,
+    required String name,
+    required String phone,
+    required String relation,
+  }) async {
+    if (kIsWeb) {
+      _webHelper ??= WebDatabaseHelper.instance;
+      return await _webHelper!.addEmergencyContact(
+        userId: userId,
+        name: name,
+        phone: phone,
+        relation: relation,
+      );
+    } else {
+      final db = await database;
+      return await (db as Database).insert('emergency_contacts', {
+        'user_id': userId,
+        'name': name,
+        'phone': phone,
+        'relation': relation,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+    }
+  }
+
+  Future<int> deleteEmergencyContact(int id) async {
+    if (kIsWeb) {
+      _webHelper ??= WebDatabaseHelper.instance;
+      return await _webHelper!.deleteEmergencyContact(id);
+    } else {
+      final db = await database;
+      return await (db as Database).delete('emergency_contacts', where: 'id = ?', whereArgs: [id]);
+    }
+  }
 }
 
 // Hemogram degerleri icin yardimci sinif
@@ -1309,5 +1612,4 @@ class HemogramValues {
     
     return userValues;
   }
-
 }

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/notification_service.dart';
-import '../services/web_database_helper.dart';
+// Use repository layer (SSoT)
+import '../repositories/reminder_repository.dart';
 import '../services/preferences_service.dart';
 import '../services/localization_service.dart';
 import '../services/audit_log_service.dart';
@@ -149,7 +150,8 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       final prefs = await PreferencesService.getInstance();
       final userId = prefs.getCurrentUserId();
       if (userId != null) {
-        newId = await WebDatabaseHelper.instance.createReminder({
+        final repo = Provider.of<ReminderRepository>(context, listen: false);
+        newId = await repo.createReminder({
           'user_id': userId,
           'title': _titleController.text.trim(),
           'description': _descriptionController.text.trim(),
@@ -212,20 +214,27 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   @override
   Widget build(BuildContext context) {
     final localizationService = Provider.of<LocalizationService>(context);
+    final canPop = Navigator.of(context).canPop();
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      drawer: const AppDrawer(currentRoute: '/add_reminder'),
+      drawer: canPop ? null : const AppDrawer(currentRoute: '/add_reminder'),
       appBar: AppBar(
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(
-              Icons.menu,
-              size: 24,
-            ),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-            tooltip: localizationService.getString('menu'),
-          ),
-        ),
+        leading: canPop
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Navigator.of(context).maybePop(),
+                tooltip: localizationService.getString('back'),
+              )
+            : Builder(
+                builder: (context) => IconButton(
+                  icon: const Icon(
+                    Icons.menu,
+                    size: 24,
+                  ),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                  tooltip: localizationService.getString('menu'),
+                ),
+              ),
         title: Text(
           localizationService.getString('add_reminder'),
           style: const TextStyle(

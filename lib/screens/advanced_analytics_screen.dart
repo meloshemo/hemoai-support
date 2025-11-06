@@ -125,21 +125,29 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> with 
             backgroundColor: Theme.of(context).brightness == Brightness.dark 
               ? const Color(0xFF0D1117) 
               : Colors.grey[50],
-            drawer: const AppDrawer(currentRoute: '/advanced_analytics'),
+            drawer: Navigator.of(context).canPop() ? null : const AppDrawer(currentRoute: '/advanced_analytics'),
             appBar: AppBar(
-              leading: Builder(
-                builder: (context) => IconButton(
-                  icon: Icon(
-                    Icons.menu,
-                    color: Theme.of(context).brightness == Brightness.dark 
-                      ? const Color(0xFFF0F6FC) 
-                      : Colors.white,
-                    size: 24,
-                  ),
-                  onPressed: () => Scaffold.of(context).openDrawer(),
-                  tooltip: localizationService.getString('menu'),
-                ),
-              ),
+              leading: Navigator.of(context).canPop()
+                  ? IconButton(
+                      icon: Icon(
+                        localizationService.isRTL ? Icons.arrow_forward_ios : Icons.arrow_back_ios,
+                        color: Colors.white,
+                      ),
+                      onPressed: () => Navigator.of(context).maybePop(),
+                    )
+                  : Builder(
+                      builder: (context) => IconButton(
+                        icon: Icon(
+                          Icons.menu,
+                          color: Theme.of(context).brightness == Brightness.dark 
+                            ? const Color(0xFFF0F6FC) 
+                            : Colors.white,
+                          size: 24,
+                        ),
+                        onPressed: () => Scaffold.of(context).openDrawer(),
+                        tooltip: localizationService.getString('menu'),
+                      ),
+                    ),
               title: Text(
                 localizationService.getString('advanced_analytics'),
                 style: const TextStyle(

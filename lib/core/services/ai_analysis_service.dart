@@ -1,6 +1,8 @@
 import 'package:logger/logger.dart';
+import 'dart:math';
 import '../models/user_model.dart';
 import '../database/app_database.dart';
+import '../../services/database_helper.dart';
 
 class AIAnalysisService {
   static final AIAnalysisService _instance = AIAnalysisService._internal();
@@ -29,10 +31,27 @@ class AIAnalysisService {
 
   Future<void> _initializeModels() async {
     // Initialize machine learning models
-    // This would load TensorFlow Lite models or connect to AI services
-    await Future.delayed(const Duration(milliseconds: 500));
-    _logger.i('AI models initialized');
+    // For now, using statistical analysis (linear regression)
+    // Future: TensorFlow Lite models can be loaded here
+    // Example: await _loadTensorFlowLiteModel();
+    
+    // Google ML Kit is already used for OCR in data_import_service.dart
+    // For health analysis, we use statistical methods and pattern recognition
+    
+    _logger.i('AI models initialized - using statistical analysis and linear regression');
   }
+  
+  /// Future: Load TensorFlow Lite model for health prediction
+  /// This would require a trained model file (.tflite) in assets
+  /// Example:
+  /// Future<void> _loadTensorFlowLiteModel() async {
+  ///   try {
+  ///     final interpreter = await Interpreter.fromAsset('assets/models/health_predictor.tflite');
+  ///     _logger.i('TensorFlow Lite model loaded');
+  ///   } catch (e) {
+  ///     _logger.w('TensorFlow Lite model not available: $e');
+  ///   }
+  /// }
 
   Future<HealthAnalysisResult> analyzeBloodTest(
     BloodTestResult bloodTest,
@@ -199,19 +218,297 @@ class AIAnalysisService {
     return recommendations;
   }
 
+  /// Real trend analysis using linear regression on historical data
   Future<TrendAnalysis> _analyzeTrends(
     BloodTestResult bloodTest,
     UserModel user,
   ) async {
-    // This would analyze historical data to identify trends
-    // For now, returning a mock analysis
-    return TrendAnalysis(
-      overallTrend: 'stable',
-      improvingParameters: ['hemoglobin', 'cholesterol'],
-      decliningParameters: [],
-      stableParameters: ['glucose', 'alt', 'ast'],
-      trendConfidence: 0.75,
+    try {
+      // Fetch historical test data (last 6 months)
+      final db = DatabaseHelper.instance;
+      final historicalTests = await db.getHemogramTests(user.id);
+      
+      if (historicalTests.isEmpty || historicalTests.length < 2) {
+        // Not enough data for trend analysis
+        return TrendAnalysis(
+          overallTrend: 'insufficient_data',
+          improvingParameters: [],
+          decliningParameters: [],
+          stableParameters: [],
+          trendConfidence: 0.0,
+        );
+      }
+
+      // Filter tests from last 6 months
+      final sixMonthsAgo = DateTime.now().subtract(const Duration(days: 180));
+      final recentTests = historicalTests.where((test) {
+        final testDate = DateTime.tryParse(test['test_date']?.toString() ?? '');
+        return testDate != null && testDate.isAfter(sixMonthsAgo);
+      }).toList();
+
+      if (recentTests.length < 2) {
+        return TrendAnalysis(
+          overallTrend: 'insufficient_data',
+          improvingParameters: [],
+          decliningParameters: [],
+          stableParameters: [],
+          trendConfidence: 0.0,
+        );
+      }
+
+      // Analyze trends for each parameter using linear regression
+      final improving = <String>[];
+      final declining = <String>[];
+      final stable = <String>[];
+
+      // Get all parameters from current test
+      final parameters = bloodTest.values.keys.toList();
+      
+      for (final param in parameters) {
+        // Collect data points for this parameter
+        final dataPoints = <({DateTime date, double value})>[];
+        
+        // Add current test value
+        if (bloodTest.values[param] != null) {
+          dataPoints.add((
+            date: DateTime.now(),
+            value: bloodTest.values[param]!,
+          ));
+        }
+        
+        // Add historical values
+        for (final test in recentTests) {
+          final testDate = DateTime.tryParse(test['test_date']?.toString() ?? '');
+          final value = _getParameterValue(test, param);
+          
+          if (testDate != null && value != null) {
+            dataPoints.add((date: testDate, value: value));
+          }
+        }
+
+        // Need at least 3 points for reliable trend analysis
+        if (dataPoints.length < 3) continue;
+
+        // Sort by date
+        dataPoints.sort((a, b) => a.date.compareTo(b.date));
+
+        // Calculate linear regression
+        final trend = _calculateLinearRegression(dataPoints);
+        
+        // Determine trend direction based on slope
+        // Threshold: 5% change over the period
+        final minValue = dataPoints.map((p) => p.value).reduce(min);
+        final maxValue = dataPoints.map((p) => p.value).reduce(max);
+        final range = maxValue - minValue;
+        
+        if (range == 0) {
+          stable.add(param);
+          continue;
+        }
+
+        // Calculate percentage change
+        final firstValue = dataPoints.first.value;
+        final lastValue = dataPoints.last.value;
+        final percentChange = ((lastValue - firstValue) / firstValue) * 100.0;
+        
+        // Threshold: 5% change is significant
+        if (percentChange.abs() < 5.0) {
+          stable.add(param);
+        } else if (trend.slope > 0 && percentChange > 5.0) {
+          // Improving: values moving towards normal range
+          final ranges = _getReferenceRanges(param);
+          if (ranges != null) {
+            final isInRange = lastValue >= ranges['min']! && lastValue <= ranges['max']!;
+            final wasOutOfRange = firstValue < ranges['min']! || firstValue > ranges['max']!;
+            
+            if (isInRange || (wasOutOfRange && isInRange)) {
+              improving.add(param);
+            } else if (!isInRange && lastValue > firstValue && firstValue < ranges['min']!) {
+              // Moving towards normal from low
+              improving.add(param);
+            } else {
+              declining.add(param); // Moving away from normal
+            }
+          } else {
+            improving.add(param);
+          }
+        } else if (trend.slope < 0 && percentChange < -5.0) {
+          // Check if declining towards normal or away from normal
+          final ranges = _getReferenceRanges(param);
+          if (ranges != null) {
+            final isInRange = lastValue >= ranges['min']! && lastValue <= ranges['max']!;
+            final wasOutOfRange = firstValue < ranges['min']! || firstValue > ranges['max']!;
+            
+            if (isInRange || (wasOutOfRange && isInRange)) {
+              improving.add(param); // Moving into normal range
+            } else if (!isInRange && lastValue < firstValue && firstValue > ranges['max']!) {
+              // Moving towards normal from high
+              improving.add(param);
+            } else {
+              declining.add(param); // Moving away from normal
+            }
+          } else {
+            declining.add(param);
+          }
+        } else {
+          stable.add(param);
+        }
+      }
+
+      // Determine overall trend
+      String overallTrend;
+      if (improving.length > declining.length && improving.length > stable.length) {
+        overallTrend = 'improving';
+      } else if (declining.length > improving.length && declining.length > stable.length) {
+        overallTrend = 'declining';
+      } else {
+        overallTrend = 'stable';
+      }
+
+      // Calculate confidence based on data quality
+      final confidence = _calculateTrendConfidence(
+        dataPointCount: recentTests.length,
+        parameterCount: parameters.length,
+        improvingCount: improving.length,
+        decliningCount: declining.length,
+      );
+
+      return TrendAnalysis(
+        overallTrend: overallTrend,
+        improvingParameters: improving,
+        decliningParameters: declining,
+        stableParameters: stable,
+        trendConfidence: confidence,
+      );
+    } catch (e, stackTrace) {
+      _logger.e('Error in trend analysis: $e', error: e, stackTrace: stackTrace);
+      // Fallback to stable trend on error
+      return TrendAnalysis(
+        overallTrend: 'stable',
+        improvingParameters: [],
+        decliningParameters: [],
+        stableParameters: [],
+        trendConfidence: 0.5,
+      );
+    }
+  }
+
+  /// Calculate linear regression slope and intercept
+  _RegressionResult _calculateLinearRegression(
+    List<({DateTime date, double value})> dataPoints,
+  ) {
+    if (dataPoints.length < 2) {
+      return _RegressionResult(slope: 0.0, intercept: 0.0, rSquared: 0.0);
+    }
+
+    // Convert dates to numeric values (days since first date)
+    final firstDate = dataPoints.first.date;
+    final n = dataPoints.length;
+    
+    double sumX = 0.0;
+    double sumY = 0.0;
+    double sumXY = 0.0;
+    double sumX2 = 0.0;
+    double sumY2 = 0.0;
+
+    for (final point in dataPoints) {
+      final x = point.date.difference(firstDate).inDays.toDouble();
+      final y = point.value;
+      
+      sumX += x;
+      sumY += y;
+      sumXY += x * y;
+      sumX2 += x * x;
+      sumY2 += y * y;
+    }
+
+    // Calculate slope (m) and intercept (b) using least squares
+    final denominator = (n * sumX2 - sumX * sumX);
+    if (denominator == 0) {
+      return _RegressionResult(slope: 0.0, intercept: sumY / n, rSquared: 0.0);
+    }
+
+    final slope = (n * sumXY - sumX * sumY) / denominator;
+    final intercept = (sumY - slope * sumX) / n;
+
+    // Calculate R-squared (coefficient of determination)
+    double ssRes = 0.0;
+    double ssTot = 0.0;
+    final meanY = sumY / n;
+
+    for (final point in dataPoints) {
+      final x = point.date.difference(firstDate).inDays.toDouble();
+      final y = point.value;
+      final predictedY = slope * x + intercept;
+      
+      ssRes += pow(y - predictedY, 2);
+      ssTot += pow(y - meanY, 2);
+    }
+
+    final rSquared = ssTot > 0 ? 1.0 - (ssRes / ssTot) : 0.0;
+
+    return _RegressionResult(
+      slope: slope,
+      intercept: intercept,
+      rSquared: rSquared.clamp(0.0, 1.0),
     );
+  }
+
+  /// Get parameter value from test map
+  double? _getParameterValue(Map<String, dynamic> test, String parameter) {
+    // Map common parameter names to database column names
+    final columnMap = {
+      'hemoglobin': 'hemoglobin',
+      'hematocrit': 'hematocrit',
+      'white_blood_cells': 'leukocyte',
+      'platelets': 'platelet',
+      'glucose': 'glucose',
+      'alt': 'alt',
+      'ast': 'ast',
+      'crp': 'crp',
+      'iron': 'iron',
+      'vitamin_d': 'vitamin_d3',
+      'vitamin_d3': 'vitamin_d3',
+      'vitamin_b12': 'vitamin_b12',
+      'tsh': 'tsh',
+      'calcium': 'calcium',
+      'sodium': 'sodium',
+      'potassium': 'potassium',
+      'total_cholesterol': 'total_cholesterol',
+    };
+
+    final columnName = columnMap[parameter] ?? parameter;
+    final value = test[columnName];
+    
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  /// Calculate trend confidence based on data quality
+  double _calculateTrendConfidence({
+    required int dataPointCount,
+    required int parameterCount,
+    required int improvingCount,
+    required int decliningCount,
+  }) {
+    // Base confidence on number of data points
+    double confidence = 0.5; // Base confidence
+    
+    // More data points = higher confidence
+    if (dataPointCount >= 5) confidence += 0.2;
+    if (dataPointCount >= 10) confidence += 0.15;
+    
+    // More parameters analyzed = higher confidence
+    if (parameterCount >= 5) confidence += 0.1;
+    if (parameterCount >= 10) confidence += 0.05;
+    
+    // Clear trends (many improving or declining) = higher confidence
+    final totalTrends = improvingCount + decliningCount;
+    if (totalTrends >= 3) confidence += 0.1;
+    
+    return confidence.clamp(0.0, 1.0);
   }
 
   Future<List<String>> _generateInsights(
@@ -366,3 +663,30 @@ class ParameterAnalysis {
     required this.severity,
   });
 }
+
+/// Internal class for linear regression results
+class _RegressionResult {
+  final double slope;
+  final double intercept;
+  final double rSquared;
+
+  const _RegressionResult({
+    required this.slope,
+    required this.intercept,
+    required this.rSquared,
+  });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

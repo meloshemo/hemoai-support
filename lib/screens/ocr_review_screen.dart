@@ -79,6 +79,21 @@ class _OCRReviewScreenState extends State<OCRReviewScreen>
     _animationController.forward();
   }
 
+  @override
+  void dispose() {
+    // Dispose all controllers and focus nodes to prevent memory leaks
+    for (final controller in _controllers.values) {
+      controller.dispose();
+    }
+    for (final focusNode in _focusNodes.values) {
+      focusNode.dispose();
+    }
+    _animationController.dispose();
+    _controllers.clear();
+    _focusNodes.clear();
+    super.dispose();
+  }
+
   void _validateField(String key, String value) {
     final numValue = double.tryParse(value);
     final range = _referenceRanges[key];
@@ -411,15 +426,4 @@ class _OCRReviewScreenState extends State<OCRReviewScreen>
     );
   }
 
-  @override
-  void dispose() {
-    _animationController.dispose();
-    for (final controller in _controllers.values) {
-      controller.dispose();
-    }
-    for (final focusNode in _focusNodes.values) {
-      focusNode.dispose();
-    }
-    super.dispose();
-  }
 }

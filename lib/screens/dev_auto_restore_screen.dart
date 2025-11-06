@@ -87,15 +87,17 @@ class _DevAutoRestoreScreenState extends State<DevAutoRestoreScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      setState(() => _status = 'Restore error: $e');
+      setState(() => _status =
+          Provider.of<LocalizationService>(context, listen: false).getString('error_prefix') + e.toString());
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final loc = Provider.of<LocalizationService>(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Auto Restore')),
+      appBar: AppBar(title: Text(loc.getString('auto_restore_title'))),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,

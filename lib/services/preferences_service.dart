@@ -1,5 +1,9 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:crypto/crypto.dart' as crypto;
+import 'secure_store_service.dart';
+import 'package:flutter/foundation.dart';
+import 'package:local_auth/local_auth.dart';
 
 class PreferencesService {
   static PreferencesService? _instance;
@@ -22,8 +26,9 @@ class PreferencesService {
     required double weight,
   }) async {
     await _preferences!.setString('user_name', name);
-    await _preferences!.setString('user_email', email);
-    await _preferences!.setString('user_phone', phone);
+    // Store sensitive fields in secure storage
+    await SecureStoreService().write('user_email', email);
+    await SecureStoreService().write('user_phone', phone);
     await _preferences!.setInt('user_age', age);
     await _preferences!.setString('user_gender', gender);
     await _preferences!.setDouble('user_height', height);
@@ -33,11 +38,13 @@ class PreferencesService {
 
   Map<String, dynamic>? getUserInfo() {
     if (!(_preferences?.getBool('user_logged_in') ?? false)) return null;
-    
+    // Email/phone retrieved from secure storage with fallback to prefs if present
     return {
       'name': _preferences?.getString('user_name'),
-      'email': _preferences?.getString('user_email'),
-      'phone': _preferences?.getString('user_phone'),
+      // Do NOT read email/phone from SharedPreferences unless legacy values remain.
+      // Call getUserInfoAsync() for secure values when possible.
+      'email': null,
+      'phone': null,
       'age': _preferences?.getInt('user_age'),
       'gender': _preferences?.getString('user_gender'),
       'height': _preferences?.getDouble('user_height'),
@@ -75,8 +82,10 @@ class PreferencesService {
       await getInstance();
     }
     await _preferences!.setString('user_name', name);
-    await _preferences!.setString('user_email', email);
-    await _preferences!.setString('user_phone', phone);
+    await SecureStoreService().write('user_email', email);
+    await SecureStoreService().write('user_phone', phone);
+    // Treat presence of user info as a signed-in session so app resumes seamlessly
+    await _preferences!.setBool('user_logged_in', true);
   }
 
   Future<void> setPersonalInfo(int age, String gender, double height, double weight) async {
@@ -109,6 +118,47 @@ class PreferencesService {
       return decoded.map((key, value) => MapEntry(key, (value as num).toDouble()));
     } catch (e) {
       return null;
+    }
+  }
+
+  // Async variant that reads email/phone from secure storage (preferred)
+  Future<Map<String, dynamic>?> getUserInfoAsync() async {
+    if (!(_preferences?.getBool('user_logged_in') ?? false)) return null;
+    final secure = SecureStoreService();
+    final email = await secure.read('user_email');
+    final phone = await secure.read('user_phone');
+    return {
+      'name': _preferences?.getString('user_name'),
+      'email': email,
+      'phone': phone,
+      'age': _preferences?.getInt('user_age'),
+      'gender': _preferences?.getString('user_gender'),
+      'height': _preferences?.getDouble('user_height'),
+      'weight': _preferences?.getDouble('user_weight'),
+    };
+  }
+
+  // One-time migration: move PII from SharedPreferences -> Secure storage and scrub legacy keys
+  Future<void> ensurePiiSecured() async {
+    if (_preferences == null) {
+      await getInstance();
+    }
+    final legacyEmail = _preferences?.getString('user_email');
+    final legacyPhone = _preferences?.getString('user_phone');
+    bool changed = false;
+    if (legacyEmail != null && legacyEmail.isNotEmpty) {
+      await SecureStoreService().write('user_email', legacyEmail);
+      await _preferences!.remove('user_email');
+      changed = true;
+    }
+    if (legacyPhone != null && legacyPhone.isNotEmpty) {
+      await SecureStoreService().write('user_phone', legacyPhone);
+      await _preferences!.remove('user_phone');
+      changed = true;
+    }
+    if (changed) {
+      // Mark that migration happened
+      await _preferences!.setBool('pii_migrated_v1', true);
     }
   }
 
@@ -209,6 +259,40 @@ class PreferencesService {
     await _preferences!.setBool('first_launch', isFirst);
   }
 
+  // Danger: Clears local app data (prefs and known secure fields). Does not touch database.
+  Future<void> clearAllLocal() async {
+    _preferences ??= await SharedPreferences.getInstance();
+    await _preferences!.clear();
+    // Clear known secure keys
+    final secure = SecureStoreService();
+    await secure.delete('user_email');
+    await secure.delete('user_phone');
+  }
+
+  // ===== Motivation & Challenges =====
+  Future<void> setChallengeEnabled({bool? steps, bool? water, bool? sleep}) async {
+    if (steps != null) await _preferences!.setBool('challenge_steps', steps);
+    if (water != null) await _preferences!.setBool('challenge_water', water);
+    if (sleep != null) await _preferences!.setBool('challenge_sleep', sleep);
+  }
+
+  bool getChallengeSteps() => _preferences?.getBool('challenge_steps') ?? true;
+  bool getChallengeWater() => _preferences?.getBool('challenge_water') ?? true;
+  bool getChallengeSleep() => _preferences?.getBool('challenge_sleep') ?? false;
+
+  Future<void> setMotivationTone(String tone) async {
+    // 'gentle' | 'active'
+    await _preferences!.setString('motivation_tone', tone);
+  }
+  String getMotivationTone() => _preferences?.getString('motivation_tone') ?? 'gentle';
+
+  Future<void> setDailySummaryTime(int hour, int minute) async {
+    await _preferences!.setInt('daily_summary_hour', hour);
+    await _preferences!.setInt('daily_summary_minute', minute);
+  }
+  int getDailySummaryHour() => _preferences?.getInt('daily_summary_hour') ?? 20;
+  int getDailySummaryMinute() => _preferences?.getInt('daily_summary_minute') ?? 0;
+
   bool isFirstLaunch() {
     return _preferences?.getBool('first_launch') ?? true;
   }
@@ -217,6 +301,59 @@ class PreferencesService {
   Future<void> logout() async {
     await _preferences!.setBool('user_logged_in', false);
     // Kullanıcı verilerini silmek istemiyoruz, sadece oturumu kapatıyoruz
+  }
+
+  // ===== Onboarding & Guest Mode =====
+  Future<void> setOnboardingCompleted(bool completed) async {
+    await _preferences!.setBool('onboarding_completed', completed);
+  }
+
+  bool isOnboardingCompleted() {
+    return _preferences?.getBool('onboarding_completed') ?? false;
+  }
+
+  Future<void> setGuestMode(bool enabled) async {
+    await _preferences!.setBool('guest_mode', enabled);
+  }
+
+  bool isGuestMode() {
+    return _preferences?.getBool('guest_mode') ?? false;
+  }
+
+  Future<void> setDietGoalType(String goalType) async {
+    // Store as a normalized lowercase string (e.g., 'weight_loss', 'maintenance', 'muscle_gain')
+    await _preferences!.setString('diet_goal_type', goalType.toLowerCase());
+  }
+
+  String? getDietGoalType() {
+    return _preferences?.getString('diet_goal_type');
+  }
+
+  // Çoklu profil yönetimi (IDs listesi)
+  Future<List<int>> getKnownUserIds() async {
+    final list = _preferences?.getStringList('known_user_ids') ?? <String>[];
+    return list.map((e) => int.tryParse(e) ?? -1).where((e) => e >= 0).toList();
+  }
+
+  Future<void> addKnownUserId(int userId) async {
+    final list = _preferences?.getStringList('known_user_ids') ?? <String>[];
+    if (!list.contains(userId.toString())) {
+      list.add(userId.toString());
+      await _preferences!.setStringList('known_user_ids', list);
+    }
+  }
+
+  Future<void> removeKnownUserId(int userId) async {
+    final list = _preferences?.getStringList('known_user_ids') ?? <String>[];
+    list.removeWhere((e) => e == userId.toString());
+    await _preferences!.setStringList('known_user_ids', list);
+  }
+
+  // Aktif profil değiştirme (oturumu açık kabul ederek)
+  Future<void> switchActiveUser(int userId) async {
+    await setCurrentUserId(userId);
+    await _preferences!.setBool('user_logged_in', true);
+    await addKnownUserId(userId);
   }
 
   // Tüm verileri temizle (uygulama sıfırlama)
@@ -297,4 +434,125 @@ class PreferencesService {
   T? getCustomSetting<T>(String key) {
     return _preferences?.get('custom_$key') as T?;
   }
+
+  // ===== Cloud backup preferences =====
+  Future<void> setAutoCloudBackupEnabled(bool enabled) async {
+    await _preferences!.setBool('auto_cloud_backup_enabled', enabled);
+  }
+
+  bool getAutoCloudBackupEnabled() {
+    return _preferences?.getBool('auto_cloud_backup_enabled') ?? false;
+  }
+
+  Future<void> setCloudBackupPassword(String password) async {
+    // Store securely
+    await SecureStoreService().write('cloud_backup_password', password);
+  }
+
+  String? getCloudBackupPassword() {
+    // Best-effort sync read; this is async in secure store, so try prefs first (legacy), then secure via blocking read is not possible here.
+    // For simplicity, return null here and let callers migrate to async path when needed,
+    // or prefer using getCloudBackupPasswordAsync below.
+    return null;
+  }
+
+  Future<String?> getCloudBackupPasswordAsync() async {
+    return SecureStoreService().read('cloud_backup_password');
+  }
+
+  Future<void> clearCloudBackupPassword() async {
+    await SecureStoreService().delete('cloud_backup_password');
+  }
+
+  Future<void> setLastAutoCloudBackup(DateTime ts) async {
+    await _preferences!.setString('last_auto_cloud_backup', ts.toIso8601String());
+  }
+
+  DateTime? getLastAutoCloudBackup() {
+    final s = _preferences?.getString('last_auto_cloud_backup');
+    if (s == null) return null;
+    return DateTime.tryParse(s);
+  }
+
+  // ===== Water goal preferences =====
+  Future<void> setWaterDailyGoal(int glasses) async {
+    await _preferences!.setInt('water_daily_goal', glasses);
+  }
+
+  int getWaterDailyGoal() {
+    return _preferences?.getInt('water_daily_goal') ?? 8;
+  }
+
+  // ===== Local lock (PIN) =====
+  static const _pinKey = 'pin_hash_v1';
+  static const _pinSalt = 'hemoai_salt_v1';
+
+  String _hashPin(String pin) {
+    final bytes = utf8.encode('$_pinSalt::$pin');
+    final digest = crypto.sha256.convert(bytes);
+    return digest.toString();
+  }
+
+  Future<void> setPIN(String pin) async {
+    final hash = _hashPin(pin);
+    await SecureStoreService().write(_pinKey, hash);
+  }
+
+  Future<bool> hasPIN() async {
+    final v = await SecureStoreService().read(_pinKey);
+    return (v != null && v.isNotEmpty);
+  }
+
+  Future<void> clearPIN() async {
+    await SecureStoreService().delete(_pinKey);
+  }
+
+  Future<bool> verifyPIN(String pin) async {
+    final stored = await SecureStoreService().read(_pinKey);
+    if (stored == null) return false;
+    return stored == _hashPin(pin);
+  }
+
+  // ===== Biometrics (flag + attempt) =====
+  Future<void> setBiometricEnabled(bool enabled) async {
+    await _preferences!.setBool('biometric_enabled', enabled);
+  }
+
+  bool getBiometricEnabled() {
+    return _preferences?.getBool('biometric_enabled') ?? false;
+  }
+
+  Future<bool> authenticateWithBiometrics({String reason = 'Authenticate'}) async {
+    try {
+      final auth = LocalAuthentication();
+      final canCheck = await auth.canCheckBiometrics;
+      final isSupported = await auth.isDeviceSupported();
+      if (!canCheck || !isSupported) return false;
+      return await auth.authenticate(
+        localizedReason: reason,
+        options: const AuthenticationOptions(biometricOnly: true, stickyAuth: true),
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Biometric auth failed: $e');
+      }
+      return false;
+    }
+  }
+
+  // ===== Privacy toggles (data access permissions) =====
+  // Generic helpers
+  Future<void> setPrivacyFlag(String key, bool value) async {
+    await _preferences!.setBool('privacy_$key', value);
+  }
+
+  bool getPrivacyFlag(String key, {bool defaultValue = true}) {
+    return _preferences?.getBool('privacy_$key') ?? defaultValue;
+  }
+
+  // Specific convenience getters
+  bool allowInAppReminders() => getPrivacyFlag('allow_in_app_reminders', defaultValue: true);
+  bool allowPushNotifications() => getPrivacyFlag('allow_push_notifications', defaultValue: true);
+  bool allowMedicationAccess() => getPrivacyFlag('allow_medication_access', defaultValue: true);
+  bool allowFamilyFeatures() => getPrivacyFlag('allow_family_features', defaultValue: true);
 }

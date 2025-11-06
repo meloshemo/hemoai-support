@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/color_compat.dart';
 import 'package:provider/provider.dart';
 import '../services/localization_service.dart';
 import '../services/theme_service.dart';
@@ -15,12 +16,13 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  late List<Locale> _locales;
 
   @override
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 250), // faster for snappier feel
       vsync: this,
     );
     _fadeAnimation = Tween<double>(
@@ -50,6 +52,7 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen>
   Widget build(BuildContext context) {
     return Consumer2<LocalizationService, ThemeService>(
       builder: (context, localizationService, themeService, child) {
+        _locales = localizationService.supportedLocales; // cache to avoid rebuild cost
         final isDark = themeService.isDarkMode;
         final isRTL = localizationService.isRTL;
         
@@ -158,23 +161,29 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen>
                       ),
                       const SizedBox(height: 16),
 
-                      // Language Options
-                      ...localizationService.supportedLocales.map((locale) {
+                      // Language Options (builder for performance)
+                      ListView.builder(
+                        physics: const NeverScrollableScrollPhysics(),
+                        shrinkWrap: true,
+                        itemCount: _locales.length,
+                        itemBuilder: (context, index) {
+                          final locale = _locales[index];
                         final languageCode = locale.languageCode;
                         final languageName = localizationService.languageNames[languageCode] ?? '';
                         final languageFlag = localizationService.languageFlags[languageCode] ?? '';
                         final isSelected = localizationService.currentLanguageCode == languageCode;
                         
-                        return _buildLanguageOption(
-                          context: context,
-                          isDark: isDark,
-                          languageCode: languageCode,
-                          languageName: languageName,
-                          languageFlag: languageFlag,
-                          isSelected: isSelected,
-                          onTap: () => _changeLanguage(context, languageCode),
-                        );
-                      }),
+                          return _buildLanguageOption(
+                            context: context,
+                            isDark: isDark,
+                            languageCode: languageCode,
+                            languageName: languageName,
+                            languageFlag: languageFlag,
+                            isSelected: isSelected,
+                            onTap: () => _changeLanguage(context, languageCode),
+                          );
+                        },
+                      ),
 
                       const SizedBox(height: 32),
 

@@ -60,5 +60,38 @@
 	<string>With your permission, HemoAI may read health data to enrich insights. You can opt out anytime.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>With your permission, HemoAI may write relevant health data you explicitly choose to save.</string>
+	<!-- Contacts permission for family member invitations -->
+	<key>NSContactsUsageDescription</key>
+	<string>We need access to your contacts to help you easily invite family members by selecting them from your contact list.</string>
+	<!-- Deep Linking Configuration -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.hemoai.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>hemoai</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.hemoai.universal</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>https</string>
+			</array>
+		</dict>
+	</array>
+	<!-- Associated Domains for Universal Links -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:hemoai.app</string>
+		<string>applinks:www.hemoai.app</string>
+	</array>
 </dict>
 </plist>

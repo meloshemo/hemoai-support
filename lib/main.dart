@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
@@ -10,6 +11,13 @@ import 'services/notification_service.dart' as inapp_notifications;
 import 'services/push_notification_service.dart';
 import 'services/localization_service.dart';
 import 'services/analytics_service.dart';
+import 'services/wellness_service.dart';
+import 'services/sync_scheduler_service.dart';
+import 'services/daily_advice_service.dart';
+import 'services/water_service.dart';
+import 'services/premium_service.dart';
+import 'services/challenge_service.dart';
+import 'services/social_challenge_service.dart';
 
 // Legacy OS-3 screens and routing targets
 import 'screens/dashboard_screen.dart';
@@ -18,21 +26,42 @@ import 'screens/analysis_screen.dart';
 import 'screens/alternative_medicine_screen.dart';
 import 'screens/notification_screen.dart';
 import 'screens/diet_program_screen.dart';
-import 'screens/personal_info_screen.dart' as legacy_personal_info;
+import 'screens/guest_screen.dart';
+import 'screens/personal_info_screen_new.dart' as legacy_personal_info;
 import 'screens/language_settings_screen.dart';
 import 'screens/hemogram_entry_screen.dart';
 import 'screens/export_options_screen_simple.dart' as export_simple;
 import 'screens/family_panel_screen.dart';
+import 'screens/family_member_detail_screen.dart';
 import 'screens/reminder_list_screen.dart';
 import 'screens/add_reminder_screen.dart';
 import 'services/preferences_service.dart';
+import 'services/email_service.dart';
+import 'services/auto_backup_service.dart';
+import 'services/network_service.dart';
+import 'services/security_service.dart';
+import 'services/offline_service.dart';
+import 'services/background_task_service.dart';
+import 'utils/error_handler.dart';
 import 'screens/settings_screen.dart';
+import 'screens/premium_screen.dart';
 import 'screens/performance_screen.dart';
 import 'screens/notification_debug_screen.dart';
 import 'screens/stats_screen.dart';
 import 'screens/about_screen.dart';
+import 'screens/advanced_analytics_screen.dart';
+import 'screens/all_quotes_screen.dart';
+import 'screens/data_import_screen.dart';
+import 'screens/challenges_screen.dart';
+// Repositories (SSoT)
+import 'repositories/user_repository.dart';
+import 'repositories/hemogram_repository.dart';
+import 'repositories/reminder_repository.dart';
+import 'repositories/notification_repository.dart';
+import 'repositories/medication_repository.dart';
+import 'repositories/water_repository.dart';
 
-void main() {
+void main() async {
   // Ensure bindings are ready before any async/service work
   WidgetsFlutterBinding.ensureInitialized();
   // Initialize SQLite FFI on desktop (Windows/Linux/macOS)
@@ -48,6 +77,53 @@ void main() {
     }
   }
 
+  // Best-effort security migration: move PII to secure storage on startup
+  PreferencesService.getInstance().then((p) => p.ensurePiiSecured());
+  
+  // Initialize network service for connectivity monitoring
+  await NetworkService().initialize();
+  
+  // Initialize security service
+  await SecurityService().initialize();
+  
+  // Initialize offline service
+  await OfflineService().loadQueue();
+  
+  // Initialize background tasks
+  await BackgroundTaskService().initialize();
+  
+  // Initialize email service (automatically uses config or test mode)
+  await EmailService().initialize(); // Will use EmailConfig or test mode
+  
+  // Initialize auto backup service
+  await AutoBackupService().setEnabled(true); // Default: enabled
+
+  // Set up global error handling
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    ErrorHandler().handleError(
+      null,
+      details.exception,
+      stackTrace: details.stack,
+      showSnackBar: false,
+    );
+  };
+
+  // Handle unhandled async errors (outside Flutter framework)
+  PlatformDispatcher.instance.onError = (error, stack) {
+    ErrorHandler().handleError(
+      null,
+      error,
+      stackTrace: stack,
+      showSnackBar: false,
+    );
+    return true; // Error was handled
+  };
+
+  // Handle deep links on app start (if launched from link)
+  // Note: This is handled by the platform-specific code
+  // For runtime deep links, use DeepLinkHandler in the app
+
   runApp(
     MultiProvider(
       providers: [
@@ -56,6 +132,24 @@ void main() {
         ChangeNotifierProvider(create: (_) => PushNotificationService()..initialize()),
         ChangeNotifierProvider(create: (_) => LocalizationService()..initialize()),
         ChangeNotifierProvider(create: (_) => AnalyticsService()..initialize()),
+        ChangeNotifierProvider(create: (_) => WellnessService()..initialize()),
+        ChangeNotifierProvider(create: (_) => SyncSchedulerService()..initialize()),
+        ChangeNotifierProvider(create: (_) => DailyAdviceService()..initialize()),
+        ChangeNotifierProvider(create: (_) => WaterService()..initialize()),
+        ChangeNotifierProvider(create: (_) => PremiumService()..initialize()),
+        ChangeNotifierProvider(create: (_) => ChallengeService()..initialize()),
+        ChangeNotifierProvider(create: (_) => SocialChallengeService()..initialize()),
+        ChangeNotifierProvider(create: (_) => NetworkService()..initialize()),
+        ChangeNotifierProvider(create: (_) => OfflineService()..loadQueue()),
+        // Enhanced Analytics (optional, privacy-first)
+        // ChangeNotifierProvider(create: (_) => EnhancedAnalyticsService()..initialize()),
+        // Provide repositories as app-wide singletons via Provider (stateless, no ChangeNotifier)
+        Provider<UserRepository>(create: (_) => UserRepository()),
+        Provider<HemogramRepository>(create: (_) => HemogramRepository()),
+        Provider<ReminderRepository>(create: (_) => ReminderRepository()),
+        Provider<NotificationRepository>(create: (_) => NotificationRepository()),
+        Provider<MedicationRepository>(create: (_) => MedicationRepository()),
+        Provider<WaterRepository>(create: (_) => WaterRepository()),
       ],
       child: const HemoAIApp(),
     ),
@@ -94,22 +188,33 @@ class HemoAIApp extends StatelessWidget {
         '/': (context) => const _AuthGate(),
         '/dashboard': (context) => DashboardScreen(),
         '/login': (context) => const LoginScreen(),
+        '/guest': (context) => const GuestScreen(),
         '/alternative_medicine': (context) => const AlternativeMedicineScreen(),
         '/notifications': (context) => const NotificationScreen(),
         '/diet_program': (context) => const DietProgramScreen(),
         '/personal_info': (context) => const legacy_personal_info.PersonalInfoScreen(),
         '/language_settings': (context) => const LanguageSettingsScreen(),
-  '/hemogram_entry': (context) => HemogramEntryScreen(),
+        '/hemogram_entry': (context) => HemogramEntryScreen(),
         '/export_options': (context) => const export_simple.ExportOptionsScreen(),
+  '/advanced_analytics': (context) => const AdvancedAnalyticsScreen(),
         '/family_panel': (context) => const FamilyPanelScreen(),
+        '/family_member_detail': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments;
+          final member = (args is Map<String, dynamic>) ? args : <String, dynamic>{};
+          return FamilyMemberDetailScreen(member: member);
+        },
         '/reminders': (context) => const ReminderListScreen(),
         '/add_reminder': (context) => const AddReminderScreen(),
+    '/data_import': (context) => const DataImportScreen(),
         // Settings and tools
         '/settings': (context) => SettingsScreen(),
+        '/premium': (context) => const PremiumScreen(),
         '/performance': (context) => PerformanceScreen(),
         '/notification_debug': (context) => NotificationDebugScreen(),
         '/stats': (context) => StatsScreen(),
         '/about': (context) => AboutScreen(),
+        '/challenges': (context) => ChallengesScreen(),
+        '/all_quotes': (context) => const AllQuotesScreen(),
       },
 
       // Handle routes needing arguments (e.g., /analysis with values)
@@ -155,10 +260,12 @@ class HemoAIApp extends StatelessWidget {
       builder: (context, child) {
         // Ensure consistent text scaling and text direction per LocalizationService
         final media = MediaQuery.of(context);
+        // Respect system text scaling, but clamp to a sensible range for layout stability
+        final factor = media.textScaleFactor.clamp(0.9, 1.6);
         return Directionality(
           textDirection: localization.textDirection,
           child: MediaQuery(
-            data: media.copyWith(textScaler: const TextScaler.linear(1.0)),
+            data: media.copyWith(textScaler: TextScaler.linear(factor)),
             child: child ?? const SizedBox.shrink(),
           ),
         );
@@ -178,6 +285,7 @@ class _AuthGateState extends State<_AuthGate> {
   bool _loading = true;
   bool _loggedIn = false;
   bool _navigated = false;
+  
 
   @override
   void initState() {
@@ -194,6 +302,8 @@ class _AuthGateState extends State<_AuthGate> {
         _loggedIn = logged;
         _loading = false;
       });
+      // If user is neither logged in nor guest but onboarding is done, keep to login
+      // If onboarding is needed, we'll route there in build
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -228,6 +338,7 @@ class _AuthGateState extends State<_AuthGate> {
           '/language_settings',
           '/hemogram_entry',
           '/export_options',
+          '/data_import',
           // Newly added routes
           '/settings',
           '/performance',

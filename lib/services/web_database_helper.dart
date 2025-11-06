@@ -428,6 +428,41 @@ class WebDatabaseHelper {
     }
   }
 
+  // İlaç alım kaydı (web): Günlük alınma durumunu bayrak olarak sakla
+  Future<void> updateMedicationTaken(int medicationId, int userId, bool taken) async {
+    if (_prefs == null) await init();
+    final today = DateTime.now().toIso8601String().split('T')[0];
+    final key = 'med_taken_${medicationId}_$today';
+    await _prefs!.setBool(key, taken);
+    // Optionally append to a lightweight log list for simple history
+    final logKey = 'med_logs_${medicationId}';
+    final existing = _prefs!.getStringList(logKey) ?? <String>[];
+    final entry = jsonEncode({
+      'date': today,
+      'time': DateTime.now().toIso8601String().split('T').elementAt(1),
+      'taken': taken,
+      'user_id': userId,
+    });
+    // Replace any existing today's entry
+    existing.removeWhere((s) {
+      try {
+        final m = jsonDecode(s) as Map<String, dynamic>;
+        return m['date'] == today;
+      } catch (_) {
+        return false;
+      }
+    });
+    existing.add(entry);
+    await _prefs!.setStringList(logKey, existing);
+  }
+
+  Future<bool> wasMedicationTakenToday(int medicationId) async {
+    if (_prefs == null) await init();
+    final today = DateTime.now().toIso8601String().split('T')[0];
+    final key = 'med_taken_${medicationId}_$today';
+    return _prefs!.getBool(key) ?? false;
+  }
+
   // Bildirim yönetimi
   Future<int> createNotification(int userId, String title, String message, String type) async {
     try {
@@ -704,6 +739,72 @@ class WebDatabaseHelper {
     await _prefs!.remove('hemogram_tests');
     await _prefs!.remove('family_members');
     await _prefs!.remove('family_invitations');
+  }
+
+  // Emergency contacts (web)
+  Future<List<Map<String, dynamic>>> getEmergencyContacts([int? userId]) async {
+    try {
+      if (_prefs == null) await init();
+      String? data = _prefs!.getString('emergency_contacts_${userId ?? 0}');
+      if (data != null) {
+        List<dynamic> decoded = jsonDecode(data);
+        return decoded.cast<Map<String, dynamic>>();
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Emergency contacts load error: $e');
+      return [];
+    }
+  }
+
+  Future<int> addEmergencyContact({
+    required int userId,
+    required String name,
+    required String phone,
+    required String relation,
+  }) async {
+    try {
+      if (_prefs == null) await init();
+      List<Map<String, dynamic>> contacts = await getEmergencyContacts(userId);
+      int newId = contacts.length + 1;
+      
+      Map<String, dynamic> contact = {
+        'id': newId,
+        'user_id': userId,
+        'name': name,
+        'phone': phone,
+        'relation': relation,
+        'created_at': DateTime.now().toIso8601String(),
+      };
+      
+      contacts.add(contact);
+      await _prefs!.setString('emergency_contacts_$userId', jsonEncode(contacts));
+      return newId;
+    } catch (e) {
+      debugPrint('Emergency contact add error: $e');
+      return 0;
+    }
+  }
+
+  Future<int> deleteEmergencyContact(int id) async {
+    try {
+      if (_prefs == null) await init();
+      // Find which user this belongs to by searching all users
+      final allContacts = await getEmergencyContacts();
+      for (var contact in allContacts) {
+        if (contact['id'] == id) {
+          final userId = contact['user_id'];
+          final contacts = await getEmergencyContacts(userId);
+          contacts.removeWhere((c) => c['id'] == id);
+          await _prefs!.setString('emergency_contacts_$userId', jsonEncode(contacts));
+          return 1;
+        }
+      }
+      return 0;
+    } catch (e) {
+      debugPrint('Emergency contact delete error: $e');
+      return 0;
+    }
   }
 
   // Reminder streaks & logs (web)

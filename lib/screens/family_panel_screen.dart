@@ -5,6 +5,11 @@ import '../services/database_helper.dart';
 import '../services/localization_service.dart';
 import '../widgets/app_drawer.dart';
 import '../utils/responsive_helper.dart';
+import '../services/family_service.dart';
+import '../widgets/labubu_avatar.dart';
+import '../services/cache_service.dart';
+import 'package:contacts_service/contacts_service.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class FamilyPanelScreen extends StatefulWidget {
   const FamilyPanelScreen({Key? key}) : super(key: key);
@@ -16,6 +21,7 @@ class FamilyPanelScreen extends StatefulWidget {
 class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
   PreferencesService? _prefsService;
   final DatabaseHelper _db = DatabaseHelper.instance;
+  final FamilyService _familyService = FamilyService();
   List<Map<String, dynamic>> familyMembers = [];
   List<Map<String, dynamic>> filteredMembers = [];
   List<Map<String, dynamic>> pendingInvitations = [];
@@ -204,14 +210,21 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
       // Normalize relation to code before saving
       final loc = Provider.of<LocalizationService>(context, listen: false);
       result['relation'] = _relationCodeFromLabel(loc, result['relation']);
+      
+      // Clear cache before inserting
+      final cache = HemoAICache();
+      cache.clearFamilyMembers(currentUserId!);
+      
       await _db.insertFamilyMember(result);
+      
+      // Force refresh
       await _loadFamilyMembers();
       
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(loc.getStringWithParams('family_member_added', {'name': result['name']})),
-          backgroundColor: Colors.green,
+          backgroundColor: Theme.of(context).colorScheme.primary,
         ),
       );
     }
@@ -244,7 +257,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(loc.getStringWithParams('family_invite_sent', {'name': targetUser['name']})),
-              backgroundColor: Colors.green,
+              backgroundColor: Theme.of(context).colorScheme.primary,
             ),
           );
         } else {
@@ -261,7 +274,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(loc.getStringWithParams('family_invite_error', {'error': e.toString()})),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -294,7 +307,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
           ? _buildLoginPrompt()
           : (familyMembers.isEmpty 
             ? _buildEmptyState()
-            : _buildFamilyList()),
+            : _buildFamilyContent()),
     );
   }
 
@@ -443,17 +456,142 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
                   final member = filteredMembers[index];
-                  return _FamilyMemberCard(
+                  return GestureDetector(
+                    onTap: () => Navigator.of(context).pushNamed('/family_member_detail', arguments: member),
+                    child: _FamilyMemberCard(
                     member: member,
                     onEdit: () => _editFamilyMember(member),
                     onDelete: () => _deleteFamilyMember(member),
                     relationLabel: _relationLabelFromStored(loc, member['relation']),
+                    ),
                   );
                 },
                 childCount: filteredMembers.length,
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFamilyContent() {
+    // If 3+ members, show a simple family tree above the list
+    if (familyMembers.length < 3) {
+      return _buildFamilyList();
+    }
+    final cs = Theme.of(context).colorScheme;
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  Provider.of<LocalizationService>(context, listen: false).getString('family_tree_title') == 'family_tree_title'
+                      ? 'Family Tree'
+                      : Provider.of<LocalizationService>(context, listen: false).getString('family_tree_title'),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: cs.onSurface),
+                ),
+                const SizedBox(height: 12),
+                _buildSimpleTree(cs),
+                const SizedBox(height: 8),
+                Divider(color: cs.outlineVariant),
+              ],
+            ),
+          ),
+        ),
+        // Reuse existing list below
+        SliverToBoxAdapter(child: SizedBox(height: 8)),
+        SliverToBoxAdapter(child: SizedBox(height: 0, child: const Divider())),
+        SliverToBoxAdapter(child: SizedBox(height: 8)),
+        SliverToBoxAdapter(child: _buildSearchAndFilters(Provider.of<LocalizationService>(context, listen: false))),
+        SliverPadding(
+          padding: const EdgeInsets.all(16),
+          sliver: SliverGrid(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: ResponsiveHelper.getGridColumns(context),
+              mainAxisSpacing: ResponsiveHelper.getCardSpacing(context),
+              crossAxisSpacing: ResponsiveHelper.getCardSpacing(context),
+              childAspectRatio: ResponsiveHelper.isMobile(context) ? 16 / 10 : 16 / 9,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final member = filteredMembers[index];
+                return _FamilyMemberCard(
+                  member: member,
+                  onEdit: () => _editFamilyMember(member),
+                  onDelete: () => _deleteFamilyMember(member),
+                  relationLabel: _relationLabelFromStored(Provider.of<LocalizationService>(context, listen: false), member['relation']),
+                );
+              },
+              childCount: filteredMembers.length,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSimpleTree(ColorScheme cs) {
+    // naive grouping by relation
+    final parents = familyMembers.where((m) => (m['relation'] ?? '').toString().toLowerCase().contains('parent') || (m['relation'] ?? '').toString().toLowerCase().contains('father') || (m['relation'] ?? '').toString().toLowerCase().contains('mother')).toList();
+    final children = familyMembers.where((m) => (m['relation'] ?? '').toString().toLowerCase().contains('child')).toList();
+    final others = familyMembers.where((m) => !parents.contains(m) && !children.contains(m)).toList();
+
+    Widget line() => Container(height: 16, width: 2, color: cs.outlineVariant);
+
+    Widget node(Map<String, dynamic> m) => Column(
+      children: [
+        LabubuAvatar(
+          seed: (m['name'] ?? '?')?.toString() ?? '',
+          size: 40,
+        ),
+        const SizedBox(height: 4),
+        Text((m['name'] ?? '') as String, style: TextStyle(fontSize: 12, color: cs.onSurface)),
+      ],
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.outlineVariant),
+      ),
+      child: Column(
+        children: [
+          // Root connection text
+          if (familyMembers.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text('Connections', style: TextStyle(color: cs.onSurface.withValues(alpha: .7))),
+            ),
+          // Parents row
+          if (parents.isNotEmpty)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: parents.map((m) => Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: node(m))).toList(),
+            ),
+          if (parents.isNotEmpty) line(),
+          // Self + others row
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 16,
+            runSpacing: 8,
+            children: (others.isNotEmpty ? others : familyMembers).map((m) => node(m)).toList(),
+          ),
+          line(),
+          // Children row
+          if (children.isNotEmpty)
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 16,
+              runSpacing: 8,
+              children: children.map((m) => node(m)).toList(),
+            ),
         ],
       ),
     );
@@ -655,7 +793,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
                           icon: const Icon(Icons.check, size: 16),
                           label: Text(localizationService.getString('family_accept')),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
+                            backgroundColor: Theme.of(context).colorScheme.primary,
                             foregroundColor: Colors.white,
                           ),
                         ),
@@ -715,7 +853,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(localizationService.getString('family_member_updated')),
-          backgroundColor: Colors.green,
+          backgroundColor: Theme.of(context).colorScheme.primary,
         ),
       );
     }
@@ -1021,6 +1159,83 @@ class _InviteUserDialogState extends State<_InviteUserDialog> {
     _relation = Provider.of<LocalizationService>(context, listen: false).getString('family_relation_spouse');
   }
 
+  Future<void> _selectFromContacts(BuildContext context) async {
+    final loc = Provider.of<LocalizationService>(context, listen: false);
+    try {
+      // Request contacts permission
+      final permission = await Permission.contacts.request();
+      if (!permission.isGranted) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(loc.getString('contacts_permission_required')),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Get contacts
+      final contacts = await ContactsService.getContacts();
+      if (!context.mounted) return;
+
+      // Show contact picker
+      final selectedContact = await showDialog<Contact>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(loc.getString('select_contact')),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: contacts.length,
+              itemBuilder: (context, index) {
+                final contact = contacts[index];
+                final phoneNumber = contact.phones?.isNotEmpty == true
+                    ? contact.phones!.first.value
+                    : 'No phone';
+                return ListTile(
+                  leading: const Icon(Icons.person),
+                  title: Text(contact.displayName ?? 'Unknown'),
+                  subtitle: Text(phoneNumber ?? 'No phone'),
+                  onTap: () => Navigator.pop(context, contact),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(loc.getString('cancel')),
+            ),
+          ],
+        ),
+      );
+
+      if (selectedContact != null && selectedContact.phones?.isNotEmpty == true) {
+        final phoneValue = selectedContact.phones!.first.value;
+        if (phoneValue != null) {
+          final phoneNumber = phoneValue
+              .replaceAll(RegExp(r'[^\d+]'), '')
+              .trim();
+          setState(() {
+            _phoneController.text = phoneNumber;
+          });
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.getStringWithParams('error_selecting_contact', {'error': e.toString()})),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   void dispose() {
     _phoneController.dispose();
@@ -1066,24 +1281,40 @@ class _InviteUserDialogState extends State<_InviteUserDialog> {
                 ),
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _phoneController,
-                decoration: InputDecoration(
-                  labelText: Provider.of<LocalizationService>(context, listen:false).getString('family_phone_label'),
-                  hintText: Provider.of<LocalizationService>(context, listen:false).getString('family_phone_hint'),
-                  prefixIcon: const Icon(Icons.phone),
-                  border: const OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.phone,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return Provider.of<LocalizationService>(context, listen:false).getString('family_phone_required');
-                  }
-                  if (value.length < 10) {
-                    return Provider.of<LocalizationService>(context, listen:false).getString('family_phone_invalid');
-                  }
-                  return null;
-                },
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _phoneController,
+                      decoration: InputDecoration(
+                        labelText: Provider.of<LocalizationService>(context, listen:false).getString('family_phone_label'),
+                        hintText: Provider.of<LocalizationService>(context, listen:false).getString('family_phone_hint'),
+                        prefixIcon: const Icon(Icons.phone),
+                        border: const OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.phone,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return Provider.of<LocalizationService>(context, listen:false).getString('family_phone_required');
+                        }
+                        if (value.length < 10) {
+                          return Provider.of<LocalizationService>(context, listen:false).getString('family_phone_invalid');
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.contacts),
+                      tooltip: Provider.of<LocalizationService>(context, listen: false).getString('select_from_contacts'),
+                    onPressed: () => _selectFromContacts(context),
+                    style: IconButton.styleFrom(
+                      backgroundColor: cs.primaryContainer,
+                      foregroundColor: cs.onPrimaryContainer,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
@@ -1168,16 +1399,26 @@ class _FamilyMemberCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final loc = Provider.of<LocalizationService>(context, listen: false);
     final cs = Theme.of(context).colorScheme;
+    final connectedUserId = member['connected_user_id'];
+    final isConnected = connectedUserId != null && connectedUserId is int;
+    
     return Card(
       clipBehavior: Clip.antiAlias,
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: InkWell(
         onTap: () {
-          // Placeholder: could navigate to member details/test history
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(loc.getString('coming_soon'))),
-          );
+          if (isConnected) {
+            // Navigate to member's health dashboard
+            Navigator.of(context).pushNamed(
+              '/analysis',
+              arguments: {'family_member_id': connectedUserId},
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(loc.getString('family_not_connected'))),
+            );
+          }
         },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1191,13 +1432,9 @@ class _FamilyMemberCard extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    radius: 26,
-                    backgroundColor: cs.primaryContainer.withValues(alpha: 0.3),
-                    child: Text(
-                      (member['gender'] ?? loc.getString('family_gender_male')) == loc.getString('family_gender_female') ? '👩' : '👨',
-                      style: const TextStyle(fontSize: 22),
-                    ),
+                  LabubuAvatar(
+                    seed: member['name']?.toString() ?? '',
+                    size: 52,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -1243,34 +1480,175 @@ class _FamilyMemberCard extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: cs.secondaryContainer.withValues(alpha: 0.25),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline, color: cs.onSecondaryContainer, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        loc.getString('family_hemogram_info'),
-                        style: TextStyle(color: cs.onSecondaryContainer, fontSize: 12),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+            if (isConnected)
+              FutureBuilder<Map<String, dynamic>?>(
+                future: FamilyService().getLatestHemogramForConnected(connectedUserId as int),
+                builder: (context, snapshot) {
+                  final hasData = snapshot.hasData && snapshot.data != null;
+                  if (!hasData) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: cs.secondaryContainer.withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.info_outline, color: cs.onSecondaryContainer, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                loc.getString('family_no_test_data_yet'),
+                                style: TextStyle(color: cs.onSecondaryContainer, fontSize: 12),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                  
+                  final test = snapshot.data!;
+                  final testDate = DateTime.parse(test['test_date'] ?? DateTime.now().toIso8601String());
+                  final daysAgo = DateTime.now().difference(testDate).inDays;
+                  
+                  return Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [cs.primaryContainer.withValues(alpha: 0.3), cs.primary.withValues(alpha: 0.05)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: cs.primary.withValues(alpha: 0.2)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: cs.primary.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(Icons.health_and_safety, color: cs.primary, size: 18),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  loc.getString('family_latest_test'),
+                                  style: TextStyle(fontWeight: FontWeight.w600, color: cs.onSurface),
+                                ),
+                              ),
+                              Chip(
+                                label: Text('${daysAgo}d ${loc.getString('ago')}', style: const TextStyle(fontSize: 10)),
+                                backgroundColor: cs.surfaceContainerHighest,
+                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              Expanded(
+                                child: _buildHealthMetric(
+                                  context,
+                                  Icons.bloodtype,
+                                  'Hemoglobin',
+                                  test['hemoglobin']?.toStringAsFixed(1) ?? 'N/A',
+                                  Colors.red.shade400,
+                                ),
+                              ),
+                              Container(width: 1, height: 30, color: cs.outlineVariant),
+                              Expanded(
+                                child: _buildHealthMetric(
+                                  context,
+                                  Icons.bubble_chart,
+                                  'Glucose',
+                                  test['glucose']?.toStringAsFixed(1) ?? 'N/A',
+                                  Colors.orange.shade400,
+                                ),
+                              ),
+                              Container(width: 1, height: 30, color: cs.outlineVariant),
+                              Expanded(
+                                child: _buildHealthMetric(
+                                  context,
+                                  Icons.wb_sunny,
+                                  'Vit D3',
+                                  test['vitamin_d3']?.toStringAsFixed(0) ?? 'N/A',
+                                  Colors.amber.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  );
+                },
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: cs.tertiaryContainer.withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.link_off, color: cs.onTertiaryContainer, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          loc.getString('family_manual_entry_only'),
+                          style: TextStyle(color: cs.onTertiaryContainer, fontSize: 12),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
             const SizedBox(height: 12),
           ],
         ),
       ),
+    );
+  }
+  
+  Widget _buildHealthMetric(BuildContext context, IconData icon, String label, String value, Color color) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: cs.onSurface),
+        ),
+        Text(
+          label,
+          style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant),
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
     );
   }
 }

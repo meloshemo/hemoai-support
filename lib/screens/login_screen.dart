@@ -255,24 +255,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 12),
+                      // E-posta ile Üye Ol Butonu (ikincil)
+                        // Removed separate "Register with Email"; single Register handles phone or email inside
                     ],
-                  ),
-                ),
-                const SizedBox(height: 48),
-                // Misafir Girişi
-                Center(
-                  child: TextButton(
-                    onPressed: () => Navigator.pushNamed(context, '/guest'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFFE53E3E),
-                    ),
-                    child: Text(
-                      LocalizationService.translate('continue_as_guest'),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
                   ),
                 ),
                 const SizedBox(height: 40),

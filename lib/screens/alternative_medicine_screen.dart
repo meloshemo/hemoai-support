@@ -49,6 +49,23 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
     'monocyte': {'min': 2.0, 'max': 8.0},
     'eosinophil': {'min': 1.0, 'max': 4.0},
     'basophil': {'min': 0.0, 'max': 1.0},
+    // Popular markers ranges for cross-feature alignment (analysis/entry)
+    'glucose': {'min': 70.0, 'max': 100.0},
+    'calcium': {'min': 8.6, 'max': 10.2},
+    'sodium': {'min': 135.0, 'max': 145.0},
+    'potassium': {'min': 3.5, 'max': 5.1},
+    'chloride': {'min': 98.0, 'max': 106.0},
+    'alt': {'min': 0.0, 'max': 40.0},
+    'ast': {'min': 0.0, 'max': 40.0},
+    'ggt': {'min': 0.0, 'max': 60.0},
+    'total_bilirubin': {'min': 0.0, 'max': 1.2},
+    'direct_bilirubin': {'min': 0.0, 'max': 0.3},
+    'crp': {'min': 0.0, 'max': 5.0},
+    'tsh': {'min': 0.4, 'max': 4.0},
+    'free_t3': {'min': 2.0, 'max': 4.4},
+    'free_t4': {'min': 0.9, 'max': 1.7},
+    'vitamin_d3': {'min': 20.0, 'max': 100.0},
+    'vitamin_b12': {'min': 200.0, 'max': 900.0},
   };
 
   // Bitkisel çözümler verisi (localized)
@@ -451,6 +468,195 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
         },
       ]
     },
+    // New categories for popular markers
+    'herbal_cat_glucose_control': {
+      'icon': '🍚',
+      'color': Colors.brown,
+      'herbs': [
+        {
+          'name': 'herb_cinnamon_name',
+          'usage': 'herb_cinnamon_usage',
+          'benefits': 'herb_cinnamon_benefits',
+          'preparation': 'herb_cinnamon_preparation',
+          'warning': 'herb_cinnamon_warning',
+        },
+        {
+          'name': 'herb_fenugreek_name',
+          'usage': 'herb_fenugreek_usage',
+          'benefits': 'herb_fenugreek_benefits',
+          'preparation': 'herb_fenugreek_preparation',
+          'warning': 'herb_fenugreek_warning',
+        },
+        {
+          'name': 'herb_green_tea_name',
+          'usage': 'herb_green_tea_usage',
+          'benefits': 'herb_green_tea_benefits',
+          'preparation': 'herb_green_tea_preparation',
+          'warning': 'herb_green_tea_warning',
+        },
+      ]
+    },
+    'herbal_cat_liver_support': {
+      'icon': '🫀',
+      'color': Colors.green,
+      'herbs': [
+        {
+          'name': 'herb_milk_thistle_name',
+          'usage': 'herb_milk_thistle_usage',
+          'benefits': 'herb_milk_thistle_benefits',
+          'preparation': 'herb_milk_thistle_preparation',
+          'warning': 'herb_milk_thistle_warning',
+        },
+        {
+          'name': 'herb_artichoke_name',
+          'usage': 'herb_artichoke_usage',
+          'benefits': 'herb_artichoke_benefits',
+          'preparation': 'herb_artichoke_preparation',
+          'warning': 'herb_artichoke_warning',
+        },
+        {
+          'name': 'herb_dandelion_name',
+          'usage': 'herb_dandelion_usage',
+          'benefits': 'herb_dandelion_benefits',
+          'preparation': 'herb_dandelion_preparation',
+          'warning': 'herb_dandelion_warning',
+        },
+      ]
+    },
+    'herbal_cat_bilirubin_support': {
+      'icon': '🟡',
+      'color': Colors.amber,
+      'herbs': [
+        {
+          'name': 'herb_artichoke_name',
+          'usage': 'herb_artichoke_usage',
+          'benefits': 'herb_artichoke_benefits',
+          'preparation': 'herb_artichoke_preparation',
+          'warning': 'herb_artichoke_warning',
+        },
+        {
+          'name': 'herb_dandelion_name',
+          'usage': 'herb_dandelion_usage',
+          'benefits': 'herb_dandelion_benefits',
+          'preparation': 'herb_dandelion_preparation',
+          'warning': 'herb_dandelion_warning',
+        },
+        {
+          'name': 'herb_turmeric_name',
+          'usage': 'herb_turmeric_usage',
+          'benefits': 'herb_turmeric_benefits',
+          'preparation': 'herb_turmeric_preparation',
+          'warning': 'herb_turmeric_warning',
+        },
+      ]
+    },
+    'herbal_cat_thyroid_support': {
+      'icon': '🦋',
+      'color': Colors.purple,
+      'herbs': [
+        {
+          'name': 'herb_seaweed_name',
+          'usage': 'herb_seaweed_usage',
+          'benefits': 'herb_seaweed_benefits',
+          'preparation': 'herb_seaweed_preparation',
+          'warning': 'herb_seaweed_warning',
+        },
+        {
+          'name': 'herb_brazil_nut_name',
+          'usage': 'herb_brazil_nut_usage',
+          'benefits': 'herb_brazil_nut_benefits',
+          'preparation': 'herb_brazil_nut_preparation',
+          'warning': 'herb_brazil_nut_warning',
+        },
+        {
+          'name': 'herb_green_tea_name',
+          'usage': 'herb_green_tea_usage',
+          'benefits': 'herb_green_tea_benefits',
+          'preparation': 'herb_green_tea_preparation',
+          'warning': 'herb_green_tea_warning',
+        },
+      ]
+    },
+    'herbal_cat_vitamin_d_support': {
+      'icon': '☀️',
+      'color': Colors.orange,
+      'herbs': [
+        {
+          'name': 'herb_cod_liver_oil_name',
+          'usage': 'herb_cod_liver_oil_usage',
+          'benefits': 'herb_cod_liver_oil_benefits',
+          'preparation': 'herb_cod_liver_oil_preparation',
+          'warning': 'herb_cod_liver_oil_warning',
+        },
+        {
+          'name': 'herb_green_tea_name',
+          'usage': 'herb_green_tea_usage',
+          'benefits': 'herb_green_tea_benefits',
+          'preparation': 'herb_green_tea_preparation',
+          'warning': 'herb_green_tea_warning',
+        },
+      ]
+    },
+    'herbal_cat_b12_support': {
+      'icon': '🧠',
+      'color': Colors.blueGrey,
+      'herbs': [
+        {
+          'name': 'herb_nutritional_yeast_name',
+          'usage': 'herb_nutritional_yeast_usage',
+          'benefits': 'herb_nutritional_yeast_benefits',
+          'preparation': 'herb_nutritional_yeast_preparation',
+          'warning': 'herb_nutritional_yeast_warning',
+        },
+        {
+          'name': 'herb_green_tea_name',
+          'usage': 'herb_green_tea_usage',
+          'benefits': 'herb_green_tea_benefits',
+          'preparation': 'herb_green_tea_preparation',
+          'warning': 'herb_green_tea_warning',
+        },
+      ]
+    },
+    'herbal_cat_electrolyte_balance': {
+      'icon': '💧',
+      'color': Colors.lightBlue,
+      'herbs': [
+        {
+          'name': 'herb_coconut_water_name',
+          'usage': 'herb_coconut_water_usage',
+          'benefits': 'herb_coconut_water_benefits',
+          'preparation': 'herb_coconut_water_preparation',
+          'warning': 'herb_coconut_water_warning',
+        },
+        {
+          'name': 'herb_green_tea_name',
+          'usage': 'herb_green_tea_usage',
+          'benefits': 'herb_green_tea_benefits',
+          'preparation': 'herb_green_tea_preparation',
+          'warning': 'herb_green_tea_warning',
+        },
+      ]
+    },
+    'herbal_cat_calcium_support': {
+      'icon': '🦴',
+      'color': Colors.teal,
+      'herbs': [
+        {
+          'name': 'herb_sesame_name',
+          'usage': 'herb_sesame_usage',
+          'benefits': 'herb_sesame_benefits',
+          'preparation': 'herb_sesame_preparation',
+          'warning': 'herb_sesame_warning',
+        },
+        {
+          'name': 'herb_green_tea_name',
+          'usage': 'herb_green_tea_usage',
+          'benefits': 'herb_green_tea_benefits',
+          'preparation': 'herb_green_tea_preparation',
+          'warning': 'herb_green_tea_warning',
+        },
+      ]
+    },
   };
 
   // Yöresel tedavi yöntemleri (localized)
@@ -504,6 +710,46 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
       'frequency': 'trad_aromatherapy_frequency',
       'warning': 'trad_aromatherapy_warning',
       'color': Colors.pink,
+    },
+    {
+      'title': 'trad_acupuncture_title',
+      'icon': '🪡',
+      'description': 'trad_acupuncture_description',
+      'benefits': 'trad_acupuncture_benefits',
+      'procedure': 'trad_acupuncture_procedure',
+      'frequency': 'trad_acupuncture_frequency',
+      'warning': 'trad_acupuncture_warning',
+      'color': Colors.teal,
+    },
+    {
+      'title': 'trad_moxibustion_title',
+      'icon': '🔥',
+      'description': 'trad_moxibustion_description',
+      'benefits': 'trad_moxibustion_benefits',
+      'procedure': 'trad_moxibustion_procedure',
+      'frequency': 'trad_moxibustion_frequency',
+      'warning': 'trad_moxibustion_warning',
+      'color': Colors.deepOrange,
+    },
+    {
+      'title': 'trad_gua_sha_title',
+      'icon': '🧴',
+      'description': 'trad_gua_sha_description',
+      'benefits': 'trad_gua_sha_benefits',
+      'procedure': 'trad_gua_sha_procedure',
+      'frequency': 'trad_gua_sha_frequency',
+      'warning': 'trad_gua_sha_warning',
+      'color': Colors.indigo,
+    },
+    {
+      'title': 'trad_castor_pack_title',
+      'icon': '🩹',
+      'description': 'trad_castor_pack_description',
+      'benefits': 'trad_castor_pack_benefits',
+      'procedure': 'trad_castor_pack_procedure',
+      'frequency': 'trad_castor_pack_frequency',
+      'warning': 'trad_castor_pack_warning',
+      'color': Colors.amber,
     },
   ];
 
@@ -632,6 +878,7 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
     final List<String> rec = [];
     bool below(String key, double min) => (values[key] != null) && values[key]! < min;
     bool above(String key, double max) => (values[key] != null) && values[key]! > max;
+    bool outside(String key, double min, double max) => (values[key] != null) && (values[key]! < min || values[key]! > max);
 
     final ref = _ref;
 
@@ -683,6 +930,42 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
     }
     if (above('monocyte', ref['monocyte']!['max'] as double)) {
       rec.add('herbal_cat_antiinflammatory_support');
+    }
+
+    // New popular markers mapping
+    if (above('glucose', ref['glucose']!['max'] as double)) {
+      rec.add('herbal_cat_glucose_control');
+    }
+    if (above('alt', ref['alt']!['max'] as double) ||
+        above('ast', ref['ast']!['max'] as double) ||
+        above('ggt', ref['ggt']!['max'] as double)) {
+      rec.add('herbal_cat_liver_support');
+    }
+    if (above('total_bilirubin', ref['total_bilirubin']!['max'] as double) ||
+        above('direct_bilirubin', ref['direct_bilirubin']!['max'] as double)) {
+      rec.add('herbal_cat_bilirubin_support');
+    }
+    if (above('crp', ref['crp']!['max'] as double)) {
+      rec.add('herbal_cat_antiinflammatory_support');
+    }
+    if (outside('tsh', ref['tsh']!['min'] as double, ref['tsh']!['max'] as double) ||
+        outside('free_t3', ref['free_t3']!['min'] as double, ref['free_t3']!['max'] as double) ||
+        outside('free_t4', ref['free_t4']!['min'] as double, ref['free_t4']!['max'] as double)) {
+      rec.add('herbal_cat_thyroid_support');
+    }
+    if (below('vitamin_d3', ref['vitamin_d3']!['min'] as double)) {
+      rec.add('herbal_cat_vitamin_d_support');
+    }
+    if (below('vitamin_b12', ref['vitamin_b12']!['min'] as double)) {
+      rec.add('herbal_cat_b12_support');
+    }
+    if (outside('sodium', ref['sodium']!['min'] as double, ref['sodium']!['max'] as double) ||
+        outside('potassium', ref['potassium']!['min'] as double, ref['potassium']!['max'] as double) ||
+        outside('chloride', ref['chloride']!['min'] as double, ref['chloride']!['max'] as double)) {
+      rec.add('herbal_cat_electrolyte_balance');
+    }
+    if (below('calcium', ref['calcium']!['min'] as double)) {
+      rec.add('herbal_cat_calcium_support');
     }
 
     // Keep only categories that exist in our map and dedupe while preserving order
@@ -1061,7 +1344,30 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
       case 'herbal_cat_allergy_support':
         return userValues['eosinophil'] != null ? tpl('eosinophil') : tpl('basophil');
       case 'herbal_cat_antiinflammatory_support':
-        return tpl('monocyte');
+        // Reason could be monocyte or CRP high; prefer CRP if present
+        return userValues['crp'] != null ? tpl('crp') : tpl('monocyte');
+      case 'herbal_cat_glucose_control':
+        return tpl('glucose');
+      case 'herbal_cat_liver_support':
+        if (userValues['alt'] != null) return tpl('alt');
+        if (userValues['ast'] != null) return tpl('ast');
+        return tpl('ggt');
+      case 'herbal_cat_bilirubin_support':
+        return userValues['total_bilirubin'] != null ? tpl('total_bilirubin') : tpl('direct_bilirubin');
+      case 'herbal_cat_thyroid_support':
+        if (userValues['tsh'] != null) return tpl('tsh');
+        if (userValues['free_t3'] != null) return tpl('free_t3');
+        return tpl('free_t4');
+      case 'herbal_cat_vitamin_d_support':
+        return tpl('vitamin_d3');
+      case 'herbal_cat_b12_support':
+        return tpl('vitamin_b12');
+      case 'herbal_cat_electrolyte_balance':
+        if (userValues['sodium'] != null) return tpl('sodium');
+        if (userValues['potassium'] != null) return tpl('potassium');
+        return tpl('chloride');
+      case 'herbal_cat_calcium_support':
+        return tpl('calcium');
       default:
         return null;
     }
@@ -1345,10 +1651,18 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
     final localizationService = Provider.of<LocalizationService>(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final canPop = Navigator.of(context).canPop();
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      drawer: const AppDrawer(currentRoute: '/alternative_medicine'),
+      drawer: canPop ? null : const AppDrawer(currentRoute: '/alternative_medicine'),
       appBar: AppBar(
+        leading: canPop
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Navigator.of(context).maybePop(),
+                tooltip: localizationService.getString('back'),
+              )
+            : null,
         title: Text(localizationService.getString('alternative_medicine')),
         backgroundColor: theme.appBarTheme.backgroundColor ?? scheme.surface,
         foregroundColor: theme.appBarTheme.foregroundColor ?? scheme.onSurface,

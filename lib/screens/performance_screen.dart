@@ -41,9 +41,10 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _loading = false);
+        final loc = Provider.of<LocalizationService>(context, listen: false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error loading performance data: $e'),
+            content: Text(loc.getStringWithParams('error_loading_performance', {'error': e.toString()})),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -70,9 +71,10 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final loc = Provider.of<LocalizationService>(context, listen: false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error clearing caches: $e'),
+            content: Text(loc.getStringWithParams('error_clearing_caches', {'error': e.toString()})),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -99,9 +101,10 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final loc = Provider.of<LocalizationService>(context, listen: false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error applying settings: $e'),
+            content: Text(loc.getStringWithParams('error_applying_settings', {'error': e.toString()})),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -272,15 +275,15 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             const SizedBox(height: 16),
             
             if (_cacheInfo.isNotEmpty) ...[
-              _buildInfoRow('Image Cache', '${_cacheInfo['imageCacheCount'] ?? 0} items'),
-              _buildInfoRow('Max Image Cache', '${_cacheInfo['imageCacheMaxSize'] ?? 0} items'),
-              _buildInfoRow('HemoAI Cache', '${_cacheInfo['hemoaiCacheSize'] ?? 0} entries'),
+              _buildInfoRow(loc.getString('image_cache'), '${_cacheInfo['imageCacheCount'] ?? 0} ${loc.getString('items')}'),
+              _buildInfoRow(loc.getString('max_image_cache'), '${_cacheInfo['imageCacheMaxSize'] ?? 0} ${loc.getString('items')}'),
+              _buildInfoRow(loc.getString('hemoai_cache'), '${_cacheInfo['hemoaiCacheSize'] ?? 0} ${loc.getString('entries')}'),
               if (_cacheInfo['timestamp'] != null)
-                _buildInfoRow('Last Updated', 
+                _buildInfoRow(loc.getString('last_updated'), 
                   DateTime.parse(_cacheInfo['timestamp']).toLocal().toString().split('.')[0]),
             ] else
               Text(
-                'No cache information available',
+                loc.getString('no_cache_information_available'),
                 style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.7)),
               ),
           ],
@@ -354,7 +357,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                 Icon(Icons.bug_report, color: scheme.primary),
                 const SizedBox(width: 8),
                 Text(
-                  'Debug Information',
+                  loc.getString('debug_information'),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -365,10 +368,10 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             ),
             const SizedBox(height: 16),
             
-            _buildInfoRow('Platform', kIsWeb ? 'Web' : 'Native'),
-            _buildInfoRow('Debug Mode', kDebugMode.toString()),
-            _buildInfoRow('Profile Mode', kProfileMode.toString()),
-            _buildInfoRow('Release Mode', kReleaseMode.toString()),
+            _buildInfoRow(loc.getString('platform'), kIsWeb ? loc.getString('is_web') : loc.getString('native')),
+            _buildInfoRow(loc.getString('debug_mode'), kDebugMode.toString()),
+            _buildInfoRow(loc.getString('profile_mode'), kProfileMode.toString()),
+            _buildInfoRow(loc.getString('release_mode'), kReleaseMode.toString()),
           ],
         ),
       ),
