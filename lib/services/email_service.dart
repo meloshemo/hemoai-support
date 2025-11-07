@@ -5,10 +5,12 @@ import 'dart:async';
 import 'package:logger/logger.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'network_service.dart';
+import '../utils/error_handler.dart';
 
 /// Professional email service for sending transactional emails via SendGrid
 /// Supports secure API key storage, retry mechanism, rate limiting, and error handling
-/// 
+///
 /// Configuration:
 /// 1. Set SENDGRID_API_KEY via --dart-define or environment variable
 /// 2. API key will be stored securely in flutter_secure_storage
@@ -22,7 +24,7 @@ class EmailService {
   static const String _secureStorageKey = 'sendgrid_api_key';
   static const String _prefsFromEmailKey = 'email_from_email';
   static const String _prefsFromNameKey = 'email_from_name';
-  
+
   final Logger _logger = Logger();
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
     aOptions: AndroidOptions(
@@ -32,25 +34,26 @@ class EmailService {
       accessibility: KeychainAccessibility.first_unlock_this_device,
     ),
   );
-  
+
   bool _isInitialized = false;
   bool _isTestMode = false;
   String _apiKey = '';
   String _fromEmail = 'noreply@hemoai.com';
   String _fromName = 'HemoAI';
-  
+
   // Rate limiting
   final List<DateTime> _sentEmails = [];
   static const int _maxEmailsPerMinute = 10;
   static const int _maxEmailsPerHour = 100;
-  
+
   // Retry configuration
   static const int _maxRetries = 3;
   static const Duration _retryDelay = Duration(seconds: 2);
-  
+
+  bool get isInitialized => _isInitialized;
   bool get isConfigured => _apiKey.isNotEmpty && !_isTestMode && _isInitialized;
   bool get isTestMode => _isTestMode;
-  
+
   /// Initialize email service with secure API key storage
   /// Priority: 1. Parameters, 2. Environment variables, 3. Secure storage, 4. Test mode
   Future<void> initialize({
@@ -64,7 +67,7 @@ class EmailService {
       _logger.i('EmailService already initialized');
       return;
     }
-    
+
     try {
       // 1. Try parameters first
       if (apiKey != null && apiKey.isNotEmpty) {
@@ -75,11 +78,13 @@ class EmailService {
         }
       } else {
         // 2. Try environment variables
-        final envApiKey = const String.fromEnvironment('SENDGRID_API_KEY', defaultValue: '');
+        final envApiKey =
+            const String.fromEnvironment('SENDGRID_API_KEY', defaultValue: '');
         if (envApiKey.isNotEmpty) {
           _apiKey = envApiKey;
           if (preferSecureStorage) {
-            await _secureStorage.write(key: _secureStorageKey, value: envApiKey);
+            await _secureStorage.write(
+                key: _secureStorageKey, value: envApiKey);
             _logger.i('✅ API key from environment saved to secure storage');
           }
         } else if (preferSecureStorage) {
@@ -91,15 +96,16 @@ class EmailService {
           }
         }
       }
-      
+
       // Configure from email and name
       final prefs = await SharedPreferences.getInstance();
-      
+
       if (fromEmail != null && fromEmail.isNotEmpty) {
         _fromEmail = fromEmail;
         await prefs.setString(_prefsFromEmailKey, fromEmail);
       } else {
-        final envFromEmail = const String.fromEnvironment('SENDGRID_FROM_EMAIL', defaultValue: '');
+        final envFromEmail = const String.fromEnvironment('SENDGRID_FROM_EMAIL',
+            defaultValue: '');
         if (envFromEmail.isNotEmpty) {
           _fromEmail = envFromEmail;
         } else {
@@ -109,12 +115,13 @@ class EmailService {
           }
         }
       }
-      
+
       if (fromName != null && fromName.isNotEmpty) {
         _fromName = fromName;
         await prefs.setString(_prefsFromNameKey, fromName);
       } else {
-        final envFromName = const String.fromEnvironment('SENDGRID_FROM_NAME', defaultValue: 'HemoAI');
+        final envFromName = const String.fromEnvironment('SENDGRID_FROM_NAME',
+            defaultValue: 'HemoAI');
         if (envFromName.isNotEmpty) {
           _fromName = envFromName;
         } else {
@@ -124,10 +131,10 @@ class EmailService {
           }
         }
       }
-      
+
       // Determine mode
       _isTestMode = testMode ?? _apiKey.isEmpty;
-      
+
       // Validate configuration
       if (!_isTestMode) {
         final isValid = await _validateApiKey(_apiKey);
@@ -136,23 +143,26 @@ class EmailService {
           _isTestMode = true;
         }
       }
-      
+
       _isInitialized = true;
-      
+
       if (_isTestMode) {
-        _logger.w('📧 EmailService initialized in TEST MODE (no emails will be sent)');
-        _logger.w('   To enable production mode, set SENDGRID_API_KEY environment variable or call initialize(apiKey: "...")');
+        _logger.w(
+            '📧 EmailService initialized in TEST MODE (no emails will be sent)');
+        _logger.w(
+            '   To enable production mode, set SENDGRID_API_KEY environment variable or call initialize(apiKey: "...")');
       } else {
         _logger.i('✅ EmailService initialized in PRODUCTION MODE');
         _logger.i('   From: $_fromName <$_fromEmail>');
       }
     } catch (e, stackTrace) {
-      _logger.e('❌ Failed to initialize EmailService: $e', error: e, stackTrace: stackTrace);
+      _logger.e('❌ Failed to initialize EmailService: $e',
+          error: e, stackTrace: stackTrace);
       _isTestMode = true; // Fallback to test mode on error
       _isInitialized = true;
     }
   }
-  
+
   /// Validate API key format (basic check)
   Future<bool> _validateApiKey(String key) async {
     if (key.isEmpty) return false;
@@ -166,31 +176,33 @@ class EmailService {
     }
     return true;
   }
-  
+
   /// Check rate limits
   bool _checkRateLimit() {
     final now = DateTime.now();
     final oneMinuteAgo = now.subtract(const Duration(minutes: 1));
     final oneHourAgo = now.subtract(const Duration(hours: 1));
-    
+
     _sentEmails.removeWhere((time) => time.isBefore(oneHourAgo));
-    
-    final recentMinute = _sentEmails.where((time) => time.isAfter(oneMinuteAgo)).length;
+
+    final recentMinute =
+        _sentEmails.where((time) => time.isAfter(oneMinuteAgo)).length;
     final recentHour = _sentEmails.length;
-    
+
     if (recentMinute >= _maxEmailsPerMinute) {
-      _logger.w('⚠️ Rate limit exceeded: $_maxEmailsPerMinute emails per minute');
+      _logger
+          .w('⚠️ Rate limit exceeded: $_maxEmailsPerMinute emails per minute');
       return false;
     }
-    
+
     if (recentHour >= _maxEmailsPerHour) {
       _logger.w('⚠️ Rate limit exceeded: $_maxEmailsPerHour emails per hour');
       return false;
     }
-    
+
     return true;
   }
-  
+
   /// Record email sent (for rate limiting)
   void _recordEmailSent() {
     _sentEmails.add(DateTime.now());
@@ -206,12 +218,13 @@ class EmailService {
       _logger.w('⚠️ EmailService not initialized. Call initialize() first.');
       return false;
     }
-    
+
     if (!_isTestMode && !_checkRateLimit()) {
       return false;
     }
 
-    final resetUrl = 'https://hemoai.com/reset-password?token=$resetToken&email=${Uri.encodeComponent(toEmail)}';
+    final resetUrl =
+        'https://hemoai.com/reset-password?token=$resetToken&email=${Uri.encodeComponent(toEmail)}';
     final subject = _getPasswordResetSubject(locale);
     final htmlBody = _getPasswordResetHtml(resetUrl, locale);
     final textBody = _getPasswordResetText(resetUrl, locale);
@@ -222,7 +235,12 @@ class EmailService {
       _logger.i('   To: $toEmail');
       _logger.i('   Subject: $subject');
       _logger.i('   Reset URL: $resetUrl');
-      _logger.i('   Token: ${resetToken.substring(0, 8)}...');
+      if (resetToken.isNotEmpty) {
+        _logger.i(
+            '   Token: ${resetToken.length > 8 ? resetToken.substring(0, 8) : resetToken}...');
+      } else {
+        _logger.i('   Token: (empty)');
+      }
       return true; // Simulate success
     }
 
@@ -235,7 +253,7 @@ class EmailService {
       emailType: 'password_reset',
     );
   }
-  
+
   /// Send email with retry mechanism
   Future<bool> _sendEmailWithRetry({
     required String toEmail,
@@ -246,17 +264,19 @@ class EmailService {
   }) async {
     int attempt = 0;
     Exception? lastError;
-    
+
     while (attempt < _maxRetries) {
       try {
         attempt++;
-        
+
         if (attempt > 1) {
-          _logger.i('📧 Retry attempt $attempt/$_maxRetries for $emailType to $toEmail');
+          _logger.i(
+              '📧 Retry attempt $attempt/$_maxRetries for $emailType to $toEmail');
           await Future.delayed(_retryDelay * attempt); // Exponential backoff
         }
-        
-        final response = await http.post(
+
+        final response = await http
+            .post(
           Uri.parse(_sendGridApiUrl),
           headers: {
             'Authorization': 'Bearer $_apiKey',
@@ -286,12 +306,26 @@ class EmailService {
               },
             ],
           }),
-        ).timeout(
+        )
+            .timeout(
           const Duration(seconds: 30),
           onTimeout: () {
             throw TimeoutException('SendGrid API request timed out');
           },
-        );
+        ).catchError((error, stackTrace) {
+          if (error is TimeoutException) {
+            Error.throwWithStackTrace(error, stackTrace);
+          }
+          // Check for connection errors
+          if (error.toString().contains('Connection') ||
+              error.toString().contains('network') ||
+              error.toString().contains('SocketException') ||
+              error.toString().contains('Failed host lookup')) {
+            throw NetworkException(
+                'Connection failed. Please check your internet connection or VPN settings.');
+          }
+          Error.throwWithStackTrace(error, stackTrace);
+        });
 
         if (response.statusCode >= 200 && response.statusCode < 300) {
           _recordEmailSent();
@@ -299,8 +333,9 @@ class EmailService {
           return true;
         } else {
           final errorBody = response.body;
-          _logger.w('❌ SendGrid API error (${response.statusCode}): $errorBody');
-          
+          _logger
+              .w('❌ SendGrid API error (${response.statusCode}): $errorBody');
+
           // Parse error response
           try {
             final errorJson = jsonDecode(errorBody) as Map<String, dynamic>;
@@ -313,10 +348,11 @@ class EmailService {
           } catch (_) {
             // Ignore JSON parsing errors
           }
-          
+
           // Retry on 5xx errors, fail on 4xx
           if (response.statusCode >= 500 && attempt < _maxRetries) {
-            lastError = Exception('SendGrid server error: ${response.statusCode}');
+            lastError =
+                Exception('SendGrid server error: ${response.statusCode}');
             continue;
           } else {
             return false;
@@ -325,17 +361,19 @@ class EmailService {
       } catch (e, stackTrace) {
         lastError = e is Exception ? e : Exception(e.toString());
         _logger.w('❌ Email send attempt $attempt failed: $e');
-        
+
         if (attempt < _maxRetries) {
           continue;
         } else {
-          _logger.e('❌ All email send attempts failed for $emailType to $toEmail',
-                    error: lastError, stackTrace: stackTrace);
+          _logger.e(
+              '❌ All email send attempts failed for $emailType to $toEmail',
+              error: lastError,
+              stackTrace: stackTrace);
           return false;
         }
       }
     }
-    
+
     return false;
   }
 
@@ -349,7 +387,7 @@ class EmailService {
       _logger.w('⚠️ EmailService not initialized');
       return false;
     }
-    
+
     if (!_isTestMode && !_checkRateLimit()) {
       return false;
     }
@@ -373,7 +411,7 @@ class EmailService {
       emailType: 'welcome',
     );
   }
-  
+
   /// Send premium activation email
   Future<bool> sendPremiumActivationEmail({
     required String toEmail,
@@ -386,14 +424,16 @@ class EmailService {
       _logger.w('⚠️ EmailService not initialized');
       return false;
     }
-    
+
     if (!_isTestMode && !_checkRateLimit()) {
       return false;
     }
 
     final subject = _getPremiumActivationSubject(locale);
-    final htmlBody = _getPremiumActivationHtml(userName, tier, expiryDate, locale);
-    final textBody = _getPremiumActivationText(userName, tier, expiryDate, locale);
+    final htmlBody =
+        _getPremiumActivationHtml(userName, tier, expiryDate, locale);
+    final textBody =
+        _getPremiumActivationText(userName, tier, expiryDate, locale);
 
     if (_isTestMode) {
       _logger.i('📧 [TEST MODE] Premium Activation Email:');
@@ -411,7 +451,7 @@ class EmailService {
       emailType: 'premium_activation',
     );
   }
-  
+
   /// Update API key securely
   Future<bool> updateApiKey(String apiKey) async {
     try {
@@ -419,18 +459,19 @@ class EmailService {
         _logger.e('❌ Invalid API key format');
         return false;
       }
-      
+
       await _secureStorage.write(key: _secureStorageKey, value: apiKey);
       _apiKey = apiKey;
       _isTestMode = false;
       _logger.i('✅ API key updated successfully');
       return true;
     } catch (e, stackTrace) {
-      _logger.e('❌ Failed to update API key: $e', error: e, stackTrace: stackTrace);
+      _logger.e('❌ Failed to update API key: $e',
+          error: e, stackTrace: stackTrace);
       return false;
     }
   }
-  
+
   /// Clear stored API key (for security)
   Future<void> clearApiKey() async {
     try {
@@ -442,7 +483,7 @@ class EmailService {
       _logger.w('⚠️ Failed to clear API key: $e');
     }
   }
-  
+
   /// Get email service status
   Map<String, dynamic> getStatus() {
     return {
@@ -453,12 +494,14 @@ class EmailService {
       'fromName': _fromName,
       'hasApiKey': _apiKey.isNotEmpty,
       'rateLimit': {
-        'emailsLastMinute': _sentEmails.where((t) => 
-          t.isAfter(DateTime.now().subtract(const Duration(minutes: 1)))
-        ).length,
-        'emailsLastHour': _sentEmails.where((t) => 
-          t.isAfter(DateTime.now().subtract(const Duration(hours: 1)))
-        ).length,
+        'emailsLastMinute': _sentEmails
+            .where((t) =>
+                t.isAfter(DateTime.now().subtract(const Duration(minutes: 1))))
+            .length,
+        'emailsLastHour': _sentEmails
+            .where((t) =>
+                t.isAfter(DateTime.now().subtract(const Duration(hours: 1))))
+            .length,
         'maxPerMinute': _maxEmailsPerMinute,
         'maxPerHour': _maxEmailsPerHour,
       },
@@ -485,7 +528,7 @@ class EmailService {
   String _getPasswordResetHtml(String resetUrl, String locale) {
     final text = _getPasswordResetText(resetUrl, locale);
     final isRTL = locale == 'ar';
-    
+
     return '''
 <!DOCTYPE html>
 <html dir="${isRTL ? 'rtl' : 'ltr'}">
@@ -587,7 +630,7 @@ class EmailService {
     <div class="footer">
       <p><strong>HemoAI</strong> - Smart Hemogram Analysis</p>
       <p>${locale == 'tr' ? 'Bu e-postayı siz istemediyseniz, lütfen görmezden gelin.' : locale == 'es' ? 'Si no solicitó este correo, puede ignorarlo.' : 'If you did not request this email, please ignore it.'}</p>
-      <p style="margin-top: 10px;">support@hemoai.com</p>
+      <p style="margin-top: 10px;">support@meloshemo.com</p>
     </div>
   </div>
 </body>
@@ -704,7 +747,7 @@ HemoAI Team''';
   String _getWelcomeHtml(String userName, String locale) {
     final text = _getWelcomeText(userName, locale);
     final isRTL = locale == 'ar';
-    
+
     return '''
 <!DOCTYPE html>
 <html dir="${isRTL ? 'rtl' : 'ltr'}">
@@ -801,7 +844,7 @@ HemoAI Team''';
     </div>
     <div class="footer">
       <p><strong>HemoAI</strong> - Smart Hemogram Analysis</p>
-      <p>support@hemoai.com</p>
+      <p>support@meloshemo.com</p>
     </div>
   </div>
 </body>
@@ -867,7 +910,7 @@ Good luck!
 HemoAI Team''';
     }
   }
-  
+
   String _getPremiumActivationSubject(String locale) {
     switch (locale) {
       case 'tr':
@@ -884,15 +927,15 @@ HemoAI Team''';
         return 'HemoAI Premium Activated! 🎉';
     }
   }
-  
-  String _getPremiumActivationHtml(String userName, String tier, DateTime? expiryDate, String locale) {
+
+  String _getPremiumActivationHtml(
+      String userName, String tier, DateTime? expiryDate, String locale) {
     final text = _getPremiumActivationText(userName, tier, expiryDate, locale);
     final tierName = _getTierName(tier, locale);
-    final expiryText = expiryDate != null 
-        ? _getExpiryText(expiryDate, locale)
-        : '';
+    final expiryText =
+        expiryDate != null ? _getExpiryText(expiryDate, locale) : '';
     final isRTL = locale == 'ar';
-    
+
     return '''
 <!DOCTYPE html>
 <html dir="${isRTL ? 'rtl' : 'ltr'}">
@@ -991,18 +1034,20 @@ HemoAI Team''';
     </div>
     <div class="footer">
       <p><strong>HemoAI</strong> - Smart Hemogram Analysis</p>
-      <p>${locale == 'tr' ? 'Sorularınız için: support@hemoai.com' : 'Questions? support@hemoai.com'}</p>
+      <p>${locale == 'tr' ? 'Sorularınız için: support@meloshemo.com' : 'Questions? support@meloshemo.com'}</p>
     </div>
   </div>
 </body>
 </html>
 ''';
   }
-  
-  String _getPremiumActivationText(String userName, String tier, DateTime? expiryDate, String locale) {
+
+  String _getPremiumActivationText(
+      String userName, String tier, DateTime? expiryDate, String locale) {
     final tierName = _getTierName(tier, locale);
-    final expiryText = expiryDate != null ? _getExpiryText(expiryDate, locale) : '';
-    
+    final expiryText =
+        expiryDate != null ? _getExpiryText(expiryDate, locale) : '';
+
     switch (locale) {
       case 'tr':
         return '''Merhaba $userName,
@@ -1120,20 +1165,50 @@ Thank you!
 HemoAI Team''';
     }
   }
-  
+
   String _getTierName(String tier, String locale) {
     switch (tier.toLowerCase()) {
       case 'monthly':
-        return locale == 'tr' ? 'Aylık' : locale == 'es' ? 'Mensual' : locale == 'fr' ? 'Mensuel' : locale == 'de' ? 'Monatlich' : locale == 'ar' ? 'شهري' : 'Monthly';
+        return locale == 'tr'
+            ? 'Aylık'
+            : locale == 'es'
+                ? 'Mensual'
+                : locale == 'fr'
+                    ? 'Mensuel'
+                    : locale == 'de'
+                        ? 'Monatlich'
+                        : locale == 'ar'
+                            ? 'شهري'
+                            : 'Monthly';
       case 'yearly':
-        return locale == 'tr' ? 'Yıllık' : locale == 'es' ? 'Anual' : locale == 'fr' ? 'Annuel' : locale == 'de' ? 'Jährlich' : locale == 'ar' ? 'سنوي' : 'Yearly';
+        return locale == 'tr'
+            ? 'Yıllık'
+            : locale == 'es'
+                ? 'Anual'
+                : locale == 'fr'
+                    ? 'Annuel'
+                    : locale == 'de'
+                        ? 'Jährlich'
+                        : locale == 'ar'
+                            ? 'سنوي'
+                            : 'Yearly';
       case 'lifetime':
-        return locale == 'tr' ? 'Yaşam Boyu' : locale == 'es' ? 'De por Vida' : locale == 'fr' ? 'À vie' : locale == 'de' ? 'Lebenslang' : locale == 'ar' ? 'مدى الحياة' : 'Lifetime';
+        return locale == 'tr'
+            ? 'Yaşam Boyu'
+            : locale == 'es'
+                ? 'De por Vida'
+                : locale == 'fr'
+                    ? 'À vie'
+                    : locale == 'de'
+                        ? 'Lebenslang'
+                        : locale == 'ar'
+                            ? 'مدى الحياة'
+                            : 'Lifetime';
       default:
         return tier;
     }
   }
-  
+
   String _getExpiryText(DateTime expiryDate, String locale) {
     final formatted = expiryDate.toIso8601String().substring(0, 10);
     if (locale == 'tr') {
@@ -1150,4 +1225,3 @@ HemoAI Team''';
     }
   }
 }
-

@@ -19,30 +19,8 @@ class ChallengesScreen extends StatefulWidget {
   State<ChallengesScreen> createState() => _ChallengesScreenState();
 }
 
-class _ChallengesScreenState extends State<ChallengesScreen> with TickerProviderStateMixin {
+class _ChallengesScreenState extends State<ChallengesScreen> {
   final DatabaseHelper _db = DatabaseHelper.instance;
-  late AnimationController _progressController;
-  late AnimationController _pulseController;
-
-  @override
-  void initState() {
-    super.initState();
-    _progressController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    );
-    _pulseController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
-      vsync: this,
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _progressController.dispose();
-    _pulseController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,19 +33,17 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0D1117) : const Color(0xFFF6F8FA),
       drawer: const AppDrawer(currentRoute: '/challenges'),
-      appBar: UnifiedAppBar(title: loc.getString('motivation_challenges'), currentRoute: '/challenges'),
+      appBar: UnifiedAppBar(title: 'Motivation & Challenges', currentRoute: '/challenges'),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _scoreCard(service, isDark, loc),
+          _scoreCard(service, isDark),
           const SizedBox(height: 16),
-          _streakCard(service, isDark, loc),
-          const SizedBox(height: 16),
-          _badgesRow(service, isDark, loc),
+          _badgesRow(service, isDark),
           const SizedBox(height: 24),
           _buildDetailedStatsSection(service, socialService, isDark, loc),
           const SizedBox(height: 24),
-          _goalToggles(service, isDark, loc),
+          _goalToggles(service, isDark),
           const SizedBox(height: 24),
           _friendCompetitionSection(isDark, loc),
           const SizedBox(height: 24),
@@ -77,372 +53,43 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
     );
   }
 
-  Widget _scoreCard(ChallengeService service, bool isDark, LocalizationService loc) {
-    final progress = (service.weeklyPoints % 100) / 100.0;
-    final pointsToNext = 100 - (service.weeklyPoints % 100);
-    
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _progressController.forward(from: 0.0);
-    });
-
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: progress),
-      duration: const Duration(milliseconds: 1500),
-      curve: Curves.easeOutCubic,
-      builder: (context, value, child) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: isDark 
-                ? [const Color(0xFF1A1F2E), const Color(0xFF161B22)]
-                : [Colors.white, const Color(0xFFF8F9FA)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-            border: Border.all(
-              color: isDark ? const Color(0xFF30363D) : Colors.grey.shade200,
-              width: 1,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFE53E3E), Color(0xFFFF6B6B)],
-                          ),
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFFE53E3E).withOpacity(0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(Icons.trending_up, color: Colors.white, size: 24),
-                      ),
-                      const SizedBox(width: 14),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            loc.getString('weekly_points'),
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: isDark ? Colors.grey[400] : Colors.grey[600],
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            '${service.weeklyPoints % 100}/100',
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.white : Colors.black87,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          const Color(0xFFE53E3E).withOpacity(0.15),
-                          const Color(0xFFE53E3E).withOpacity(0.08),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFE53E3E).withOpacity(0.4), width: 1.5),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.emoji_events, color: Color(0xFFE53E3E), size: 20),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${service.weeklyBadges}',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFFE53E3E),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Stack(
-                children: [
-                  Container(
-                    height: 14,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.withOpacity(isDark ? 0.15 : 0.2),
-                      borderRadius: BorderRadius.circular(7),
-                    ),
-                  ),
-                  FractionallySizedBox(
-                    widthFactor: value.clamp(0.0, 1.0),
-                    child: Container(
-                      height: 14,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFE53E3E), Color(0xFFFF6B6B)],
-                        ),
-                        borderRadius: BorderRadius.circular(7),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFE53E3E).withOpacity(0.5),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              if (pointsToNext > 0) ...[
-                const SizedBox(height: 12),
-                Text(
-                  loc.getStringWithParams('points_to_next_level', {'points': pointsToNext.toString()}),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? Colors.grey[400] : Colors.grey[600],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _streakCard(ChallengeService service, bool isDark, LocalizationService loc) {
+  Widget _scoreCard(ChallengeService service, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDark
-            ? [
-                const Color(0xFF2D1B2E),
-                const Color(0xFF1A1F2E),
-              ]
-            : [
-                const Color(0xFFFFF5E6),
-                Colors.white,
-              ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isDark ? const Color(0xFF30363D) : Colors.orange.shade200.withOpacity(0.5),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.orange.withOpacity(isDark ? 0.1 : 0.15),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: isDark ? const Color(0xFF161B22) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDark ? const Color(0xFF30363D) : Colors.grey.shade200),
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.orange.shade400,
-                  Colors.orange.shade600,
-                ],
-              ),
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.orange.withOpacity(0.4),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: const Icon(Icons.local_fire_department, color: Colors.white, size: 28),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-                Text(
-                  loc.getString('current_streak'),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? Colors.grey[400] : Colors.grey[600],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Text(
-                      loc.getStringWithParams('streak_days', {'days': service.currentStreak.toString()}),
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : Colors.orange.shade700,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    if (service.currentStreak > 0)
-                      Icon(Icons.verified, color: Colors.orange.shade600, size: 20),
-                  ],
-                ),
-              ],
-            ),
+          const Text('Weekly Points', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: (service.weeklyPoints % 100) / 100.0,
+            color: const Color(0xFFE53E3E),
+            backgroundColor: Colors.grey.withOpacity(0.2),
           ),
-          if (service.longestStreak > service.currentStreak)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange.withOpacity(0.3)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    loc.getString('longest_streak'),
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: isDark ? Colors.grey[400] : Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${service.longestStreak}',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.orange.shade700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          const SizedBox(height: 8),
+          Text('${service.weeklyPoints % 100}/100 • Badges: ${service.weeklyBadges}')
         ],
       ),
     );
   }
 
-  Widget _badgesRow(ChallengeService service, bool isDark, LocalizationService loc) {
-    if (service.weeklyBadges == 0) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF161B22).withOpacity(0.5) : Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isDark ? Colors.grey.withOpacity(0.2) : Colors.grey.shade200,
-            style: BorderStyle.solid,
-            width: 1,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.emoji_events_outlined, size: 20, color: Colors.grey[400]),
-            const SizedBox(width: 8),
-            Text(
-              loc.getString('earn_badges_by_completing_goals'),
-              style: TextStyle(
-                fontSize: 13,
-                color: isDark ? Colors.grey[400] : Colors.grey[600],
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-    
+  Widget _badgesRow(ChallengeService service, bool isDark) {
     return Wrap(
-      spacing: 10,
-      runSpacing: 10,
+      spacing: 8,
+      runSpacing: 8,
       children: List.generate(min(service.weeklyBadges, 8), (i) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              const Color(0xFFE53E3E).withOpacity(0.15),
-              const Color(0xFFE53E3E).withOpacity(0.08),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: const Color(0xFFE53E3E).withOpacity(0.4),
-            width: 1.5,
-          ),
-          boxShadow: [
-            BoxShadow(
           color: const Color(0xFFE53E3E).withOpacity(0.1),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFE53E3E).withOpacity(0.6)),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE53E3E).withOpacity(0.2),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.emoji_events, color: Color(0xFFE53E3E), size: 18),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              loc.getString('badge'),
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFFE53E3E),
-              ),
-            ),
-          ],
-        ),
+        child: const Row(children: [Icon(Icons.emoji_events, color: Color(0xFFE53E3E), size: 16), SizedBox(width: 6), Text('Badge')]),
       )),
     );
   }
@@ -459,25 +106,25 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(loc.getString('weekly_monthly_stats'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const Text('Haftalık & Aylık İstatistikler', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: _statCardInternal('👣 ${loc.getString('steps_label')}', '${weeklyStats['steps']}', '${loc.getString('target_label')} ${weeklyStats['stepsGoal']}', (weeklyStats['steps'] as int) / ((weeklyStats['stepsGoal'] as int) > 0 ? (weeklyStats['stepsGoal'] as int) : 1), isDark, loc)),
+                Expanded(child: _statCardInternal('👣 Adım', '${weeklyStats['steps']}', 'Hedef: ${weeklyStats['stepsGoal']}', (weeklyStats['steps'] as int) / ((weeklyStats['stepsGoal'] as int) > 0 ? (weeklyStats['stepsGoal'] as int) : 1), isDark)),
                 const SizedBox(width: 12),
-                Expanded(child: _statCardInternal('💧 ${loc.getString('water_label')}', '${weeklyStats['water']}ml', '${loc.getString('target_label')} ${weeklyStats['waterGoal']}ml', (weeklyStats['water'] as int) / ((weeklyStats['waterGoal'] as int) > 0 ? (weeklyStats['waterGoal'] as int) : 1), isDark, loc)),
+                Expanded(child: _statCardInternal('💧 Su', '${weeklyStats['water']}ml', 'Hedef: ${weeklyStats['waterGoal']}ml', (weeklyStats['water'] as int) / ((weeklyStats['waterGoal'] as int) > 0 ? (weeklyStats['waterGoal'] as int) : 1), isDark)),
               ],
             ),
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(child: _statCardInternal('😴 ${loc.getString('sleep_label')}', '${weeklyStats['sleep']}s', '${loc.getString('target_label')} ${weeklyStats['sleepGoal']}s', (weeklyStats['sleep'] as int) / ((weeklyStats['sleepGoal'] as int) > 0 ? (weeklyStats['sleepGoal'] as int) : 1), isDark, loc)),
+                Expanded(child: _statCardInternal('😴 Uyku', '${weeklyStats['sleep']}s', 'Hedef: ${weeklyStats['sleepGoal']}s', (weeklyStats['sleep'] as int) / ((weeklyStats['sleepGoal'] as int) > 0 ? (weeklyStats['sleepGoal'] as int) : 1), isDark)),
                 const SizedBox(width: 12),
-                Expanded(child: _statCardInternal('🏆 ${loc.getString('points_label')}', '${weeklyStats['points']}', loc.getString('this_week'), 1.0, isDark, loc)),
+                Expanded(child: _statCardInternal('🏆 Puan', '${weeklyStats['points']}', 'Bu Hafta', 1.0, isDark)),
               ],
             ),
             const SizedBox(height: 24),
-            Text(loc.getString('monthly_summary'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const Text('Aylık Özet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(16),
@@ -488,19 +135,19 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
               ),
               child: Column(
                 children: [
-                  _statRowInternal(loc.getString('total_steps'), '${monthlyStats['totalSteps']}', '${monthlyStats['avgSteps']}${loc.getString('per_day')}', isDark, loc),
+                  _statRowInternal('Toplam Adım', '${monthlyStats['totalSteps']}', '${monthlyStats['avgSteps']}/gün', isDark),
                   const SizedBox(height: 12),
-                  _statRowInternal(loc.getString('total_water'), '${monthlyStats['totalWater']}ml', '${monthlyStats['avgWater']}ml${loc.getString('per_day')}', isDark, loc),
+                  _statRowInternal('Toplam Su', '${monthlyStats['totalWater']}ml', '${monthlyStats['avgWater']}ml/gün', isDark),
                   const SizedBox(height: 12),
-                  _statRowInternal(loc.getString('total_sleep'), '${monthlyStats['totalSleep']}s', '${monthlyStats['avgSleep']}s${loc.getString('per_day')}', isDark, loc),
+                  _statRowInternal('Toplam Uyku', '${monthlyStats['totalSleep']}s', '${monthlyStats['avgSleep']}s/gün', isDark),
                   const SizedBox(height: 12),
-                  _statRowInternal(loc.getString('total_points'), '${monthlyStats['totalPoints']}', '${monthlyStats['badges']} ${loc.getString('badges_unit')}', isDark, loc),
+                  _statRowInternal('Toplam Puan', '${monthlyStats['totalPoints']}', '${monthlyStats['badges']} rozet', isDark),
                 ],
               ),
             ),
             if (socialService.activeFriends.isNotEmpty) ...[
               const SizedBox(height: 24),
-              Text(loc.getString('friend_comparison'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Text('Arkadaşlar Arası Karşılaştırma', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
               ...socialService.activeFriends.map((friend) {
                 final friendStats = _getFriendWeeklyStatsInternal(socialService, friend.friendUserId);
@@ -513,7 +160,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
     );
   }
 
-  Widget _statCardInternal(String label, String value, String subtitle, double progress, bool isDark, LocalizationService loc) {
+  Widget _statCardInternal(String label, String value, String subtitle, double progress, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -536,7 +183,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
     );
   }
 
-  Widget _statRowInternal(String label, String value, String subtitle, bool isDark, LocalizationService loc) {
+  Widget _statRowInternal(String label, String value, String subtitle, bool isDark) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -668,15 +315,15 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
     return {'steps': totalSteps, 'water': totalWater, 'sleep': totalSleep};
   }
 
-  Widget _goalToggles(ChallengeService service, bool isDark, LocalizationService loc) {
+  Widget _goalToggles(ChallengeService service, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(loc.getString('weekly_goals'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const Text('Weekly Goals', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
-        _toggle(loc.getString('steps_label'), service.weeklySteps, (v) => service.toggleWeeklyStep(v), isDark),
-        _toggle(loc.getString('water_label'), service.weeklyWater, (v) => service.toggleWeeklyWater(v), isDark),
-        _toggle(loc.getString('sleep_label'), service.weeklySleep, (v) => service.toggleWeeklySleep(v), isDark),
+        _toggle('Steps', service.weeklySteps, (v) => service.toggleWeeklyStep(v), isDark),
+        _toggle('Water', service.weeklyWater, (v) => service.toggleWeeklyWater(v), isDark),
+        _toggle('Sleep', service.weeklySleep, (v) => service.toggleWeeklySleep(v), isDark),
       ],
     );
   }
@@ -703,7 +350,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(loc.getString('shared_diet_plans_premium'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const Text('Shared Diet Plans (Premium)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
         if (!premium.isPremium)
           Container(
@@ -721,10 +368,10 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(loc.getString('ai_powered_2_week_diet')),
+                      const Text('AI destekli 2 haftalık ortak diyet planı'),
                       const SizedBox(height: 4),
                       Text(
-                        loc.getString('personalized_plan_for_both'),
+                        'İkinizin hemogram değerlerine göre kişiselleştirilmiş plan',
                         style: TextStyle(fontSize: 12, color: isDark ? Colors.grey[400] : Colors.grey[600]),
                       ),
                     ],
@@ -732,7 +379,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
                 ),
                 TextButton(
                   onPressed: () => Navigator.pushNamed(context, '/premium'),
-                  child: Text(loc.getString('upgrade')),
+                  child: const Text('Upgrade'),
                 ),
               ],
             ),
@@ -767,12 +414,12 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            loc.getString('ai_shared_diet'),
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          const Text(
+                            'AI Destekli Ortak Diyet',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                           Text(
-                            loc.getString('2_week_personalized_plan'),
+                            '2 haftalık kişiselleştirilmiş plan',
                             style: TextStyle(fontSize: 12, color: isDark ? Colors.grey[400] : Colors.grey[600]),
                           ),
                         ],
@@ -784,7 +431,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
                 ElevatedButton.icon(
                   onPressed: () => _createSharedDietFlow(service, loc),
                   icon: const Icon(Icons.auto_awesome),
-                  label: Text(loc.getString('create_new_plan_ai')),
+                  label: const Text('AI ile Yeni Plan Oluştur'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFE53E3E),
                     foregroundColor: Colors.white,
@@ -808,11 +455,11 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
                   children: [
                     const Icon(Icons.restaurant_menu),
                     const SizedBox(width: 12),
-                    Expanded(child: Text('${d.name} • ${d.month} • ${loc.getString('points_label')}: ${d.points}')),
+                    Expanded(child: Text('${d.name} • ${d.month} • Points: ${d.points}')),
                     IconButton(
                       icon: const Icon(Icons.add_task),
                       onPressed: () => service.addDietPoints(d.id, 5),
-                      tooltip: loc.getString('today_plan_applied'),
+                      tooltip: 'Bugünün planı uygulandı (+5)',
                     )
                   ],
                 ),
@@ -828,7 +475,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
       final userId = prefs.getCurrentUserId();
       if (userId == null) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(loc.getString('session_required'))));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Oturum gerekli')));
         return;
       }
 
@@ -837,7 +484,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
       if (!mounted) return;
       if (family.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(loc.getString('no_family_members'))),
+          SnackBar(content: Text(loc.getString('no_family_members') == 'no_family_members' ? 'Aile üyesi yok' : loc.getString('no_family_members'))),
         );
         return;
       }
@@ -846,7 +493,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
       final selected = await showDialog<Map<String, dynamic>>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: Text(loc.getString('select_partner'), style: const TextStyle(fontWeight: FontWeight.bold)),
+          title: const Text('Ortak Seç', style: TextStyle(fontWeight: FontWeight.bold)),
           content: SizedBox(
             width: double.maxFinite,
             child: ListView.builder(
@@ -856,8 +503,8 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
                 final member = family[index];
                 return ListTile(
                   leading: const Icon(Icons.person),
-                  title: Text(member['name'] ?? loc.getStringWithParams('member_label', {'id': member['id'].toString()})),
-                  subtitle: Text('${loc.getString('age_label')}: ${member['age'] ?? 'N/A'}'),
+                  title: Text(member['name'] ?? 'Member ${member['id']}'),
+                  subtitle: Text('Yaş: ${member['age'] ?? 'N/A'}'),
                   onTap: () => Navigator.pop(ctx, member),
                 );
               },
@@ -868,7 +515,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
       if (selected == null) return;
 
       // Plan adı al
-      final name = await _promptText(loc.getString('plan_name'), loc);
+      final name = await _promptText('Plan Adı');
       if (name == null || name.trim().isEmpty) return;
 
       // AI ile 2 haftalık diyet oluştur
@@ -929,8 +576,8 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
         
         // Başarı mesajı ve plan detaylarını göster
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(loc.getString('ai_diet_created_success')),
+          const SnackBar(
+            content: Text('✅ AI destekli 2 haftalık ortak diyet planı oluşturuldu!'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 3),
           ),
@@ -938,28 +585,28 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
 
         // Plan detaylarını göster
         if (!mounted) return;
-        _showDietPlanDetails(dietWeeks, name.trim(), selected['name'] ?? loc.getString('partner_default'), loc);
+        _showDietPlanDetails(dietWeeks, name.trim(), selected['name'] ?? 'Partner');
       } catch (e) {
         if (!mounted) return;
         Navigator.pop(context); // Loading dialog'u kapat
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(loc.getStringWithParams('ai_diet_creation_error', {'error': e.toString()})),
+            content: Text('AI diyet oluşturma hatası: $e'),
             backgroundColor: Colors.red,
           ),
         );
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(loc.getStringWithParams('error_with_details', {'details': e.toString()}))));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Hata: $e')));
     }
   }
 
-  void _showDietPlanDetails(List<SharedDietWeek> weeks, String planName, String partnerName, LocalizationService loc) {
+  void _showDietPlanDetails(List<SharedDietWeek> weeks, String planName, String partnerName) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(loc.getStringWithParams('2_week_plan', {'planName': planName})),
+        title: Text('$planName - 2 Haftalık Plan'),
         content: SizedBox(
           width: double.maxFinite,
           child: SingleChildScrollView(
@@ -967,18 +614,18 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('${loc.getString('partner_label')} $partnerName', style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text('Ortak: $partnerName', style: const TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
                 ...weeks.map((week) => Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      loc.getStringWithParams('week_label', {'number': week.weekNumber.toString()}),
+                      'Hafta ${week.weekNumber}',
                       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
                     ...week.dailyPlans.entries.map((entry) {
-                      final dayNames = [loc.getString('monday'), loc.getString('tuesday'), loc.getString('wednesday'), loc.getString('thursday'), loc.getString('friday'), loc.getString('saturday'), loc.getString('sunday')];
+                      final dayNames = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Column(
@@ -989,10 +636,10 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
                               style: const TextStyle(fontWeight: FontWeight.w600),
                             ),
                             const SizedBox(height: 4),
-                            Text('${loc.getString('breakfast_label')} ${entry.value.breakfast}'),
-                            Text('${loc.getString('lunch_label')} ${entry.value.lunch}'),
-                            Text('${loc.getString('dinner_label')} ${entry.value.dinner}'),
-                            Text('${loc.getString('snack_label')} ${entry.value.snack}'),
+                            Text('Kahvaltı: ${entry.value.breakfast}'),
+                            Text('Öğle: ${entry.value.lunch}'),
+                            Text('Akşam: ${entry.value.dinner}'),
+                            Text('Ara öğün: ${entry.value.snack}'),
                           ],
                         ),
                       );
@@ -1007,14 +654,14 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(loc.getString('close')),
+            child: const Text('Kapat'),
           ),
         ],
       ),
     );
   }
 
-  Future<String?> _promptText(String title, LocalizationService loc) async {
+  Future<String?> _promptText(String title) async {
     final controller = TextEditingController();
     return showDialog<String>(
       context: context,
@@ -1022,8 +669,8 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
         title: Text(title),
         content: TextField(controller: controller, decoration: const InputDecoration(hintText: '...')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(loc.getString('cancel'))),
-          TextButton(onPressed: () => Navigator.pop(ctx, controller.text), child: Text(loc.getString('save'))),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('İptal')),
+          TextButton(onPressed: () => Navigator.pop(ctx, controller.text), child: const Text('Kaydet')),
         ],
       ),
     );
@@ -1043,15 +690,15 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
           children: [
             Row(
               children: [
-                Text(
-                  loc.getString('friend_competition_title'),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                const Text(
+                  'Arkadaşlarla Rekabet',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.add_circle_outline),
                   onPressed: () => _addFriendFlow(socialService, currentUserId),
-                  tooltip: loc.getString('add_friend'),
+                  tooltip: 'Arkadaş Ekle',
                 ),
               ],
             ),
@@ -1069,14 +716,14 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
                     const Icon(Icons.people_outline, size: 48, color: Colors.grey),
                     const SizedBox(height: 8),
                     Text(
-                      loc.getString('no_friends_yet'),
+                      'Henüz arkadaş eklenmedi',
                       style: TextStyle(color: isDark ? Colors.grey : Colors.black54),
                     ),
                     const SizedBox(height: 8),
                     TextButton.icon(
                       onPressed: () => _addFriendFlow(socialService, currentUserId),
                       icon: const Icon(Icons.person_add),
-                      label: Text(loc.getString('add_friend')),
+                      label: const Text('Arkadaş Ekle'),
                     ),
                   ],
                 ),
@@ -1092,7 +739,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
             if (socialService.pendingFriends.isNotEmpty) ...[
               const SizedBox(height: 16),
               Text(
-                loc.getString('pending_requests'),
+                'Bekleyen İstekler',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -1100,7 +747,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
                 ),
               ),
               const SizedBox(height: 8),
-              ...socialService.pendingFriends.map((friend) => _buildPendingFriendCard(friend, socialService, isDark, loc)),
+              ...socialService.pendingFriends.map((friend) => _buildPendingFriendCard(friend, socialService, isDark)),
             ],
           ],
         );
@@ -1162,7 +809,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
                     ),
                     if (competition != null)
                       Text(
-                        competition.iAmWinning ? loc.getString('you_are_winning') : loc.getString('opponent_leading'),
+                        competition.iAmWinning ? '🏆 Sen öndesin!' : '😊 Rakip önde',
                         style: TextStyle(
                           fontSize: 12,
                           color: competition.iAmWinning ? Colors.green : Colors.orange,
@@ -1192,16 +839,16 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
           ),
           if (competition != null) ...[
             const SizedBox(height: 16),
-            _buildComparisonRow('👣 ${loc.getString('steps_label_short')}', competition.mySteps, competition.friendSteps, isDark, loc),
+            _buildComparisonRow('👣 Adım', competition.mySteps, competition.friendSteps, isDark),
             const SizedBox(height: 8),
-            _buildComparisonRow('💧 ${loc.getString('water_ml')}', competition.myWater, competition.friendWater, isDark, loc),
+            _buildComparisonRow('💧 Su (ml)', competition.myWater, competition.friendWater, isDark),
             const SizedBox(height: 8),
-            _buildComparisonRow('😴 ${loc.getString('sleep_minutes')}', competition.mySleep, competition.friendSleep, isDark, loc),
+            _buildComparisonRow('😴 Uyku (dk)', competition.mySleep, competition.friendSleep, isDark),
           ] else
             Padding(
               padding: const EdgeInsets.only(top: 12),
               child: Text(
-                loc.getString('no_data_shared_today'),
+                'Bugün henüz veri paylaşılmadı',
                 style: TextStyle(
                   fontSize: 12,
                   color: isDark ? Colors.grey : Colors.black54,
@@ -1216,7 +863,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
               TextButton.icon(
                 onPressed: () => _viewFriendDetails(friend, service, currentUserId),
                 icon: const Icon(Icons.visibility, size: 16),
-                label: Text(loc.getString('details')),
+                label: const Text('Detaylar'),
               ),
             ],
           ),
@@ -1225,7 +872,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
     );
   }
 
-  Widget _buildComparisonRow(String label, int myValue, int friendValue, bool isDark, LocalizationService loc) {
+  Widget _buildComparisonRow(String label, int myValue, int friendValue, bool isDark) {
     final iAmWinning = myValue > friendValue;
     return Row(
       children: [
@@ -1255,7 +902,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
     );
   }
 
-  Widget _buildPendingFriendCard(FriendConnection friend, SocialChallengeService service, bool isDark, LocalizationService loc) {
+  Widget _buildPendingFriendCard(FriendConnection friend, SocialChallengeService service, bool isDark) {
     final avatarIndex = friend.friendAvatar != null 
         ? int.tryParse(friend.friendAvatar!) ?? service.generateAvatarVariantIndex(seed: friend.friendName)
         : service.generateAvatarVariantIndex(seed: friend.friendName);
@@ -1282,7 +929,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
               children: [
                 Text(friend.friendName, style: const TextStyle(fontWeight: FontWeight.w600)),
                 Text(
-                  friend.isApprovedByMe ? loc.getString('waiting_for_approval') : loc.getString('request_approved'),
+                  friend.isApprovedByMe ? 'Onay bekliyor...' : 'İsteğin onaylandı!',
                   style: TextStyle(fontSize: 12, color: isDark ? Colors.grey : Colors.black54),
                 ),
               ],
@@ -1292,7 +939,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
             IconButton(
               icon: const Icon(Icons.check_circle, color: Colors.green),
               onPressed: () => service.approveFriendRequest(friend.id),
-              tooltip: loc.getString('confirm'),
+              tooltip: 'Onayla',
             ),
         ],
       ),
@@ -1300,11 +947,10 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
   }
 
   Future<void> _addFriendFlow(SocialChallengeService service, int? currentUserId) async {
-    final loc = Provider.of<LocalizationService>(context, listen: false);
     if (currentUserId == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(loc.getString('session_required'))),
+        const SnackBar(content: Text('Oturum gerekli')),
       );
       return;
     }
@@ -1317,7 +963,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
       final selected = await showDialog<Map<String, dynamic>>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: Text(loc.getString('select_friend')),
+          title: const Text('Arkadaş Seç'),
           content: SizedBox(
             width: double.maxFinite,
             child: ListView.builder(
@@ -1330,7 +976,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
                     seed: member['name']?.toString() ?? '',
                     size: 40,
                   ),
-                  title: Text(member['name']?.toString() ?? loc.getStringWithParams('member_label', {'id': member['id'].toString()})),
+                  title: Text(member['name']?.toString() ?? 'Üye ${member['id']}'),
                   onTap: () => Navigator.pop(ctx, member),
                 );
               },
@@ -1342,7 +988,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
       if (selected == null) return;
 
       final friendId = selected['id'] as int?;
-      final friendName = selected['name']?.toString() ?? loc.getString('friend_default');
+      final friendName = selected['name']?.toString() ?? 'Arkadaş';
       
       if (friendId == null) return;
 
@@ -1355,12 +1001,12 @@ class _ChallengesScreenState extends State<ChallengesScreen> with TickerProvider
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(loc.getStringWithParams('request_sent', {'name': friendName}))),
+        SnackBar(content: Text('$friendName\'a istek gönderildi')),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(loc.getStringWithParams('error_with_details', {'details': e.toString()}))),
+        SnackBar(content: Text('Hata: $e')),
       );
     }
   }
@@ -1394,7 +1040,6 @@ class _FriendDetailsSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final activities = service.getFriendActivity(friend.friendUserId, days: 7);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final loc = Provider.of<LocalizationService>(context, listen: false);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1421,7 +1066,7 @@ class _FriendDetailsSheet extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(friend.friendName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    Text(loc.getString('days_activity'), style: TextStyle(fontSize: 12, color: isDark ? Colors.grey : Colors.black54)),
+                    Text('7 günlük aktivite', style: TextStyle(fontSize: 12, color: isDark ? Colors.grey : Colors.black54)),
                   ],
                 ),
               ),
@@ -1429,14 +1074,9 @@ class _FriendDetailsSheet extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           if (activities.isEmpty)
-            Builder(
-              builder: (context) {
-                final loc = Provider.of<LocalizationService>(context, listen: false);
-                return Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(loc.getString('no_activity_data')),
-                );
-              },
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('Henüz aktivite verisi yok'),
             )
           else
             ...activities.map((activity) => Padding(

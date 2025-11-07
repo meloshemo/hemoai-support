@@ -1,0 +1,33 @@
+{
+  "NSPrivacyTracking": false,
+  "NSPrivacyTrackingDomains": [],
+  "NSPrivacyCollectedDataTypes": [
+    {
+      "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeContacts",
+      "NSPrivacyCollectedDataTypeLinked": false,
+      "NSPrivacyCollectedDataTypeTracking": false,
+      "NSPrivacyCollectedDataTypePurposes": [
+        "NSPrivacyCollectedDataPurposeAppFunctionality"
+      ],
+      "NSPrivacyCollectedDataTypeAdditionalDescription": "Access contacts to invite family members or share insights. Data stays on device unless the user explicitly shares."
+    },
+    {
+      "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeUserContent",
+      "NSPrivacyCollectedDataTypeLinked": false,
+      "NSPrivacyCollectedDataTypeTracking": false,
+      "NSPrivacyCollectedDataTypePurposes": [
+        "NSPrivacyCollectedDataPurposeAppFunctionality"
+      ],
+      "NSPrivacyCollectedDataTypeAdditionalDescription": "Use photo library or camera for OCR of lab reports or avatar images. Processed on device unless the user opts to back up/share."
+    },
+    {
+      "NSPrivacyCollectedDataType": "NSPrivacyCollectedDataTypeIdentifiers",
+      "NSPrivacyCollectedDataTypeLinked": false,
+      "NSPrivacyCollectedDataTypeTracking": false,
+      "NSPrivacyCollectedDataTypePurposes": [
+        "NSPrivacyCollectedDataPurposeAppFunctionality"
+      ],
+      "NSPrivacyCollectedDataTypeAdditionalDescription": "Store local notification tokens/identifiers for scheduling reminders. Not used for tracking or advertising."
+    }
+  ]
+}

@@ -10,7 +10,7 @@ class DatabaseHelper {
   static WebDatabaseHelper? _webHelper;
 
   DatabaseHelper._internal();
-  
+
   static DatabaseHelper get instance {
     _instance ??= DatabaseHelper._internal();
     return _instance!;
@@ -38,7 +38,7 @@ class DatabaseHelper {
   }
 
   Future<void> _onCreate(Database db, int version) async {
-  // Kullanicilar tablosu
+    // Kullanicilar tablosu
     await db.execute('''
       CREATE TABLE users(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -56,7 +56,7 @@ class DatabaseHelper {
       )
     ''');
 
-  // Hemogram testleri tablosu
+    // Hemogram testleri tablosu
     await db.execute('''
       CREATE TABLE hemogram_tests(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -98,7 +98,7 @@ class DatabaseHelper {
       )
     ''');
 
-  // Aile uyeleri tablosu
+    // Aile uyeleri tablosu
     await db.execute('''
       CREATE TABLE family_members(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -113,7 +113,7 @@ class DatabaseHelper {
       )
     ''');
 
-  // Aile uyeleri hemogram testleri
+    // Aile uyeleri hemogram testleri
     await db.execute('''
       CREATE TABLE family_hemogram_tests(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -141,7 +141,7 @@ class DatabaseHelper {
       )
     ''');
 
-  // Ilaclar tablosu
+    // Ilaclar tablosu
     await db.execute('''
       CREATE TABLE medications(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -160,7 +160,7 @@ class DatabaseHelper {
       )
     ''');
 
-  // Ilac alim kayitlari
+    // Ilac alim kayitlari
     await db.execute('''
       CREATE TABLE medication_logs(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -174,7 +174,7 @@ class DatabaseHelper {
       )
     ''');
 
-  // Bildirimler tablosu
+    // Bildirimler tablosu
     await db.execute('''
       CREATE TABLE notifications(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -193,7 +193,7 @@ class DatabaseHelper {
       )
     ''');
 
-  // Aile davetleri tablosu (native)
+    // Aile davetleri tablosu (native)
     await db.execute('''
       CREATE TABLE family_invitations(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -209,7 +209,7 @@ class DatabaseHelper {
       )
     ''');
 
-  // Hatirlaticilar tablosu
+    // Hatirlaticilar tablosu
     await db.execute('''
       CREATE TABLE reminders(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -225,7 +225,7 @@ class DatabaseHelper {
       )
     ''');
 
-  // Su takibi
+    // Su takibi
     await db.execute('''
       CREATE TABLE water_tracking(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -448,14 +448,18 @@ class DatabaseHelper {
   }
 
   // ===== Reminder streaks & logs =====
-  Future<Map<String, dynamic>> getReminderStreak(int reminderId, {int? userId}) async {
+  Future<Map<String, dynamic>> getReminderStreak(int reminderId,
+      {int? userId}) async {
     final db = await database;
     if (kIsWeb) {
-      return await (db as WebDatabaseHelper).getReminderStreak(reminderId, userId: userId);
+      return await (db as WebDatabaseHelper)
+          .getReminderStreak(reminderId, userId: userId);
     } else {
       final rows = await (db as Database).query(
         'reminder_streaks',
-        where: userId != null ? 'reminder_id = ? AND user_id = ?' : 'reminder_id = ?',
+        where: userId != null
+            ? 'reminder_id = ? AND user_id = ?'
+            : 'reminder_id = ?',
         whereArgs: userId != null ? [reminderId, userId] : [reminderId],
         limit: 1,
       );
@@ -488,9 +492,12 @@ class DatabaseHelper {
       );
     } else {
       final sqlDb = db as Database;
-      final where = userId != null ? 'reminder_id = ? AND user_id = ?' : 'reminder_id = ?';
+      final where = userId != null
+          ? 'reminder_id = ? AND user_id = ?'
+          : 'reminder_id = ?';
       final args = userId != null ? [reminderId, userId] : [reminderId];
-      final existing = await sqlDb.query('reminder_streaks', where: where, whereArgs: args, limit: 1);
+      final existing = await sqlDb.query('reminder_streaks',
+          where: where, whereArgs: args, limit: 1);
       final row = {
         'reminder_id': reminderId,
         'user_id': userId,
@@ -500,7 +507,8 @@ class DatabaseHelper {
         'updated_at': DateTime.now().toIso8601String(),
       };
       if (existing.isNotEmpty) {
-        return await sqlDb.update('reminder_streaks', row, where: where, whereArgs: args);
+        return await sqlDb.update('reminder_streaks', row,
+            where: where, whereArgs: args);
       } else {
         return await sqlDb.insert('reminder_streaks', row);
       }
@@ -539,7 +547,8 @@ class DatabaseHelper {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getReminderStreaksForUser(int userId) async {
+  Future<List<Map<String, dynamic>>> getReminderStreaksForUser(
+      int userId) async {
     final db = await database;
     if (kIsWeb) {
       // Not implemented for web in this helper; return empty list
@@ -554,9 +563,13 @@ class DatabaseHelper {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getRecentReminderLogs(int userId, {int days = 7, int limit = 50}) async {
+  Future<List<Map<String, dynamic>>> getRecentReminderLogs(int userId,
+      {int days = 7, int limit = 50}) async {
     final db = await database;
-    final since = DateTime.now().subtract(Duration(days: days)).toIso8601String().split('T')[0];
+    final since = DateTime.now()
+        .subtract(Duration(days: days))
+        .toIso8601String()
+        .split('T')[0];
     if (kIsWeb) {
       // Not implemented for web in this helper; return empty list
       return [];
@@ -571,9 +584,13 @@ class DatabaseHelper {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getMedicationLogsLastDays(int userId, {int days = 7}) async {
+  Future<List<Map<String, dynamic>>> getMedicationLogsLastDays(int userId,
+      {int days = 7}) async {
     final db = await database;
-    final since = DateTime.now().subtract(Duration(days: days)).toIso8601String().split('T')[0];
+    final since = DateTime.now()
+        .subtract(Duration(days: days))
+        .toIso8601String()
+        .split('T')[0];
     if (kIsWeb) {
       // Not implemented for web in this helper; return empty list
       return [];
@@ -648,86 +665,88 @@ class DatabaseHelper {
   Future<int> insertHemogramTest(Map<String, dynamic> test) async {
     final db = await database;
     final userId = test['user_id'] as int?;
-    
+
     final result = kIsWeb
         ? await (db as WebDatabaseHelper).insertHemogramTest(test)
         : await (() async {
-      // Sanitize map to only include columns that exist in hemogram_tests
-      final allowedColumns = <String>{
-        'user_id',
-        'test_date',
-        'hemoglobin',
-        'iron',
-        'leukocyte',
-        'erythrocyte',
-        'hematocrit',
-        'platelet',
-        'mcv',
-        'mch',
-        'mchc',
-        'rdw',
-        'neutrophil',
-        'lymphocyte',
-        'monocyte',
-        'eosinophil',
-        'basophil',
-        'glucose',
-        'alt',
-        'ast',
-        'crp',
-        'tsh',
-        'vitamin_d3',
-        'vitamin_b12',
-        'calcium',
-        'sodium',
-        'potassium',
-        'ggt',
-        'bilirubin',
-        'creatinine',
-        'urea',
-        'risk_level',
-        'doctor_notes',
-        'created_at',
-      };
+            // Sanitize map to only include columns that exist in hemogram_tests
+            final allowedColumns = <String>{
+              'user_id',
+              'test_date',
+              'hemoglobin',
+              'iron',
+              'leukocyte',
+              'erythrocyte',
+              'hematocrit',
+              'platelet',
+              'mcv',
+              'mch',
+              'mchc',
+              'rdw',
+              'neutrophil',
+              'lymphocyte',
+              'monocyte',
+              'eosinophil',
+              'basophil',
+              'glucose',
+              'alt',
+              'ast',
+              'crp',
+              'tsh',
+              'vitamin_d3',
+              'vitamin_b12',
+              'calcium',
+              'sodium',
+              'potassium',
+              'ggt',
+              'bilirubin',
+              'creatinine',
+              'urea',
+              'risk_level',
+              'doctor_notes',
+              'created_at',
+            };
 
-      // Map extended/canonical keys to existing DB columns when possible
-      Map<String, dynamic> sanitized = {};
-      // Direct allowed keys
-      for (final entry in test.entries) {
-        if (allowedColumns.contains(entry.key)) {
-          sanitized[entry.key] = entry.value;
-        }
-      }
-      // Try to map canonical keys from extended model
-      void tryAssign(String canonicalKey, String dbColumn) {
-        if (!sanitized.containsKey(dbColumn) && test.containsKey(canonicalKey)) {
-          sanitized[dbColumn] = test[canonicalKey];
-        }
-      }
-      tryAssign('white_blood_cells', 'leukocyte');
-      tryAssign('red_blood_cells', 'erythrocyte');
-      tryAssign('platelets', 'platelet');
-      tryAssign('neutrophils', 'neutrophil');
-      tryAssign('lymphocytes', 'lymphocyte');
-      tryAssign('monocytes', 'monocyte');
-      tryAssign('eosinophils', 'eosinophil');
-      tryAssign('basophils', 'basophil');
-      tryAssign('vitamin_d', 'vitamin_d3');
-      tryAssign('vitamin_d3', 'vitamin_d3');
-      tryAssign('vitamin_b12', 'vitamin_b12');
+            // Map extended/canonical keys to existing DB columns when possible
+            Map<String, dynamic> sanitized = {};
+            // Direct allowed keys
+            for (final entry in test.entries) {
+              if (allowedColumns.contains(entry.key)) {
+                sanitized[entry.key] = entry.value;
+              }
+            }
+            // Try to map canonical keys from extended model
+            void tryAssign(String canonicalKey, String dbColumn) {
+              if (!sanitized.containsKey(dbColumn) &&
+                  test.containsKey(canonicalKey)) {
+                sanitized[dbColumn] = test[canonicalKey];
+              }
+            }
 
-      // Ensure mandatory metadata
-      sanitized['created_at'] = DateTime.now().toIso8601String();
+            tryAssign('white_blood_cells', 'leukocyte');
+            tryAssign('red_blood_cells', 'erythrocyte');
+            tryAssign('platelets', 'platelet');
+            tryAssign('neutrophils', 'neutrophil');
+            tryAssign('lymphocytes', 'lymphocyte');
+            tryAssign('monocytes', 'monocyte');
+            tryAssign('eosinophils', 'eosinophil');
+            tryAssign('basophils', 'basophil');
+            tryAssign('vitamin_d', 'vitamin_d3');
+            tryAssign('vitamin_d3', 'vitamin_d3');
+            tryAssign('vitamin_b12', 'vitamin_b12');
 
-      return await (db as Database).insert('hemogram_tests', sanitized);
-    })();
-    
+            // Ensure mandatory metadata
+            sanitized['created_at'] = DateTime.now().toIso8601String();
+
+            return await (db as Database).insert('hemogram_tests', sanitized);
+          })();
+
     // Invalidate cache after insert
     if (userId != null) {
       final cache = HemoAICache();
       cache.remove('hemogram_$userId');
     }
-    
+
     return result;
   }
 
@@ -738,7 +757,7 @@ class DatabaseHelper {
     if (cached != null) {
       return cached;
     }
-    
+
     final db = await database;
     final results = kIsWeb
         ? await (db as WebDatabaseHelper).getHemogramTests(userId)
@@ -748,7 +767,7 @@ class DatabaseHelper {
             whereArgs: [userId],
             orderBy: 'test_date DESC',
           );
-    
+
     // Cache results
     cache.putHemogramHistory(userId, results);
     return results;
@@ -788,7 +807,7 @@ class DatabaseHelper {
     if (cached != null) {
       return cached;
     }
-    
+
     final results = kIsWeb
         ? await _webHelper!.getFamilyMembers(userId)
         : await (await database).query(
@@ -797,7 +816,7 @@ class DatabaseHelper {
             whereArgs: [userId],
             orderBy: 'name ASC',
           );
-    
+
     // Cache results
     cache.putFamilyMembers(userId, results);
     return results;
@@ -837,7 +856,8 @@ class DatabaseHelper {
     return await db.insert('family_hemogram_tests', test);
   }
 
-  Future<List<Map<String, dynamic>>> getFamilyHemogramTests(int familyMemberId) async {
+  Future<List<Map<String, dynamic>>> getFamilyHemogramTests(
+      int familyMemberId) async {
     final db = await database;
     return await db.query(
       'family_hemogram_tests',
@@ -874,6 +894,61 @@ class DatabaseHelper {
     );
   }
 
+  Future<void> updateMedicationTaken(
+      int medicationId, int userId, bool taken) async {
+    if (kIsWeb) {
+      await _webHelper!.updateMedicationTaken(medicationId, userId, taken);
+      return;
+    }
+
+    final db = await database;
+    final now = DateTime.now();
+    final date = now.toIso8601String().split('T').first;
+    final time = now.toIso8601String().split('T').elementAt(1).split('.').first;
+
+    final existingLogs = await db.query(
+      'medication_logs',
+      where: 'medication_id = ? AND taken_date = ?',
+      whereArgs: [medicationId, date],
+      limit: 1,
+    );
+
+    final logData = <String, dynamic>{
+      'medication_id': medicationId,
+      'taken_date': date,
+      'taken_time': time,
+      'was_taken': taken ? 1 : 0,
+      'created_at': now.toIso8601String(),
+    };
+
+    if (existingLogs.isEmpty) {
+      await db.insert('medication_logs', logData);
+    } else {
+      await db.update(
+        'medication_logs',
+        logData,
+        where: 'id = ?',
+        whereArgs: [existingLogs.first['id']],
+      );
+    }
+
+    // Update medication progress to reflect taken days
+    final completedDays = Sqflite.firstIntValue(await db.rawQuery(
+          'SELECT COUNT(*) FROM medication_logs WHERE medication_id = ? AND was_taken = 1',
+          [medicationId],
+        )) ??
+        0;
+
+    await db.update(
+      'medications',
+      {
+        'completed_days': completedDays,
+      },
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [medicationId, userId],
+    );
+  }
+
   // Ilac alim kaydi
   Future<int> insertMedicationLog(Map<String, dynamic> log) async {
     final db = await database;
@@ -884,47 +959,14 @@ class DatabaseHelper {
   Future<bool> wasMedicationTakenToday(int medicationId) async {
     final db = await database;
     String today = DateTime.now().toIso8601String().substring(0, 10);
-    
+
     final List<Map<String, dynamic>> logs = await db.query(
       'medication_logs',
       where: 'medication_id = ? AND taken_date = ? AND was_taken = 1',
       whereArgs: [medicationId, today],
     );
-    
-    return logs.isNotEmpty;
-  }
 
-  Future<void> updateMedicationTaken(int medicationId, int userId, bool taken) async {
-    final db = await database;
-    String today = DateTime.now().toIso8601String().substring(0, 10);
-    
-    // Check if log already exists for today
-    final existingLogs = await db.query(
-      'medication_logs',
-      where: 'medication_id = ? AND user_id = ? AND taken_date = ?',
-      whereArgs: [medicationId, userId, today],
-    );
-    
-    if (existingLogs.isNotEmpty) {
-      // Update existing log
-      await db.update(
-        'medication_logs',
-        {'was_taken': taken ? 1 : 0, 'updated_at': DateTime.now().toIso8601String()},
-        where: 'medication_id = ? AND user_id = ? AND taken_date = ?',
-        whereArgs: [medicationId, userId, today],
-      );
-    } else {
-      // Create new log entry
-      await db.insert('medication_logs', {
-        'medication_id': medicationId,
-        'user_id': userId,
-        'taken_date': today,
-        'was_taken': taken ? 1 : 0,
-        'taken_time': DateTime.now().toIso8601String(),
-        'created_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
-      });
-    }
+    return logs.isNotEmpty;
   }
 
   // Bildirim islemleri
@@ -977,22 +1019,22 @@ class DatabaseHelper {
   Future<Map<String, dynamic>?> getTodayWaterTracking(int userId) async {
     final db = await database;
     String today = DateTime.now().toIso8601String().substring(0, 10);
-    
+
     final List<Map<String, dynamic>> tracking = await db.query(
       'water_tracking',
       where: 'user_id = ? AND date = ?',
       whereArgs: [userId, today],
     );
-    
+
     return tracking.isNotEmpty ? tracking.first : null;
   }
 
   Future<int> updateWaterTracking(int userId, int waterCount) async {
     final db = await database;
     String today = DateTime.now().toIso8601String().substring(0, 10);
-    
+
     Map<String, dynamic>? existing = await getTodayWaterTracking(userId);
-    
+
     if (existing != null) {
       return await db.update(
         'water_tracking',
@@ -1013,31 +1055,31 @@ class DatabaseHelper {
   // Genel istatistikler
   Future<Map<String, dynamic>> getUserStats(int userId) async {
     final db = await database;
-    
-  // Toplam test sayisi
+
+    // Toplam test sayisi
     final testCount = await db.rawQuery(
       'SELECT COUNT(*) as count FROM hemogram_tests WHERE user_id = ?',
       [userId],
     );
-    
-  // Aile uyesi sayisi
+
+    // Aile uyesi sayisi
     final familyCount = await db.rawQuery(
       'SELECT COUNT(*) as count FROM family_members WHERE user_id = ?',
       [userId],
     );
-    
-  // Aktif ilac sayisi
+
+    // Aktif ilac sayisi
     final medicationCount = await db.rawQuery(
       'SELECT COUNT(*) as count FROM medications WHERE user_id = ? AND is_active = 1',
       [userId],
     );
-    
-  // Okunmamis bildirim sayisi
+
+    // Okunmamis bildirim sayisi
     final notificationCount = await db.rawQuery(
       'SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0',
       [userId],
     );
-    
+
     return {
       'total_tests': testCount.first['count'] ?? 0,
       'family_members': familyCount.first['count'] ?? 0,
@@ -1122,9 +1164,11 @@ class DatabaseHelper {
   }
 
   // Ilac yonetimi
-  Future<int> addMedication(int userId, String name, String dosage, String frequency, String time) async {
+  Future<int> addMedication(int userId, String name, String dosage,
+      String frequency, String time) async {
     if (kIsWeb) {
-      return await _webHelper!.addMedication(userId, name, dosage, frequency, time);
+      return await _webHelper!
+          .addMedication(userId, name, dosage, frequency, time);
     } else {
       final db = await database;
       return await db.insert('medications', {
@@ -1169,14 +1213,14 @@ class DatabaseHelper {
     } else {
       final db = await database;
       final today = DateTime.now().toIso8601String().split('T')[0];
-      
+
       // Check if there's already a record for today
       final existing = await db.query(
         'water_tracking',
         where: 'user_id = ? AND date = ?',
         whereArgs: [userId, today],
       );
-      
+
       if (existing.isNotEmpty) {
         // Update existing record
         return await db.update(
@@ -1209,7 +1253,8 @@ class DatabaseHelper {
       final now = DateTime.now();
       final List<int> values = [];
       for (int i = 6; i >= 0; i--) {
-        final day = now.subtract(Duration(days: i)).toIso8601String().split('T')[0];
+        final day =
+            now.subtract(Duration(days: i)).toIso8601String().split('T')[0];
         final results = await db.query(
           'water_tracking',
           columns: ['water_count'],
@@ -1226,10 +1271,12 @@ class DatabaseHelper {
   }
 
   // Diet tracking
-  Future<Map<String, dynamic>?> getDietTrackingForDate(int userId, String date) async {
+  Future<Map<String, dynamic>?> getDietTrackingForDate(
+      int userId, String date) async {
     final db = await database;
     if (kIsWeb) {
-      return await (db as WebDatabaseHelper).getDietTrackingForDate(userId, date);
+      return await (db as WebDatabaseHelper)
+          .getDietTrackingForDate(userId, date);
     } else {
       final res = await (db as Database).query(
         'diet_tracking',
@@ -1293,14 +1340,17 @@ class DatabaseHelper {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getDietTrackingForLast7Days(int userId) async {
+  Future<List<Map<String, dynamic>>> getDietTrackingForLast7Days(
+      int userId) async {
     final db = await database;
     final now = DateTime.now();
     final List<Map<String, dynamic>> items = [];
     for (int i = 6; i >= 0; i--) {
-      final day = now.subtract(Duration(days: i)).toIso8601String().split('T')[0];
+      final day =
+          now.subtract(Duration(days: i)).toIso8601String().split('T')[0];
       if (kIsWeb) {
-        final data = await (db as WebDatabaseHelper).getDietTrackingForDate(userId, day);
+        final data =
+            await (db as WebDatabaseHelper).getDietTrackingForDate(userId, day);
         items.add({
           'date': day,
           'breakfast': (data?['breakfast'] ?? 0) as int,
@@ -1319,7 +1369,13 @@ class DatabaseHelper {
         if (res.isNotEmpty) {
           items.add(res.first);
         } else {
-          items.add({'date': day, 'breakfast': 0, 'lunch': 0, 'dinner': 0, 'snack': 0});
+          items.add({
+            'date': day,
+            'breakfast': 0,
+            'lunch': 0,
+            'dinner': 0,
+            'snack': 0
+          });
         }
       }
     }
@@ -1327,7 +1383,8 @@ class DatabaseHelper {
   }
 
   // Bildirim yonetimi
-  Future<int> createNotification(int userId, String title, String message, String type) async {
+  Future<int> createNotification(
+      int userId, String title, String message, String type) async {
     if (kIsWeb) {
       return await _webHelper!.createNotification(userId, title, message, type);
     } else {
@@ -1351,7 +1408,7 @@ class DatabaseHelper {
   // Hatirlatici yonetimi
   Future<int> createReminder(Map<String, dynamic> reminderData) async {
     if (kIsWeb) {
-  // Web icin local storage kullan
+      // Web icin local storage kullan
       return DateTime.now().millisecondsSinceEpoch; // Fake ID
     } else {
       final db = await database;
@@ -1361,7 +1418,7 @@ class DatabaseHelper {
 
   Future<List<Map<String, dynamic>>> getAllReminders([int? userId]) async {
     if (kIsWeb) {
-  // Web icin bos liste dondur (simdilik)
+      // Web icin bos liste dondur (simdilik)
       return [];
     } else {
       final db = await database;
@@ -1385,7 +1442,7 @@ class DatabaseHelper {
       final db = await database;
       String whereClause = 'is_active = 1';
       List<dynamic> whereArgs = [];
-      
+
       if (userId != null) {
         whereClause += ' AND user_id = ?';
         whereArgs.add(userId);
@@ -1437,7 +1494,7 @@ class DatabaseHelper {
         where: 'id = ?',
         whereArgs: [id],
       );
-      
+
       if (reminder.isNotEmpty) {
         final isActive = reminder.first['is_active'] as int;
         return await db.update(
@@ -1482,7 +1539,8 @@ class DatabaseHelper {
           orderBy: 'name ASC',
         );
       }
-      return await (db as Database).query('emergency_contacts', orderBy: 'name ASC');
+      return await (db as Database)
+          .query('emergency_contacts', orderBy: 'name ASC');
     }
   }
 
@@ -1518,7 +1576,8 @@ class DatabaseHelper {
       return await _webHelper!.deleteEmergencyContact(id);
     } else {
       final db = await database;
-      return await (db as Database).delete('emergency_contacts', where: 'id = ?', whereArgs: [id]);
+      return await (db as Database)
+          .delete('emergency_contacts', where: 'id = ?', whereArgs: [id]);
     }
   }
 }
@@ -1548,7 +1607,7 @@ class HemogramValues {
   static Map<String, double> mapToDatabase(Map<String, double> userValues) {
     Map<String, String> columnNames = getColumnNames();
     Map<String, double> dbValues = {};
-    
+
     userValues.forEach((key, value) {
       String? columnName = columnNames[key];
       // If not found in legacy display-label mapping, try canonical keys
@@ -1557,7 +1616,7 @@ class HemogramValues {
         dbValues[columnName] = value;
       }
     });
-    
+
     return dbValues;
   }
 
@@ -1602,14 +1661,14 @@ class HemogramValues {
   static Map<String, double> mapFromDatabase(Map<String, dynamic> dbValues) {
     Map<String, String> columnNames = getColumnNames();
     Map<String, double> userValues = {};
-    
+
     columnNames.forEach((userKey, dbKey) {
       dynamic value = dbValues[dbKey];
       if (value != null) {
         userValues[userKey] = (value as num).toDouble();
       }
     });
-    
+
     return userValues;
   }
 }

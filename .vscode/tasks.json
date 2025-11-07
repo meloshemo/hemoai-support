@@ -51,6 +51,30 @@
 			],
 			"isBackground": false,
 			"group": "build"
+		},
+		{
+			"label": "Flutter clean + get + analyze (OS4)",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Set-Location -LiteralPath 'c:\\Users\\omeli\\Desktop\\hemoai'; flutter clean; flutter pub get; flutter analyze"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Flutter clean + get + analyze (OS4)",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Set-Location -LiteralPath 'c:\\Users\\omeli\\Desktop\\hemoai'; flutter clean; flutter pub get; flutter analyze"
+			],
+			"isBackground": false,
+			"group": "build"
 		}
 	]
 }

@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import '../utils/color_compat.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/services.dart';
@@ -26,7 +27,6 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
   int _selectedWeekday = DateTime.now().weekday; // 1=Monday, 7=Sunday
   String _selectedFilter = 'all';
   List<Map<String, dynamic>>? _weeklyProgress;
-  bool _isGridView = false; // Grid/List toggle
   static const Map<String, Map<String, double>> _ref = {
     'hemoglobin': {'min': 12.0, 'max': 17.0},
     'iron': {'min': 60.0, 'max': 170.0},
@@ -393,32 +393,12 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
                   final filtered = curated.where((p) => _selectedFilter == 'all' ? true : p.riskTag == _selectedFilter).toList();
                   // Optionally limit to top N for a concise Today view
                   final limited = filtered.take(8).toList();
-                  
-                  if (_isGridView) {
-                    // Grid view
-                    return [
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 0.85,
-                        ),
-                        itemCount: limited.length,
-                        itemBuilder: (context, index) => _DietCard(program: limited[index]),
-                      ),
-                    ];
-                  } else {
-                    // List view (original)
-                    final widgets = <Widget>[];
-                    for (int i = 0; i < limited.length; i++) {
-                      widgets.add(_DietCard(program: limited[i]));
-                      if (i < limited.length - 1) widgets.add(const SizedBox(height: 12));
-                    }
-                    return widgets;
+                  final widgets = <Widget>[];
+                  for (int i = 0; i < limited.length; i++) {
+                    widgets.add(_DietCard(program: limited[i]));
+                    if (i < limited.length - 1) widgets.add(const SizedBox(height: 12));
                   }
+                  return widgets;
                 })(),
               ],
             );
@@ -428,17 +408,16 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
               children: [
                 _premiumHero(localization, data),
                 const SizedBox(height: 12),
-                // Header with toggle button and view switcher
+                // Header with toggle button
                 Row(
                   children: [
                     Icon(Icons.restaurant_menu, color: cs.primary),
                     const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        localization.getString('diet_recommendations'),
-                        style: TextStyle(fontSize: ResponsiveHelper.getFontSize(context, 18), fontWeight: FontWeight.bold, color: cs.onSurface),
-                      ),
+                    Text(
+                      localization.getString('diet_recommendations'),
+                      style: TextStyle(fontSize: ResponsiveHelper.getFontSize(context, 18), fontWeight: FontWeight.bold, color: cs.onSurface),
                     ),
+                    const Spacer(),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
@@ -453,26 +432,6 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
                           Text(
                             localization.getString('for_you'),
                             style: TextStyle(color: cs.onPrimary, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Grid/List toggle button
-                    Container(
-                      decoration: BoxDecoration(
-                        color: cs.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: cs.outlineVariant),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: Icon(_isGridView ? Icons.view_list : Icons.grid_view, size: 20),
-                            color: cs.primary,
-                            onPressed: () => setState(() => _isGridView = !_isGridView),
-                            tooltip: _isGridView ? localization.getString('list_view') : localization.getString('grid_view'),
                           ),
                         ],
                       ),
@@ -1308,18 +1267,12 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
   }
 
   // Determine a priority tag for a given day based on abnormal values; rotate across tags for variety
-  // Uses date-based seed to ensure different tags each day even with same values
   String _tagForDay(Map<String, double> values, String dayName) {
     final prioritized = _priorityTags(values);
     final pool = <String>[]
       ..addAll(prioritized)
       ..addAll(_fallbackTags().where((t) => !prioritized.contains(t)));
-    
-    // Use date-based seed for variety: combine day name with current date
-    final now = DateTime.now();
-    final dateSeed = '${now.year}-${now.month}-${now.day}-$dayName';
-    final seedHash = _hash(dateSeed);
-    final index = seedHash % pool.length;
+    final index = _dayIndex(dayName) % pool.length;
     return pool[index];
   }
 

@@ -3,7 +3,7 @@
 **Uygulama:** HemoAI - Smart Hemogram Analysis & Health Tracking  
 **Package ID:** `com.meloshemo.hemoai`  
 **Versiyon:** 4.0.0+400  
-**Tarih:** 2025-01-27
+**Tarih:** 2025-01-27  
 
 ---
 

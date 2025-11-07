@@ -30,9 +30,6 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
   bool _consentGranted = true; // Assume granted; ideally read consent flag
   String _selectedMetric = 'HB';
 
-  // Quick access to localization service across methods
-  LocalizationService get loc => Provider.of<LocalizationService>(context, listen: false);
-
   @override
   void initState() {
     super.initState();
@@ -137,32 +134,32 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
         // Smart Alerts (Premium)
         if (_tests.isNotEmpty) _buildSmartAlerts(theme),
         const SizedBox(height: 12),
-        Text(loc.getString('latest_test'), style: theme.textTheme.titleMedium),
+        Text('Latest Test', style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         if (_tests.isEmpty)
-          Text(loc.getString('no_tests_yet'))
+          const Text('No tests yet')
         else
           _testCard(_tests.first),
         const SizedBox(height: 16),
         if (_tests.length >= 1) ...[
           Row(
             children: [
-              Text(loc.getString('trend_label')),
+              const Text('Trend: '),
               const SizedBox(width: 8),
               ChoiceChip(
-                label: Text(loc.getString('hemoglobin')),
+                label: const Text('HB'),
                 selected: _selectedMetric == 'HB',
                 onSelected: (_) => setState(() => _selectedMetric = 'HB'),
               ),
               const SizedBox(width: 6),
               ChoiceChip(
-                label: Text(loc.getString('crp')),
+                label: const Text('CRP'),
                 selected: _selectedMetric == 'CRP',
                 onSelected: (_) => setState(() => _selectedMetric = 'CRP'),
               ),
               const SizedBox(width: 6),
               ChoiceChip(
-                label: Text(loc.getString('glucose')),
+                label: const Text('Glucose'),
                 selected: _selectedMetric == 'Glucose',
                 onSelected: (_) => setState(() => _selectedMetric = 'Glucose'),
               ),
@@ -205,9 +202,9 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
       return Card(
         child: ListTile(
           leading: const Icon(Icons.lock),
-          title: Text(loc.getString('smart_alerts_premium')),
-          subtitle: Text(loc.getString('unlock_personalized_alerts')),
-          trailing: TextButton(onPressed: () => Navigator.pushNamed(context, '/premium'), child: Text(loc.getString('upgrade'))),
+          title: const Text('Smart Alerts (Premium)'),
+          subtitle: const Text('Unlock personalized alerts and next test suggestions'),
+          trailing: TextButton(onPressed: () => Navigator.pushNamed(context, '/premium'), child: const Text('Upgrade')),
         ),
       );
     }
@@ -229,17 +226,17 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
                     final jsonStr = const JsonEncoder.withIndent('  ').convert(bundle);
                     await Clipboard.setData(ClipboardData(text: jsonStr));
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(loc.getString('fhir_json_copied'))));
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('FHIR JSON copied to clipboard')));
                     }
                   },
                   icon: const Icon(Icons.share),
-                  label: Text(loc.getString('export_fhir_json')),
+                  label: const Text('Export FHIR JSON'),
                 )
               ],
             ),
             const SizedBox(height: 8),
             if (result.alerts.isEmpty)
-              Text(loc.getString('all_key_markers_normal'))
+              const Text('All key markers within normal range')
             else
               Wrap(
                 spacing: 8,
@@ -329,7 +326,7 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
   }
 
   Widget _buildMedications(ThemeData theme) {
-    if (_medications.isEmpty) return Center(child: Text(loc.getString('no_medications')));
+    if (_medications.isEmpty) return const Center(child: Text('No medications'));
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: _medications.length,
@@ -408,10 +405,10 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
       padding: const EdgeInsets.all(16),
       children: [
         Row(
-          children: [
-            const Icon(Icons.workspace_premium, color: Colors.amber),
-            const SizedBox(width: 8),
-            Text(loc.getString('professional_diet_suggestions')),
+          children: const [
+            Icon(Icons.workspace_premium, color: Colors.amber),
+            SizedBox(width: 8),
+            Text('Professional Diet Suggestions'),
           ],
         ),
         const SizedBox(height: 8),
@@ -423,17 +420,17 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
               ),
             )),
         const SizedBox(height: 16),
-        Text(loc.getString('weekly_plan'), style: theme.textTheme.titleMedium),
+        Text('Weekly Plan', style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
-        _weeklyTable(weekly, loc),
+        _weeklyTable(weekly),
         const SizedBox(height: 12),
         ElevatedButton.icon(
-          onPressed: () => _exportWeeklyPdf(weekly, loc),
+          onPressed: () => _exportWeeklyPdf(weekly),
           icon: const Icon(Icons.picture_as_pdf),
-          label: Text(loc.getString('export_pdf')),
+          label: const Text('Export PDF'),
         ),
         const SizedBox(height: 12),
-        Text(loc.getString('educational_suggestions_disclaimer')),
+        const Text('These suggestions are educational and do not replace medical advice.'),
       ],
     );
   }
@@ -451,17 +448,17 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
     };
   }
 
-  Widget _weeklyTable(Map<String, List<String>> weekly, LocalizationService loc) {
+  Widget _weeklyTable(Map<String, List<String>> weekly) {
     final headerStyle = const TextStyle(fontWeight: FontWeight.w600);
     return Table(
       border: TableBorder.all(color: Colors.grey.shade300),
       columnWidths: const {0: FixedColumnWidth(64)},
       children: [
-        TableRow(children: [
-          Padding(padding: const EdgeInsets.all(8), child: Text(loc.getString('day'), style: const TextStyle(fontWeight: FontWeight.bold))),
-          Padding(padding: const EdgeInsets.all(8), child: Text(loc.getString('breakfast'), style: const TextStyle(fontWeight: FontWeight.bold))),
-          Padding(padding: const EdgeInsets.all(8), child: Text(loc.getString('lunch'), style: const TextStyle(fontWeight: FontWeight.bold))),
-          Padding(padding: const EdgeInsets.all(8), child: Text(loc.getString('dinner'), style: const TextStyle(fontWeight: FontWeight.bold))),
+        const TableRow(children: [
+          Padding(padding: EdgeInsets.all(8), child: Text('Day', style: TextStyle(fontWeight: FontWeight.bold))),
+          Padding(padding: EdgeInsets.all(8), child: Text('Breakfast', style: TextStyle(fontWeight: FontWeight.bold))),
+          Padding(padding: EdgeInsets.all(8), child: Text('Lunch', style: TextStyle(fontWeight: FontWeight.bold))),
+          Padding(padding: EdgeInsets.all(8), child: Text('Dinner', style: TextStyle(fontWeight: FontWeight.bold))),
         ]),
         ...weekly.entries.map((e) => TableRow(children: [
               Padding(padding: const EdgeInsets.all(8), child: Text(e.key, style: headerStyle)),
@@ -473,24 +470,24 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
     );
   }
 
-  Future<void> _exportWeeklyPdf(Map<String, List<String>> weekly, LocalizationService loc) async {
+  Future<void> _exportWeeklyPdf(Map<String, List<String>> weekly) async {
     final doc = pw.Document();
     doc.addPage(
       pw.Page(
         build: (ctx) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            pw.Text(loc.getString('weekly_diet_plan'), style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
+            pw.Text('Weekly Diet Plan', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
             pw.SizedBox(height: 12),
             pw.Table(
               border: pw.TableBorder.all(),
               columnWidths: const {0: pw.FixedColumnWidth(60)},
               children: [
                 pw.TableRow(children: [
-                  pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(loc.getString('day'))),
-                  pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(loc.getString('breakfast'))),
-                  pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(loc.getString('lunch'))),
-                  pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(loc.getString('dinner'))),
+                  pw.Padding(padding: pw.EdgeInsets.all(6), child: pw.Text('Day')),
+                  pw.Padding(padding: pw.EdgeInsets.all(6), child: pw.Text('Breakfast')),
+                  pw.Padding(padding: pw.EdgeInsets.all(6), child: pw.Text('Lunch')),
+                  pw.Padding(padding: pw.EdgeInsets.all(6), child: pw.Text('Dinner')),
                 ]),
                 ...weekly.entries.map((e) => pw.TableRow(children: [
                       pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(e.key)),

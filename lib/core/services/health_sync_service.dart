@@ -2,7 +2,6 @@
 // Uses conditional imports to support both with and without health package
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
-import 'package:health/health.dart';
 import '../database/app_database.dart';
 import '../models/user_model.dart';
 import 'dart:io' show Platform;
@@ -13,49 +12,50 @@ class HealthSyncService {
   HealthSyncService._internal();
 
   final Logger _logger = Logger();
-  Health? _health;
+  dynamic _health; // Dynamic to handle optional package
   bool _isInitialized = false;
   bool _hasPermissions = false;
   bool _healthPackageAvailable = false;
 
-  // Health data types we're interested in
-  static final List<HealthDataType> _healthDataTypes = [
-    HealthDataType.WEIGHT,
-    HealthDataType.HEIGHT,
-    HealthDataType.BLOOD_PRESSURE_SYSTOLIC,
-    HealthDataType.BLOOD_PRESSURE_DIASTOLIC,
-    HealthDataType.HEART_RATE,
-    HealthDataType.BLOOD_OXYGEN_SATURATION,
-    HealthDataType.BODY_TEMPERATURE,
-    HealthDataType.STEPS,
-    HealthDataType.ACTIVE_ENERGY_BURNED,
-    HealthDataType.RESTING_HEART_RATE,
-    HealthDataType.WALKING_HEART_RATE,
-    HealthDataType.BLOOD_GLUCOSE,
-    HealthDataType.BODY_FAT_PERCENTAGE,
-    HealthDataType.BONE_MASS,
-    HealthDataType.LEAN_BODY_MASS,
+  // Health data types we're interested in (will be converted to strings if package unavailable)
+  static const List<String> _healthDataTypes = [
+    'WEIGHT',
+    'HEIGHT',
+    'BLOOD_PRESSURE_SYSTOLIC',
+    'BLOOD_PRESSURE_DIASTOLIC',
+    'HEART_RATE',
+    'BLOOD_OXYGEN',
+    'BODY_TEMPERATURE',
+    'STEPS',
+    'ACTIVE_ENERGY_BURNED',
+    'RESTING_HEART_RATE',
+    'WALKING_HEART_RATE_AVERAGE',
+    'BLOOD_GLUCOSE',
+    'BODY_FAT_PERCENTAGE',
+    'BONE_MASS',
+    'LEAN_BODY_MASS',
   ];
 
   Future<void> initialize() async {
     if (_isInitialized) return;
 
     try {
-      // Initialize health package
+      // Try to initialize health package if available
       try {
-        _health = Health();
-        _healthPackageAvailable = true;
-        _logger.i('Health package initialized successfully');
+        // Conditional import would go here, but for now we check if package is available
+        _healthPackageAvailable = false; // Set to true when health package is added
+        if (_healthPackageAvailable) {
+          // _health = Health(); // Uncomment when health package is available
+        }
       } catch (e) {
-        _logger.w('Health package initialization failed: $e');
+        _logger.w('Health package not available: $e');
         _healthPackageAvailable = false;
-        _health = null;
       }
       
       _isInitialized = true;
       
-      // Request permissions if package is available
-      if (_healthPackageAvailable && _health != null) {
+      // Request permissions only if package is available
+      if (_healthPackageAvailable) {
         await _requestPermissions();
       } else {
         _logger.i('Health sync service initialized (package not available - using fallback)');
@@ -65,7 +65,6 @@ class HealthSyncService {
       _logger.e('Failed to initialize health sync service: $e', 
                 error: e, stackTrace: stackTrace);
       _isInitialized = true; // Mark as initialized even if package fails
-      _healthPackageAvailable = false;
     }
   }
 
@@ -77,14 +76,10 @@ class HealthSyncService {
     }
 
     try {
-      // Request health permissions for all data types
-      _hasPermissions = await _health!.requestAuthorization(_healthDataTypes);
-      
-      if (_hasPermissions) {
-        _logger.i('Health permissions granted');
-      } else {
-        _logger.w('Health permissions denied by user');
-      }
+      // Request health permissions (when package is available)
+      // _hasPermissions = await _health.requestAuthorization(...);
+      _hasPermissions = false; // Set to false until package is integrated
+      _logger.w('Health permissions not implemented (package not available)');
       
     } catch (e, stackTrace) {
       _logger.e('Failed to request health permissions: $e', 
@@ -108,7 +103,7 @@ class HealthSyncService {
     required DateTime startDate,
     required DateTime endDate,
   }) async {
-    if (!_isInitialized || !_healthPackageAvailable || !_hasPermissions || _health == null) {
+    if (!_isInitialized || !_healthPackageAvailable || !_hasPermissions) {
       _logger.w('Health service not available - returning empty data');
       return {};
     }
@@ -116,30 +111,9 @@ class HealthSyncService {
     try {
       final healthData = <String, dynamic>{};
 
-      // Fetch data for each health data type
-      for (final dataType in _healthDataTypes) {
-        try {
-          final data = await _health!.getHealthDataFromTypes(
-            startDate,
-            endDate,
-            [dataType],
-          );
-          
-          if (data.isNotEmpty) {
-            healthData[dataType.toString()] = data.map((datum) {
-              return {
-                'value': datum.value.toDouble(),
-                'unit': datum.unit.toString(),
-                'dateTime': datum.dateFrom ?? datum.dateTo,
-              };
-            }).toList();
-          }
-        } catch (e) {
-          _logger.w('Failed to fetch ${dataType.toString()}: $e');
-        }
-      }
+      // When health package is integrated, implement data fetching here
+      _logger.i('Health data retrieval would happen here (package not available)');
       
-      _logger.i('Retrieved health data for ${healthData.length} data types');
       return healthData;
       
     } catch (e, stackTrace) {
@@ -153,24 +127,14 @@ class HealthSyncService {
     required DateTime startDate,
     required DateTime endDate,
   }) async {
-    if (!_isInitialized || !_healthPackageAvailable || !_hasPermissions || _health == null) {
+    if (!_isInitialized || !_healthPackageAvailable || !_hasPermissions) {
       return [];
     }
 
     try {
-      final data = await _health!.getHealthDataFromTypes(
-        startDate,
-        endDate,
-        [HealthDataType.WEIGHT],
-      );
-      
-      return data.map((datum) {
-        return {
-          'value': datum.value.toDouble(),
-          'unit': datum.unit.toString(),
-          'dateTime': datum.dateFrom ?? datum.dateTo,
-        };
-      }).toList();
+      // When health package is integrated, implement weight data fetching here
+      _logger.i('Weight data retrieval would happen here (package not available)');
+      return [];
     } catch (e) {
       _logger.e('Failed to get weight data: $e');
       return [];
@@ -181,42 +145,14 @@ class HealthSyncService {
     required DateTime startDate,
     required DateTime endDate,
   }) async {
-    if (!_isInitialized || !_healthPackageAvailable || !_hasPermissions || _health == null) {
+    if (!_isInitialized || !_healthPackageAvailable || !_hasPermissions) {
       return [];
     }
 
     try {
-      final systolicData = await _health!.getHealthDataFromTypes(
-        startDate,
-        endDate,
-        [HealthDataType.BLOOD_PRESSURE_SYSTOLIC],
-      );
-      
-      final diastolicData = await _health!.getHealthDataFromTypes(
-        startDate,
-        endDate,
-        [HealthDataType.BLOOD_PRESSURE_DIASTOLIC],
-      );
-      
-      final results = <Map<String, dynamic>>[];
-      
-      // Combine systolic and diastolic readings
-      for (final systolic in systolicData) {
-        final matchingDiastolic = diastolicData.firstWhere(
-          (d) => (d.dateFrom ?? d.dateTo).difference(systolic.dateFrom ?? systolic.dateTo).abs().inMinutes < 5,
-          orElse: () => systolic, // Fallback if no matching diastolic
-        );
-        
-        results.add({
-          'systolic': systolic.value.toDouble(),
-          'diastolic': matchingDiastolic.value.toDouble(),
-          'unit': systolic.unit.toString(),
-          'dateTime': systolic.dateFrom ?? systolic.dateTo,
-          'type': 'BLOOD_PRESSURE',
-        });
-      }
-      
-      return results;
+      // When health package is integrated, implement blood pressure data fetching here
+      _logger.i('Blood pressure data retrieval would happen here (package not available)');
+      return [];
     } catch (e) {
       _logger.e('Failed to get blood pressure data: $e');
       return [];
@@ -227,25 +163,14 @@ class HealthSyncService {
     required DateTime startDate,
     required DateTime endDate,
   }) async {
-    if (!_isInitialized || !_healthPackageAvailable || !_hasPermissions || _health == null) {
+    if (!_isInitialized || !_healthPackageAvailable || !_hasPermissions) {
       return [];
     }
 
     try {
-      final data = await _health!.getHealthDataFromTypes(
-        startDate,
-        endDate,
-        [HealthDataType.HEART_RATE, HealthDataType.RESTING_HEART_RATE, HealthDataType.WALKING_HEART_RATE],
-      );
-      
-      return data.map((datum) {
-        return {
-          'value': datum.value.toDouble(),
-          'unit': datum.unit.toString(),
-          'dateTime': datum.dateFrom ?? datum.dateTo,
-          'type': datum.type.toString(),
-        };
-      }).toList();
+      // When health package is integrated, implement heart rate data fetching here
+      _logger.i('Heart rate data retrieval would happen here (package not available)');
+      return [];
     } catch (e) {
       _logger.e('Failed to get heart rate data: $e');
       return [];
@@ -256,24 +181,14 @@ class HealthSyncService {
     required DateTime startDate,
     required DateTime endDate,
   }) async {
-    if (!_isInitialized || !_healthPackageAvailable || !_hasPermissions || _health == null) {
+    if (!_isInitialized || !_healthPackageAvailable || !_hasPermissions) {
       return [];
     }
 
     try {
-      final data = await _health!.getHealthDataFromTypes(
-        startDate,
-        endDate,
-        [HealthDataType.STEPS],
-      );
-      
-      return data.map((datum) {
-        return {
-          'value': datum.value.toDouble(),
-          'unit': datum.unit.toString(),
-          'dateTime': datum.dateFrom ?? datum.dateTo,
-        };
-      }).toList();
+      // When health package is integrated, implement steps data fetching here
+      _logger.i('Steps data retrieval would happen here (package not available)');
+      return [];
     } catch (e) {
       _logger.e('Failed to get steps data: $e');
       return [];
@@ -286,51 +201,14 @@ class HealthSyncService {
     required DateTime dateTime,
     String? unit,
   }) async {
-    if (!_isInitialized || !_healthPackageAvailable || !_hasPermissions || _health == null) {
+    if (!_isInitialized || !_healthPackageAvailable || !_hasPermissions) {
       return false;
     }
 
     try {
-      // Map string data type to HealthDataType
-      HealthDataType? healthDataType;
-      switch (dataType.toUpperCase()) {
-        case 'WEIGHT':
-          healthDataType = HealthDataType.WEIGHT;
-          break;
-        case 'HEIGHT':
-          healthDataType = HealthDataType.HEIGHT;
-          break;
-        case 'HEART_RATE':
-          healthDataType = HealthDataType.HEART_RATE;
-          break;
-        case 'BLOOD_GLUCOSE':
-          healthDataType = HealthDataType.BLOOD_GLUCOSE;
-          break;
-        case 'BODY_TEMPERATURE':
-          healthDataType = HealthDataType.BODY_TEMPERATURE;
-          break;
-        default:
-          _logger.w('Unsupported data type for writing: $dataType');
-          return false;
-      }
-
-      if (healthDataType == null) return false;
-
-      // Write health data
-      final success = await _health!.writeHealthData(
-        value,
-        healthDataType,
-        dateTime,
-        dateTime,
-      );
-
-      if (success) {
-        _logger.i('Successfully wrote health data: $dataType = $value');
-      } else {
-        _logger.w('Failed to write health data: $dataType');
-      }
-
-      return success;
+      // When health package is integrated, implement data writing here
+      _logger.i('Health data writing would happen here (package not available): $dataType = $value');
+      return false; // Return false until package is integrated
       
     } catch (e, stackTrace) {
       _logger.e('Failed to write health data: $e', 

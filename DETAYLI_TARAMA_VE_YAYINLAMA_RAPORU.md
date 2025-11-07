@@ -461,7 +461,7 @@ test/
 
 #### ✅ Tamamlanan
 - [x] Privacy Policy URL: `https://meloshemo.github.io`
-- [x] Terms of Use URL: `https://meloshemo.github.io/HemoAI`
+- [x] Terms of Use URL: `https://meloshemo.github.io/hemoai-support/terms-of-use.html`
 - [x] App signing configured
 - [x] ProGuard rules
 - [x] Deep linking configured

@@ -2,34 +2,9 @@
 
 **HemoAI** is a Flutter app for hemogram tracking, AI-assisted analysis, personalized diet recommendations, alternative medicine insights, and family health management.
 
-**Status:** ✅ Production-ready • **Version:** 4.0.0+400  
-**Latest:** All critical and medium-priority improvements completed! ✨✨  
-**Platforms:** Android • Web • Windows • iOS • macOS • Linux
-
-## 🎯 Recent Improvements
-
-### ✅ Critical Fixes (5/5)
-- Network connectivity monitoring
-- Deep linking support
-- Memory leak fixes
-- Comprehensive error handling
-- Input validation
-
-### ✅ Medium Priority (7/7)
-- Test coverage foundation
-- Accessibility support
-- Loading/Empty states
-- Offline mode handling
-- XML/HTML import
-- Background tasks
-- Security hardening
-
-### ✅ Low Priority (5/5)
-- Performance optimizations
-- UI/UX enhancements
-- Localization improvements
-- Analytics integration
-- Documentation improvements
+**Status:** ✅ Production-ready • **Version:** 4.0.3 (Build 403)  
+**Latest:** Dashboard widgets real data integration complete! ✨✨  
+**Platforms:** Android • Web • Windows • iOS (partial)
 
 ## 🚀 Ready for Production!
 
@@ -53,69 +28,18 @@ This app is **fully prepared** for production deployment. All builds, documentat
 - Alternative Medicine: new herbal categories added (Glucose Control, Liver Support, Bilirubin Support, Thyroid Support, Vitamin D Support, B12 Support, Electrolyte Balance, Calcium Support) with localized herb suggestions and safety notes.
 - Localization: all new content is localized (TR/EN). See `docs/LOCALIZATION_CHANGELOG.md`.
 
-## 🚀 Quick Start
+## Run
+- Web (Edge): will open your default Edge
+	- From the repo root: run the app task in your editor or use `flutter run -d edge -t lib/main.dart`.
+- Windows desktop: `flutter run -d windows`
 
-### Run the App
+If you see build issues after switching branches/tags, run: `flutter clean` then `flutter pub get`.
 
-```bash
-# Web
-flutter run -d edge
-
-# Android
-flutter run -d android
-
-# iOS
-flutter run -d ios
-
-# Windows
-flutter run -d windows
-
-# macOS
-flutter run -d macos
-
-# Linux
-flutter run -d linux
-```
-
-### Build for Production
-
-```bash
-# Android APK
-flutter build apk --release
-
-# Android App Bundle
-flutter build appbundle --release
-
-# iOS
-flutter build ios --release
-
-# Web
-flutter build web --release
-```
-
-### Development Tools
-
-```bash
-# Validate localization
-dart run tool/validate_localization.dart
-
-# Static analysis
-flutter analyze
-
-# Run tests
-flutter test
-
-# Clean build
-flutter clean && flutter pub get
-```
-
-## 📖 Documentation
-
-- **[API Documentation](docs/API_DOCUMENTATION.md)** - Complete API reference
-- **[Developer Guide](docs/DEVELOPER_GUIDE.md)** - Development guidelines
-- **[Play Store Guide](docs/PLAY_STORE_PUBLICATION_SUMMARY.md)** - Publication checklist
-- **[Architecture](docs/ARCHITECTURE.md)** - System architecture
-- **[All Documentation](docs/README_DOCS.md)** - Complete docs index
+To validate localization and code quickly:
+- Run i18n validator:
+	- `dart run tool/validate_localization.dart`
+- Static analysis:
+	- `flutter analyze`
 
 ## Project conventions
 - State and services use Provider + ChangeNotifier. Core singletons: `ThemeService`, `NotificationService`, `PushNotificationService`, `LocalizationService`, `ActiveProfileService` (see `lib/services/*`).

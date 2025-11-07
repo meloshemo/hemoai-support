@@ -95,8 +95,7 @@ Uygulama **temel olarak production'a hazır** ancak aşağıdaki adımların tam
 - [ ] `android/app/build.gradle` production key signing
 - [ ] ProGuard/R8 rules kontrolü
 - [ ] Google Play Console metadata (açıklama, ekran görüntüleri)
-- [x] Privacy policy URL: `https://meloshemo.github.io`
-- [x] Terms of Use URL: `https://meloshemo.github.io/HemoAI`
+- [ ] Privacy policy URL
 - [ ] Content rating
 - [ ] İzinler açıklamaları
 
@@ -120,15 +119,13 @@ Uygulama **temel olarak production'a hazır** ancak aşağıdaki adımların tam
 ### 6. 📝 Yasal ve Uyumluluk
 
 **Yapılacaklar**:
-- [x] ✅ Privacy Policy (KVKK/GDPR uyumlu) - Host edildi: https://meloshemo.github.io
-- [ ] Privacy Policy URL'i Play Store metadata'ya ekle
-- [ ] Privacy Policy URL'i App Store metadata'ya ekle
+- [ ] Privacy Policy (KVKK/GDPR uyumlu)
 - [ ] Terms of Service
 - [ ] Medical Disclaimer (sağlık uygulaması olduğu için)
 - [ ] Cookie Policy (web)
 - [ ] Kullanıcı sözleşmesi
 - [ ] Data retention policy
-- [x] ✅ Kullanıcı verilerini silme özelliği (mevcut ✓)
+- [ ] Kullanıcı verilerini silme özelliği (mevcut ✓)
 
 **Not**: `lib/screens/settings_screen.dart` içinde "About HemoAI" bölümünde bazı linkler var, bunların gerçek URL'lerle doldurulması gerekiyor.
 

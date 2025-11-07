@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../utils/color_compat.dart';
 import 'package:provider/provider.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/unified_app_bar.dart';
@@ -116,58 +118,25 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
     }).toList();
   }
 
-  // Normalize DB medications to UI-friendly shape with real taken status
-  Future<List<Map<String, dynamic>>> _normalizeMedications(List<Map<String, dynamic>> raw) async {
-    final loc = Provider.of<LocalizationService>(context, listen: false);
-    final List<Map<String, dynamic>> normalized = [];
-    
-    for (var m in raw) {
-      final medicationId = m['id'] as int?;
-      bool takenToday = false;
-      
-      if (medicationId != null) {
-        try {
-          takenToday = await _medicationRepo.wasMedicationTakenToday(medicationId);
-        } catch (e) {
-          debugPrint('Error checking medication taken status: $e');
-        }
-      }
-      
-      // Calculate days from start date if available
-      int totalDays = (m['duration_days'] as int?) ?? 30;
-      int completedDays = 0;
-      
-      if (m['start_date'] != null) {
-        try {
-          final startDate = DateTime.parse(m['start_date'] as String);
-          final today = DateTime.now();
-          final daysSinceStart = today.difference(startDate).inDays;
-          completedDays = daysSinceStart.clamp(0, totalDays);
-        } catch (e) {
-          debugPrint('Error calculating medication days: $e');
-        }
-      }
-      
-      normalized.add({
-        'id': medicationId,
-        'name': m['name'] ?? loc.getString('medication'),
-        'dosage': m['dosage'] ?? loc.getString('default_dosage'),
-        'frequency': m['frequency'] ?? loc.getString('default_frequency'),
-        'time': m['time'] ?? loc.getString('default_time'),
-        'taken_today': takenToday,
-        'total_days': totalDays,
-        'completed_days': completedDays,
-      });
-    }
-    
-    return normalized;
+  // Normalize DB medications to UI-friendly shape
+  List<Map<String, dynamic>> _normalizeMedications(List<Map<String, dynamic>> raw) {
+    return raw.map((m) {
+      return { 
+  'name': m['name'] ?? Provider.of<LocalizationService>(context, listen: false).getString('medication'),
+  'dosage': m['dosage'] ?? Provider.of<LocalizationService>(context, listen: false).getString('default_dosage'),
+  'frequency': m['frequency'] ?? Provider.of<LocalizationService>(context, listen: false).getString('default_frequency'),
+  'time': m['time'] ?? Provider.of<LocalizationService>(context, listen: false).getString('default_time'),
+        'taken_today': (m['taken_today'] is bool) ? m['taken_today'] : false,
+        'total_days': (m['total_days'] is int) ? m['total_days'] : 30,
+        'completed_days': (m['completed_days'] is int) ? m['completed_days'] : 0,
+      };
+    }).toList();
   }
   
   // Localized sample notifications (fallback if DB empty / user not logged in)
   List<Map<String, dynamic>> _buildSampleNotifications(LocalizationService loc) {
     final now = DateTime.now();
-    // Format: DD.MM.YYYY (pad with zeros for single digits)
-    final dateLabel = '${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')}.${now.year}';
+    final dateLabel = '${now.day}.${now.month}.${now.year}';
     final quotes = DailyAdviceService().getAllQuotes(loc);
     final todayQuote = DailyAdviceService().getTodayQuoteText(loc);
     return [
@@ -309,25 +278,23 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
         // Su takibini yükle
   int todayWater = await _waterRepo.getTodayWaterIntake(userId);
         
-        // Normalize medications with real taken status from database
-        final normalizedMeds = await _normalizeMedications(dbMedications);
-        
         if (!mounted) return;
         setState(() {
       notifications = dbNotifications.isNotEmpty
               ? _normalizeNotifications(dbNotifications, loc)
               : _buildSampleNotifications(loc);
-      // Only show real medications from database, no simulations
-      medications = normalizedMeds;
+      medications = dbMedications.isNotEmpty
+        ? _normalizeMedications(dbMedications)
+        : _exampleMedications(loc);
           waterCount = todayWater;
           isLoading = false;
         });
       } else {
-        // Kullanıcı girişi yapılmamış, örnek bildirimleri göster ama ilaçları gösterme
+        // Kullanıcı girişi yapılmamış, örnek verileri kullan
         if (!mounted) return;
         setState(() {
           notifications = _buildSampleNotifications(loc);
-          medications = []; // No medications shown if user not logged in
+          medications = _exampleMedications(loc);
           isLoading = false;
         });
       }
@@ -337,7 +304,7 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
         setState(() {
           final loc = Provider.of<LocalizationService>(context, listen: false);
           notifications = _buildSampleNotifications(loc);
-          medications = []; // No medications on error, only show real data
+          medications = _exampleMedications(loc);
           isLoading = false;
         });
     }
@@ -403,35 +370,28 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
   }
 
   Widget _buildNotificationsTab(bool isDark, LocalizationService loc, int unreadCount) {
-    // Debug: Log notification count
-    debugPrint('Notification count: ${notifications.length}');
-    debugPrint('Unread count: $unreadCount');
-    
     // Filter notifications based on search and filter
     List<Map<String, dynamic>> filteredNotifications = notifications.where((n) {
       // Search filter
       if (_searchQuery.isNotEmpty) {
         final query = _searchQuery.toLowerCase();
-        final title = (n['title'] ?? '').toString().toLowerCase();
-        final description = (n['description'] ?? '').toString().toLowerCase();
-        if (!title.contains(query) && !description.contains(query)) {
+        if (!n['title'].toString().toLowerCase().contains(query) &&
+            !n['description'].toString().toLowerCase().contains(query)) {
           return false;
         }
       }
       
       // Category filter
       if (_selectedFilter != null && _selectedFilter != 'all') {
-        if (_selectedFilter == 'unread' && (n['isRead'] as bool? ?? false)) return false;
-        if (_selectedFilter == 'read' && !(n['isRead'] as bool? ?? false)) return false;
+        if (_selectedFilter == 'unread' && n['isRead']) return false;
+        if (_selectedFilter == 'read' && !n['isRead']) return false;
         if (_selectedFilter != 'unread' && _selectedFilter != 'read') {
-          if ((n['type'] ?? '').toString() != _selectedFilter) return false;
+          if (n['type'] != _selectedFilter) return false;
         }
       }
       
       return true;
     }).toList();
-    
-    debugPrint('Filtered notification count: ${filteredNotifications.length}');
     
     // Group by date (today, yesterday, older)
     final now = DateTime.now();
@@ -447,18 +407,14 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
     for (var notif in filteredNotifications) {
       final dateStr = notif['date'] ?? '';
       if (dateStr.isEmpty) {
-        // If no date, assume it's from today (for sample notifications)
-        grouped['today']!.add(notif);
+        grouped['older']!.add(notif);
         continue;
       }
       
       try {
         final parts = dateStr.split('.');
         if (parts.length == 3) {
-          final day = int.parse(parts[0]);
-          final month = int.parse(parts[1]);
-          final year = int.parse(parts[2]);
-          final date = DateTime(year, month, day);
+          final date = DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
           final notifDate = DateTime(date.year, date.month, date.day);
           
           if (notifDate == today) {
@@ -469,17 +425,35 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
             grouped['older']!.add(notif);
           }
         } else {
-          // If date format is wrong, assume today to ensure visibility
-          grouped['today']!.add(notif);
+          grouped['older']!.add(notif);
         }
-      } catch (e) {
-        debugPrint('Error parsing notification date: $dateStr, error: $e');
-        // On error, assume today to ensure notifications are visible
-        grouped['today']!.add(notif);
+      } catch (_) {
+        grouped['older']!.add(notif);
       }
     }
     
-    return ListView(
+    return filteredNotifications.isEmpty
+        ? Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.notifications_none,
+                  size: 64,
+                  color: isDark ? Colors.grey[600] : Colors.grey,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  loc.getString('no_notifications_yet'),
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: isDark ? Colors.grey[400] : Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          )
+        : ListView(
             padding: const EdgeInsets.all(16),
             children: [
               // Search Bar
@@ -575,189 +549,48 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
               ),
               const SizedBox(height: 16),
               
-              // Show empty state if no notifications
-              if (filteredNotifications.isEmpty)
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.grey[800] : Colors.grey[100],
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.notifications_none,
-                          size: 64,
-                          color: isDark ? Colors.grey[600] : Colors.grey[400],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        loc.getString('no_notifications_yet'),
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.grey[300] : Colors.grey[700],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Bildirimler burada görünecek',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: isDark ? Colors.grey[500] : Colors.grey[600],
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              
               // Today's Notifications
               if (grouped['today']!.isNotEmpty) ...[
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 4,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE53E3E),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
                 Text(
                   loc.getString('today') == 'today' ? 'Bugün' : loc.getString('today'),
                   style: TextStyle(
-                          fontSize: 16,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black87,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE53E3E).withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          '${grouped['today']!.length}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFFE53E3E),
-                          ),
-                        ),
-                      ),
-                    ],
+                    color: isDark ? Colors.grey[400] : Colors.grey[600],
                   ),
                 ),
                 const SizedBox(height: 8),
                 ...grouped['today']!.map((notification) => _buildNotificationCard(notification)),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
               ],
               
               // Yesterday's Notifications
               if (grouped['yesterday']!.isNotEmpty) ...[
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 4,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[400]!,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
                 Text(
                   loc.getString('yesterday') == 'yesterday' ? 'Dün' : loc.getString('yesterday'),
                   style: TextStyle(
-                          fontSize: 16,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.grey[300] : Colors.grey[700],
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          '${grouped['yesterday']!.length}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ),
-                    ],
+                    color: isDark ? Colors.grey[400] : Colors.grey[600],
                   ),
                 ),
                 const SizedBox(height: 8),
                 ...grouped['yesterday']!.map((notification) => _buildNotificationCard(notification)),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
               ],
               
               // Older Notifications
               if (grouped['older']!.isNotEmpty) ...[
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 4,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[500]!,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
                 Text(
                   loc.getString('older') == 'older' ? 'Önceki' : loc.getString('older'),
                   style: TextStyle(
-                          fontSize: 16,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
                     color: isDark ? Colors.grey[400] : Colors.grey[600],
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          '${grouped['older']!.length}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
                 ),
                 const SizedBox(height: 8),
                 ...grouped['older']!.map((notification) => _buildNotificationCard(notification)),
-                const SizedBox(height: 24),
               ],
             ],
           );
@@ -793,112 +626,62 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
   Widget _buildNotificationCard(Map<String, dynamic> notification) {
     final themeService = Provider.of<ThemeService>(context, listen: false);
     final isDark = themeService.isDarkMode;
-    final notifColor = notification['color'] as Color;
-    final isRead = notification['isRead'] as bool? ?? false;
-    final description = notification['description'] as String? ?? '';
     
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: isRead 
-            ? null
-            : LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  notifColor.withValues(alpha: 0.08),
-                  notifColor.withValues(alpha: 0.03),
-                ],
+        color: notification['isRead'] 
+            ? (isDark ? const Color(0xFF1E1E1E) : Colors.grey[50])
+            : (isDark ? const Color(0xFF161B22) : Colors.white),
+        borderRadius: BorderRadius.circular(12),
+        border: Border(
+          left: BorderSide(
+            color: notification['color'],
+            width: 4,
+          ),
+          right: BorderSide(
+            color: isDark ? const Color(0xFF30363D) : Colors.transparent,
+            width: 0.5,
+          ),
+          top: BorderSide(
+            color: isDark ? const Color(0xFF30363D) : Colors.transparent,
+            width: 0.5,
+          ),
+          bottom: BorderSide(
+            color: isDark ? const Color(0xFF30363D) : Colors.transparent,
+            width: 0.5,
+          ),
         ),
         boxShadow: [
           BoxShadow(
-            color: isRead
-                ? (isDark ? Colors.black.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.15))
-                : notifColor.withValues(alpha: 0.25),
-            spreadRadius: 0,
-            blurRadius: isRead ? 6 : 12,
-            offset: Offset(0, isRead ? 3 : 6),
+            color: isDark 
+                ? Colors.black.withValues(alpha: 0.3)
+                : Colors.grey.withValues(alpha: 0.1),
+            spreadRadius: 1,
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          onTap: () {
-            // Mark as read on tap
-            if (!isRead) {
-              setState(() {
-                notification['isRead'] = true;
-              });
-              // Update in database if notification has ID
-              if (notification['id'] != null) {
-                try {
-                  final id = int.tryParse(notification['id'].toString());
-                  if (id != null) {
-                    _notificationRepo.markAsRead(id);
-                  }
-                } catch (e) {
-                  debugPrint('Error marking notification as read: $e');
-                }
-              }
-            }
-          },
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: isRead 
-                  ? (isDark ? const Color(0xFF1E1E1E) : Colors.grey[50])
-                  : (isDark ? const Color(0xFF161B22) : Colors.white),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isRead 
-                    ? (isDark ? const Color(0xFF30363D) : Colors.grey[200]!)
-                    : notifColor.withValues(alpha: 0.4),
-                width: isRead ? 1 : 2.5,
-              ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-                    // Modern icon with gradient background
               Container(
-                      width: 60,
-                      height: 60,
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            notifColor.withValues(alpha: 0.25),
-                            notifColor.withValues(alpha: 0.15),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: notifColor.withValues(alpha: 0.4),
-                          width: 2,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: notifColor.withValues(alpha: 0.2),
-                            blurRadius: 8,
-                            spreadRadius: 0,
-                          ),
-                        ],
+                  color: notification['color'].withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   notification['icon'],
-                        color: notifColor,
-                        size: 30,
+                  color: notification['color'],
+                  size: 20,
                 ),
               ),
-                    const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -907,172 +690,128 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                       children: [
                         Expanded(
                           child: Text(
-                                  notification['title'] ?? '',
+                            notification['title'],
                             style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: isRead ? FontWeight.w600 : FontWeight.bold,
-                                    color: isDark ? Colors.white : Colors.black87,
-                                    height: 1.3,
-                                    letterSpacing: -0.3,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              if (!isRead)
+                              fontSize: 16,
+                              fontWeight: notification['isRead'] ? FontWeight.normal : FontWeight.bold,
+                              color: isDark ? const Color(0xFFE53E3E) : const Color(0xFFE53E3E),
+                            ),
+                          ),
+                        ),
+                        if (!notification['isRead'])
                           Container(
-                                  width: 12,
-                                  height: 12,
-                                  decoration: BoxDecoration(
-                                    color: notifColor,
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFE53E3E),
                               shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: notifColor.withValues(alpha: 0.6),
-                                        blurRadius: 6,
-                                        spreadRadius: 1,
-                                      ),
-                                    ],
                             ),
                           ),
                       ],
                     ),
-                          const SizedBox(height: 6),
-                          if (notification['subtitle'] != null && (notification['subtitle'] as String).isNotEmpty)
+                    const SizedBox(height: 2),
                     Text(
                       notification['subtitle'],
                       style: TextStyle(
                         fontSize: 14,
                         color: isDark ? Colors.grey[400] : Colors.grey[600],
-                                fontWeight: isRead ? FontWeight.normal : FontWeight.w600,
+                        fontWeight: notification['isRead'] ? FontWeight.normal : FontWeight.w500,
                       ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
             ],
           ),
-                // Description with modern styling
-                if (description.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: isDark 
-                          ? Colors.black.withValues(alpha: 0.3)
-                          : notifColor.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: notifColor.withValues(alpha: 0.15),
-                        width: 1,
-                      ),
-                    ),
-                    child: Text(
-                      description,
+          const SizedBox(height: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                notification['description'],
                 style: TextStyle(
                   fontSize: 14,
                   color: isDark ? Colors.grey[300] : Colors.grey[700],
-                        height: 1.5,
-                      ),
-                      maxLines: 4,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-                // Time and actions row
-                const SizedBox(height: 16),
+                  height: 1.4,
+                ),
+              ),
+              if (notification['type'] == 'motivational') ...[
+                const SizedBox(height: 8),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: isDark ? Colors.grey[800] : Colors.grey[200],
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.access_time,
-                                size: 14,
-                                color: isDark ? Colors.grey[400] : Colors.grey[600],
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                notification['time'] ?? '',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: isDark ? Colors.grey[400] : Colors.grey[700],
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        await Clipboard.setData(ClipboardData(text: notification['description'] as String));
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(Provider.of<LocalizationService>(context, listen: false).getString('quote_copied'))),
+                        );
+                      },
+                      icon: const Icon(Icons.share),
+                      label: Text(Provider.of<LocalizationService>(context, listen: false).getString('share_quote')),
                     ),
-                    Row(
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          if (_motivationQuotes.isEmpty) {
+                            final loc = Provider.of<LocalizationService>(context, listen: false);
+                            _motivationQuotes = DailyAdviceService().getAllQuotes(loc);
+                          }
+                          if (_motivationQuotes.isNotEmpty) {
+                            _motivationIndex = (_motivationIndex + 1) % _motivationQuotes.length;
+                            final idx = notifications.indexWhere((n) => n['type'] == 'motivational');
+                            if (idx != -1) {
+                              notifications[idx]['description'] = _motivationQuotes[_motivationIndex];
+                            }
+                          }
+                        });
+                      },
+                      child: const Icon(Icons.refresh, size: 18),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-                        if (!isRead)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  notifColor.withValues(alpha: 0.2),
-                                  notifColor.withValues(alpha: 0.15),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: notifColor.withValues(alpha: 0.4),
-                                width: 1,
-                              ),
-                            ),
-                            child: Text(
-                              'Yeni',
+              Text(
+                '${notification['date']} • ${notification['time']}',
                 style: TextStyle(
                   fontSize: 12,
-                                color: notifColor,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
+                  color: isDark ? Colors.grey[500] : Colors.grey[500],
+                ),
+              ),
+              Row(
+                children: [
+                  if (!notification['isRead'])
+                    TextButton(
+                      onPressed: () => _markAsRead(notification['id']),
+                      child: Text(Provider.of<LocalizationService>(context, listen: false).getString('mark_read'), style: const TextStyle(fontSize: 12)),
                     ),
                   const SizedBox(width: 8),
                   PopupMenuButton(
-                          icon: Icon(
-                            Icons.more_vert,
-                            size: 20,
-                            color: isDark ? Colors.grey[400] : Colors.grey[600],
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
                     itemBuilder: (context) => [
-                            if (!isRead)
                       PopupMenuItem(
-                                value: 'mark_read',
+                        value: 'details',
                         child: Row(
                           children: [
-                                    Icon(Icons.check_circle, size: 18, color: notifColor),
-                                    const SizedBox(width: 12),
-                                    Text(Provider.of<LocalizationService>(context, listen: false).getString('mark_read')),
+                            const Icon(Icons.info, size: 16),
+                            const SizedBox(width: 8),
+                            Text(Provider.of<LocalizationService>(context, listen: false).getString('details')),
                           ],
                         ),
                       ),
                       PopupMenuItem(
-                              value: 'details',
+                        value: 'why',
                         child: Row(
                           children: [
-                                  const Icon(Icons.info_outline, size: 18),
-                                  const SizedBox(width: 12),
-                                  Text(Provider.of<LocalizationService>(context, listen: false).getString('details')),
+                            const Icon(Icons.help_outline, size: 16),
+                            const SizedBox(width: 8),
+                            Text(Provider.of<LocalizationService>(context, listen: false).getString('why_did_i_get_this')),
                           ],
                         ),
                       ),
@@ -1080,91 +819,24 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                         value: 'delete',
                         child: Row(
                           children: [
-                                  const Icon(Icons.delete_outline, size: 18, color: Colors.red),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    Provider.of<LocalizationService>(context, listen: false).getString('delete'),
-                                    style: const TextStyle(color: Colors.red),
-                                  ),
+                            const Icon(Icons.delete, size: 16),
+                            const SizedBox(width: 8),
+                            Text(Provider.of<LocalizationService>(context, listen: false).getString('delete')),
                           ],
                         ),
                       ),
                     ],
                     onSelected: (value) {
-                            if (value == 'mark_read') {
-                              _markAsRead(notification['id']);
-                            } else if (value == 'details') {
-                              _showNotificationDetails(notification);
-                            } else if (value == 'delete') {
-                              _deleteNotification(notification['id']);
-                            }
+                      if (value == 'details') _showNotificationDetails(notification);
+                      if (value == 'why') _showWhyDidIGetThis(notification);
+                      if (value == 'delete') _deleteNotification(notification['id']);
                     },
                   ),
                 ],
               ),
             ],
-                ),
-                // Motivational quote actions
-                if (notification['type'] == 'motivational' && description.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () async {
-                            await Clipboard.setData(ClipboardData(text: description));
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(Provider.of<LocalizationService>(context, listen: false).getString('quote_copied')),
-                                backgroundColor: notifColor,
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.share, size: 16),
-                          label: Text(
-                            Provider.of<LocalizationService>(context, listen: false).getString('share_quote'),
-                            style: const TextStyle(fontSize: 13),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            side: BorderSide(color: notifColor.withValues(alpha: 0.5)),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        onPressed: () {
-                          setState(() {
-                            if (_motivationQuotes.isEmpty) {
-                              final loc = Provider.of<LocalizationService>(context, listen: false);
-                              _motivationQuotes = DailyAdviceService().getAllQuotes(loc);
-                            }
-                            if (_motivationQuotes.isNotEmpty) {
-                              _motivationIndex = (_motivationIndex + 1) % _motivationQuotes.length;
-                              final idx = notifications.indexWhere((n) => n['type'] == 'motivational');
-                              if (idx != -1) {
-                                notifications[idx]['description'] = _motivationQuotes[_motivationIndex];
-                              }
-                            }
-                          });
-                        },
-                        icon: const Icon(Icons.refresh, size: 20),
-                        tooltip: Provider.of<LocalizationService>(context, listen: false).getString('new_quote'),
-                        style: IconButton.styleFrom(
-                          backgroundColor: notifColor.withValues(alpha: 0.1),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -1396,26 +1068,13 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
               ),
               Switch(
                 value: medication['taken_today'],
-                onChanged: (value) async {
-                  try {
-                    int? userId = await _preferencesService.getUserId();
-                    if (userId != null && medication['id'] != null) {
-                      // Update in database
-                      await _medicationRepo.updateMedicationTaken(
-                        medication['id'],
-                        userId,
-                        value,
-                      );
-                    }
+                onChanged: (value) {
                   setState(() {
                     medication['taken_today'] = value;
                     if (value && medication['completed_days'] < medication['total_days']) {
                       medication['completed_days']++;
                     }
                   });
-                  } catch (e) {
-                    debugPrint('Error updating medication taken status: $e');
-                  }
                 },
                 activeThumbColor: Colors.green,
               ),
@@ -1459,74 +1118,39 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
   }
 
   Widget _buildSettingsTab() {
-    final themeService = Provider.of<ThemeService>(context, listen: false);
-    final bool isDark = themeService.isDarkMode;
-    final loc = Provider.of<LocalizationService>(context, listen: false);
-    
-    // Group settings by category for better organization
-    final criticalSettings = [
-      'critical_alerts',
-      'test_reminders',
-    ];
-    final healthSettings = [
-      'medication_reminders',
-      'water_reminders',
-      'exercise_reminders',
-    ];
-    final dietSettings = [
-      'nutrition_tips',
-      'personalized_diet',
-      'smart_meals',
-    ];
-    final motivationSettings = [
-      'motivational_messages',
-      'health_tips',
-      'stress_management',
-    ];
-    final otherSettings = [
-      'weekly_reports',
-      'appointment_reminders',
-    ];
-    
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Section
+          Text(
+            Provider.of<LocalizationService>(context, listen: false).getString('notification_settings_title'),
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFE53E3E),
+            ),
+          ),
+          const SizedBox(height: 24),
+          // Daily motivation scheduler
           Container(
-            padding: const EdgeInsets.all(24),
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  const Color(0xFFE53E3E),
-                  const Color(0xFFE53E3E).withValues(alpha: 0.8),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFE53E3E).withValues(alpha: 0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+              color: isDark ? const Color(0xFF161B22) : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: isDark ? const Color(0xFF30363D) : Colors.grey[300]!),
             ),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
+                    color: const Color(0xFFE53E3E).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
-                    Icons.notifications_active,
-                    color: Colors.white,
-                    size: 28,
-                  ),
+                  child: const Icon(Icons.schedule, color: Color(0xFFE53E3E), size: 20),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -1534,70 +1158,33 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        loc.getString('notification_settings_title') == 'notification_settings_title'
-                            ? 'Notification Permissions'
-                            : loc.getString('notification_settings_title'),
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: -0.5,
-                        ),
+                        Provider.of<LocalizationService>(context, listen: false).getString('daily_motivation_time'),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                       ),
-                      const SizedBox(height: 4),
                       Text(
-                        'Manage your notification preferences',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.white.withValues(alpha: 0.9),
-                        ),
+                        _dailyMotivationTime == null
+                            ? '--:--'
+                            : _dailyMotivationTime!.format(context),
+                        style: TextStyle(fontSize: 14, color: isDark ? Colors.grey[400] : Colors.grey[600]),
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 32),
-          
-          // Daily Motivation Time Section
-          _buildModernSettingCard(
-            icon: Icons.schedule,
-            iconColor: const Color(0xFFE53E3E),
-            title: loc.getString('daily_motivation_time'),
-            subtitle: _dailyMotivationTime == null
-                ? 'Tap to set time'
-                : _dailyMotivationTime!.format(context),
-            isDark: isDark,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFFE53E3E).withValues(alpha: 0.1),
-                    const Color(0xFFE53E3E).withValues(alpha: 0.05),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: const Color(0xFFE53E3E).withValues(alpha: 0.3),
-                  width: 1.5,
-                ),
-              ),
-              child: TextButton.icon(
+                TextButton(
                   onPressed: () async {
-                  final picked = await showTimePicker(
-                    context: context,
-                    initialTime: _dailyMotivationTime ?? const TimeOfDay(hour: 8, minute: 0),
-                  );
+                    final picked = await showTimePicker(context: context, initialTime: _dailyMotivationTime ?? TimeOfDay(hour: 8, minute: 0));
                     if (picked != null) {
                       setState(() => _dailyMotivationTime = picked);
+                      // Schedule via in-app notification service (simple timer loop)
                       final now = DateTime.now();
                       final first = DateTime(now.year, now.month, now.day, picked.hour, picked.minute);
                       final firstTime = first.isAfter(now) ? first : first.add(const Duration(days: 1));
+            final loc = Provider.of<LocalizationService>(context, listen: false);
             final quote = DailyAdviceService().getTodayQuoteText(loc);
+                      // Persist selected time
                       await _preferencesService.saveCustomSettings('daily_motivation_hour', picked.hour);
                       await _preferencesService.saveCustomSettings('daily_motivation_minute', picked.minute);
+                      // Schedule notification
                       inapp.NotificationService().addNotification(
                         inapp.NotificationItem(
                           title: '🌟 ${loc.getString('motivational_message')}',
@@ -1607,262 +1194,39 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                           repeatType: inapp.RepeatType.daily,
                         ),
                       );
-                    if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('${loc.getString('daily_motivation_time')}: ${picked.format(context)}'),
-                        backgroundColor: const Color(0xFFE53E3E),
-                      ),
+                        SnackBar(content: Text('${loc.getString('daily_motivation_time')}: ${picked.format(context)}')),
                       );
                     }
                   },
-                icon: const Icon(Icons.edit, size: 16, color: Color(0xFFE53E3E)),
-                label: Text(
-                  loc.getString('edit'),
-                  style: const TextStyle(
-                    color: Color(0xFFE53E3E),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          
-          // Critical Settings Section
-          if (criticalSettings.any((key) => reminderSettings.containsKey(key))) ...[
-            _buildSectionHeader('Critical Alerts', Icons.warning, isDark),
-            const SizedBox(height: 12),
-            ...criticalSettings.map((key) => reminderSettings.containsKey(key)
-                ? _buildModernSwitchSetting(
-                    key: key,
-                    isDark: isDark,
-                    loc: loc,
-                  )
-                : const SizedBox.shrink()),
-            const SizedBox(height: 24),
-          ],
-          
-          // Health Settings Section
-          if (healthSettings.any((key) => reminderSettings.containsKey(key))) ...[
-            _buildSectionHeader('Health & Wellness', Icons.favorite, isDark),
-            const SizedBox(height: 12),
-            ...healthSettings.map((key) => reminderSettings.containsKey(key)
-                ? _buildModernSwitchSetting(
-                    key: key,
-                    isDark: isDark,
-                    loc: loc,
-                  )
-                : const SizedBox.shrink()),
-            const SizedBox(height: 24),
-          ],
-          
-          // Diet Settings Section
-          if (dietSettings.any((key) => reminderSettings.containsKey(key))) ...[
-            _buildSectionHeader('Nutrition & Diet', Icons.restaurant, isDark),
-            const SizedBox(height: 12),
-            ...dietSettings.map((key) => reminderSettings.containsKey(key)
-                ? _buildModernSwitchSetting(
-                    key: key,
-                    isDark: isDark,
-                    loc: loc,
-                  )
-                : const SizedBox.shrink()),
-            const SizedBox(height: 24),
-          ],
-          
-          // Motivation Settings Section
-          if (motivationSettings.any((key) => reminderSettings.containsKey(key))) ...[
-            _buildSectionHeader('Motivation & Tips', Icons.lightbulb, isDark),
-            const SizedBox(height: 12),
-            ...motivationSettings.map((key) => reminderSettings.containsKey(key)
-                ? _buildModernSwitchSetting(
-                    key: key,
-                    isDark: isDark,
-                    loc: loc,
-                  )
-                : const SizedBox.shrink()),
-            const SizedBox(height: 24),
-          ],
-          
-          // Other Settings Section
-          if (otherSettings.any((key) => reminderSettings.containsKey(key))) ...[
-            _buildSectionHeader('Other', Icons.more_horiz, isDark),
-            const SizedBox(height: 12),
-            ...otherSettings.map((key) => reminderSettings.containsKey(key)
-                ? _buildModernSwitchSetting(
-                    key: key,
-                    isDark: isDark,
-                    loc: loc,
-                  )
-                : const SizedBox.shrink()),
-            const SizedBox(height: 24),
-          ],
-          
-          // Save Button
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  const Color(0xFFE53E3E),
-                  const Color(0xFFE53E3E).withValues(alpha: 0.9),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFE53E3E).withValues(alpha: 0.4),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
+                  child: Text(Provider.of<LocalizationService>(context, listen: false).getString('edit')),
                 ),
               ],
             ),
-            child: ElevatedButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Row(
-                      children: [
-                        const Icon(Icons.check_circle, color: Colors.white),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            loc.getString('notification_settings_saved') == 'notification_settings_saved'
-                                ? 'Settings saved successfully'
-                                : loc.getString('notification_settings_saved'),
-                          ),
-                        ),
-                      ],
-                    ),
-                    backgroundColor: const Color(0xFFE53E3E),
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.save, size: 20),
-              label: Text(
-                loc.getString('save_settings') == 'save_settings'
-                    ? 'Save Settings'
-                    : loc.getString('save_settings'),
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 56),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-            ),
           ),
-          const SizedBox(height: 32),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildSectionHeader(String title, IconData icon, bool isDark) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: const Color(0xFFE53E3E).withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(
-            icon,
-            size: 20,
-            color: const Color(0xFFE53E3E),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: isDark ? Colors.white : Colors.black87,
-            letterSpacing: -0.3,
-          ),
-        ),
-      ],
-    );
-  }
-  
-  Widget _buildModernSettingCard({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-    required bool isDark,
-    required Widget child,
-  }) {
+          
+          ...reminderSettings.entries.map((entry) {
+            String title = _getSettingTitle(entry.key);
+            String subtitle = _getSettingSubtitle(entry.key);
+            IconData icon = _getSettingIcon(entry.key);
+            
             return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            iconColor.withValues(alpha: 0.05),
-            iconColor.withValues(alpha: 0.02),
-          ],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withValues(alpha: 0.3)
-                : iconColor.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Container(
-        padding: const EdgeInsets.all(20),
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF161B22) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: iconColor.withValues(alpha: 0.2),
-            width: 1.5,
-          ),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: isDark ? const Color(0xFF30363D) : Colors.grey[300]!),
               ),
               child: Row(
                 children: [
                   Container(
-              width: 56,
-              height: 56,
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    iconColor.withValues(alpha: 0.2),
-                    iconColor.withValues(alpha: 0.1),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: iconColor.withValues(alpha: 0.3),
-                  width: 1.5,
-                ),
-              ),
-              child: Icon(
-                icon,
-                color: iconColor,
-                size: 28,
-              ),
+                      color: const Color(0xFFE53E3E).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(icon, color: const Color(0xFFE53E3E), size: 20),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -1871,217 +1235,55 @@ class _NotificationScreenState extends State<NotificationScreen> with TickerProv
                       children: [
                         Text(
                           title,
-                    style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black87,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                  const SizedBox(height: 4),
                         Text(
                           subtitle,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: isDark ? Colors.grey[400] : Colors.grey[600],
-                    ),
+                          style: TextStyle(fontSize: 14, color: isDark ? Colors.grey[400] : Colors.grey[600]),
                         ),
                       ],
                     ),
                   ),
-            child,
-          ],
-        ),
-      ),
-    );
-  }
-  
-  Widget _buildModernSwitchSetting({
-    required String key,
-    required bool isDark,
-    required LocalizationService loc,
-  }) {
-    final title = _getSettingTitle(key);
-    final subtitle = _getSettingSubtitle(key);
-    final icon = _getSettingIcon(key);
-    final iconColor = _getIconColor(key);
-    final isEnabled = reminderSettings[key] ?? false;
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: isEnabled
-            ? LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  iconColor.withValues(alpha: 0.08),
-                  iconColor.withValues(alpha: 0.03),
-                ],
-              )
-            : null,
-        boxShadow: [
-          BoxShadow(
-            color: isEnabled
-                ? iconColor.withValues(alpha: 0.15)
-                : (isDark ? Colors.black.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.1)),
-            blurRadius: isEnabled ? 8 : 4,
-            offset: Offset(0, isEnabled ? 3 : 2),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
-        child: InkWell(
-          onTap: () {
-                      setState(() {
-              reminderSettings[key] = !isEnabled;
-                      });
-                    },
-          borderRadius: BorderRadius.circular(18),
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF161B22) : Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: isEnabled
-                    ? iconColor.withValues(alpha: 0.4)
-                    : (isDark ? const Color(0xFF30363D) : Colors.grey[200]!),
-                width: isEnabled ? 2 : 1,
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: isEnabled
-                          ? [
-                              iconColor.withValues(alpha: 0.25),
-                              iconColor.withValues(alpha: 0.15),
-                            ]
-                          : [
-                              Colors.grey.withValues(alpha: 0.1),
-                              Colors.grey.withValues(alpha: 0.05),
-                            ],
-                    ),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: isEnabled
-                          ? iconColor.withValues(alpha: 0.4)
-                          : Colors.grey.withValues(alpha: 0.2),
-                      width: 1.5,
-                    ),
-                    boxShadow: isEnabled
-                        ? [
-                            BoxShadow(
-                              color: iconColor.withValues(alpha: 0.2),
-                              blurRadius: 8,
-                              spreadRadius: 0,
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Icon(
-                    icon,
-                    color: isEnabled ? iconColor : Colors.grey[400],
-                    size: 28,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: isEnabled ? FontWeight.bold : FontWeight.w600,
-                          color: isDark ? Colors.white : Colors.black87,
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: isDark ? Colors.grey[400] : Colors.grey[600],
-                          height: 1.3,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isEnabled
-                          ? iconColor.withValues(alpha: 0.3)
-                          : Colors.grey.withValues(alpha: 0.2),
-                      width: 1,
-                    ),
-                  ),
-                  child: Switch(
-                    value: isEnabled,
+                  Switch(
+                    value: entry.value,
                     onChanged: (value) {
                       setState(() {
-                        reminderSettings[key] = value;
+                        reminderSettings[entry.key] = value;
                       });
                     },
-                    activeColor: iconColor,
-                    activeTrackColor: iconColor.withValues(alpha: 0.5),
-                    inactiveThumbColor: Colors.grey[400],
-                    inactiveTrackColor: Colors.grey[300],
+                    activeThumbColor: const Color(0xFFE53E3E),
+                  ),
+                ],
+              ),
+            );
+          }),
+          
+          const SizedBox(height: 32),
+          
+          ElevatedButton.icon(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(Provider.of<LocalizationService>(context, listen: false).getString('notification_settings_saved')),
+                  backgroundColor: const Color(0xFFE53E3E),
+                ),
+              );
+            },
+            icon: const Icon(Icons.save),
+            label: Text(Provider.of<LocalizationService>(context, listen: false).getString('save_settings')),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE53E3E),
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 50),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
         ],
-            ),
-          ),
-        ),
       ),
     );
-  }
-  
-  Color _getIconColor(String key) {
-    switch (key) {
-      case 'test_reminders':
-      case 'critical_alerts':
-        return Colors.red;
-      case 'medication_reminders':
-        return Colors.blue;
-      case 'water_reminders':
-        return Colors.cyan;
-      case 'exercise_reminders':
-        return Colors.orange;
-      case 'nutrition_tips':
-      case 'personalized_diet':
-      case 'smart_meals':
-        return Colors.green;
-      case 'motivational_messages':
-        return Colors.pink;
-      case 'health_tips':
-        return Colors.purple;
-      case 'stress_management':
-        return Colors.indigo;
-      case 'weekly_reports':
-        return Colors.amber;
-      case 'appointment_reminders':
-        return Colors.teal;
-      default:
-        return const Color(0xFFE53E3E);
-    }
   }
 
   String _getSettingTitle(String key) {

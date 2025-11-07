@@ -322,7 +322,7 @@ Uygulama **%85-90 hazır** durumda. Ancak production'a geçmeden önce aşağıd
 
 - ✅ Localization (9 dil: TR, EN, ES, FR, DE, AR, IT, PT, RU)
 - ✅ Privacy Policy (hosted: https://meloshemo.github.io)
-- ✅ Terms of Use (hosted: https://meloshemo.github.io/HemoAI)
+- ✅ Terms of Use (hosted: https://meloshemo.github.io/hemoai-support/terms-of-use.html)
 - ✅ Network connectivity control
 - ✅ Deep linking
 - ✅ Memory leak fixes

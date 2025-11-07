@@ -1,11 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:async';
 import 'premium_service.dart';
+import 'currency_service.dart';
 import 'localization_service.dart';
-import 'email_service.dart';
+import 'dart:async';
 
 /// Payment service for handling in-app purchases (Android/iOS) and web payments
 /// Note: For Turkey, use TurkishPaymentService instead (uses İyzico instead of Stripe)
@@ -31,7 +32,9 @@ class PaymentService implements IPaymentService {
   factory PaymentService() => _instance;
   PaymentService._internal();
 
-  // Note: Stripe integration removed - using only Google Play and App Store
+  static const String _stripeMonthlyUrl = 'https://buy.stripe.com/monthly'; // TODO: Replace with real Stripe Checkout URL
+  static const String _stripeYearlyUrl = 'https://buy.stripe.com/yearly';
+  static const String _stripeLifetimeUrl = 'https://buy.stripe.com/lifetime';
 
   // In-App Purchase product IDs (configure in Google Play Console & App Store Connect)
   static const String _productIdMonthly = 'hemoai_premium_monthly';
@@ -47,13 +50,12 @@ class PaymentService implements IPaymentService {
   /// Initialize payment service
   Future<void> initialize() async {
     if (kIsWeb) {
-      // Web: Premium not available on web platform
-      _isAvailable = false;
-      debugPrint('[PaymentService] Premium subscriptions are only available on mobile platforms');
+      // Web: Stripe Checkout will be used
+      _isAvailable = true;
       return;
     }
 
-    // Mobile: Initialize in-app purchase (Google Play / App Store)
+    // Mobile: Initialize in-app purchase
     _isAvailable = await _inAppPurchase.isAvailable();
     if (!_isAvailable) {
       debugPrint('[PaymentService] In-app purchase not available');
@@ -106,16 +108,6 @@ class PaymentService implements IPaymentService {
       if (purchase.status == PurchaseStatus.purchased || 
           purchase.status == PurchaseStatus.restored) {
         await _verifyAndActivatePremium(purchase);
-        
-        // For restored purchases, also update PremiumService with purchase details
-        if (purchase.status == PurchaseStatus.restored) {
-          final premiumService = PremiumService();
-          await premiumService.activateFromRestoredPurchase(
-            productId: purchase.productID,
-            purchaseId: purchase.purchaseID ?? '',
-          );
-        }
-        
         if (purchase.pendingCompletePurchase) {
           await _inAppPurchase.completePurchase(purchase);
         }
@@ -131,46 +123,19 @@ class PaymentService implements IPaymentService {
       final productId = purchase.productID;
       final premiumService = PremiumService();
 
-      DateTime? expiryDate;
-      String tier = 'monthly';
-      
       if (productId == _productIdLifetime) {
         await premiumService.setTier(SubscriptionTier.lifetime, isLifetime: true);
-        tier = 'lifetime';
         debugPrint('[PaymentService] Lifetime premium activated');
       } else if (productId == _productIdYearly) {
         await premiumService.setTier(SubscriptionTier.premium);
-        expiryDate = DateTime.now().add(const Duration(days: 365));
-        await premiumService.setSubscriptionExpiry(expiryDate);
-        tier = 'yearly';
-        debugPrint('[PaymentService] Yearly premium activated until $expiryDate');
+        final expiry = DateTime.now().add(const Duration(days: 365));
+        await premiumService.setSubscriptionExpiry(expiry);
+        debugPrint('[PaymentService] Yearly premium activated until $expiry');
       } else if (productId == _productIdMonthly) {
         await premiumService.setTier(SubscriptionTier.premium);
-        expiryDate = DateTime.now().add(const Duration(days: 30));
-        await premiumService.setSubscriptionExpiry(expiryDate);
-        tier = 'monthly';
-        debugPrint('[PaymentService] Monthly premium activated until $expiryDate');
-      }
-
-      // Send premium activation email
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        final userEmail = prefs.getString('user_email');
-        final userName = prefs.getString('user_name') ?? 'User';
-        final locale = prefs.getString('selected_language') ?? 'en';
-        
-        if (userEmail != null && userEmail.isNotEmpty) {
-          final emailService = EmailService();
-          await emailService.sendPremiumActivationEmail(
-            toEmail: userEmail,
-            userName: userName,
-            tier: tier,
-            locale: locale.length >= 2 ? locale.substring(0, 2) : 'en',
-            expiryDate: expiryDate,
-          );
-        }
-      } catch (e) {
-        debugPrint('[PaymentService] Premium activation email error (non-critical): $e');
+        final expiry = DateTime.now().add(const Duration(days: 30));
+        await premiumService.setSubscriptionExpiry(expiry);
+        debugPrint('[PaymentService] Monthly premium activated until $expiry');
       }
 
       // Store purchase receipt for server-side verification (optional)
@@ -182,8 +147,7 @@ class PaymentService implements IPaymentService {
     }
   }
 
-  /// Purchase premium (mobile: in-app purchase only)
-  /// Note: Premium subscriptions are only available on mobile platforms (Android/iOS)
+  /// Purchase premium (mobile: in-app purchase, web: Stripe)
   Future<bool> purchasePremium({
     required BuildContext context,
     required bool isYearly,
@@ -192,29 +156,84 @@ class PaymentService implements IPaymentService {
     String? userName,
   }) async {
     if (kIsWeb) {
-      // Web: Premium is not available, show message to user
-      final loc = LocalizationService();
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(loc.getString('premium_web_not_available') ?? 'Premium özellikler sadece mobil uygulamalarda mevcuttur. Lütfen Android veya iOS uygulamasını indirin.'),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 5),
-            action: SnackBarAction(
-              label: loc.getString('ok') ?? 'Tamam',
-              onPressed: () {},
-            ),
-          ),
-        );
-      }
-      return false;
+      // Web: Open Stripe Checkout
+      return await _purchasePremiumWeb(context, isYearly: isYearly, isLifetime: isLifetime);
     } else {
-      // Mobile: In-app purchase via Google Play / App Store
+      // Mobile: In-app purchase
       return await _purchasePremiumMobile(isYearly: isYearly, isLifetime: isLifetime);
     }
   }
 
-  // Stripe integration removed - premium is only available on mobile platforms
+  /// Purchase premium via Stripe Checkout (web)
+  Future<bool> _purchasePremiumWeb(
+    BuildContext context, {
+    required bool isYearly,
+    required bool isLifetime,
+  }) async {
+    try {
+      String url;
+      if (isLifetime) {
+        url = _stripeLifetimeUrl;
+      } else if (isYearly) {
+        url = _stripeYearlyUrl;
+      } else {
+        url = _stripeMonthlyUrl;
+      }
+
+      // TODO: Replace with actual Stripe Checkout URLs
+      // For now, show a dialog explaining the setup needed
+      if (kDebugMode) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Stripe Integration Required'),
+            content: Text(
+              'To enable web payments, configure Stripe Checkout:\n\n'
+              '1. Create Stripe account\n'
+              '2. Set up Checkout URLs for monthly/yearly/lifetime\n'
+              '3. Configure webhook to verify payments\n'
+              '4. Update PaymentService with your URLs\n\n'
+              'URL would open: $url',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+
+      // Simulate successful purchase for testing
+      // TODO: Remove this after Stripe integration
+      if (kDebugMode) {
+        await Future.delayed(const Duration(seconds: 2));
+        final premiumService = PremiumService();
+        if (isLifetime) {
+          await premiumService.setTier(SubscriptionTier.lifetime, isLifetime: true);
+        } else {
+          await premiumService.setTier(SubscriptionTier.premium);
+          final expiry = DateTime.now().add(Duration(days: isYearly ? 365 : 30));
+          await premiumService.setSubscriptionExpiry(expiry);
+        }
+        return true;
+      }
+
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+        
+        // After Stripe payment, webhook should update user's premium status
+        // For now, return false and wait for webhook confirmation
+        return false;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('[PaymentService] Web purchase error: $e');
+      return false;
+    }
+  }
 
   /// Purchase premium via in-app purchase (mobile)
   Future<bool> _purchasePremiumMobile({
@@ -257,29 +276,17 @@ class PaymentService implements IPaymentService {
   }
 
   /// Restore purchases (mobile only)
-  /// This will trigger the purchase stream which will restore any previous purchases
   Future<bool> restorePurchases() async {
     if (kIsWeb) {
-      // Web: Premium not available on web platform
-      debugPrint('[PaymentService] Premium subscriptions are only available on mobile platforms');
+      // Web: Stripe purchases should be verified server-side
       return false;
     }
 
-    if (!_isAvailable) {
-      debugPrint('[PaymentService] In-app purchase not available for restore');
-      return false;
-    }
+    if (!_isAvailable) return false;
 
     try {
-      // Restore purchases will trigger the purchase stream
-      // The stream listener (_onPurchaseUpdate) will handle restored purchases
       await _inAppPurchase.restorePurchases();
-      debugPrint('[PaymentService] Restore purchases initiated - listening for restored purchases');
-      
-      // Also reload PremiumService state
-      final premiumService = PremiumService();
-      await premiumService.restorePurchases();
-      
+      debugPrint('[PaymentService] Restore purchases initiated');
       return true;
     } catch (e) {
       debugPrint('[PaymentService] Restore purchases error: $e');
@@ -287,11 +294,17 @@ class PaymentService implements IPaymentService {
     }
   }
 
-  /// Get product price for display (mobile only)
+  /// Get product price for display
   String? getProductPrice({required bool isYearly, required bool isLifetime, String? languageCode}) {
+    final loc = LocalizationService();
+    final lang = languageCode ?? loc.currentLanguageCode;
+    final currencyService = CurrencyService();
+    
     if (kIsWeb) {
-      // Web: Premium not available
-      return null;
+      // Web: Use currency service for dynamic pricing
+      if (isLifetime) return currencyService.getLifetimePrice(lang);
+      if (isYearly) return currencyService.getYearlyPrice(lang);
+      return currencyService.getMonthlyPrice(lang);
     }
 
     try {

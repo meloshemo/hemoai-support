@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/color_compat.dart';
 import 'package:provider/provider.dart';
 import '../services/preferences_service.dart';
 import '../services/database_helper.dart';
@@ -8,7 +9,7 @@ import '../utils/responsive_helper.dart';
 import '../services/family_service.dart';
 import '../widgets/labubu_avatar.dart';
 import '../services/cache_service.dart';
-import 'package:contacts_service/contacts_service.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class FamilyPanelScreen extends StatefulWidget {
@@ -1160,15 +1161,27 @@ class _InviteUserDialogState extends State<_InviteUserDialog> {
   }
 
   Future<void> _selectFromContacts(BuildContext context) async {
-    final loc = Provider.of<LocalizationService>(context, listen: false);
     try {
       // Request contacts permission
       final permission = await Permission.contacts.request();
       if (!permission.isGranted) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(loc.getString('contacts_permission_required')),
+            const SnackBar(
+              content: Text('Contacts permission is required to select a contact'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      final flutterContactsGranted = await FlutterContacts.requestPermission(readonly: true);
+      if (!flutterContactsGranted) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Contacts permission denied'),
               backgroundColor: Colors.orange,
             ),
           );
@@ -1177,14 +1190,14 @@ class _InviteUserDialogState extends State<_InviteUserDialog> {
       }
 
       // Get contacts
-      final contacts = await ContactsService.getContacts();
+      final contacts = await FlutterContacts.getContacts(withProperties: true);
       if (!context.mounted) return;
 
       // Show contact picker
       final selectedContact = await showDialog<Contact>(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text(loc.getString('select_contact')),
+          title: const Text('Select Contact'),
           content: SizedBox(
             width: double.maxFinite,
             child: ListView.builder(
@@ -1192,13 +1205,13 @@ class _InviteUserDialogState extends State<_InviteUserDialog> {
               itemCount: contacts.length,
               itemBuilder: (context, index) {
                 final contact = contacts[index];
-                final phoneNumber = contact.phones?.isNotEmpty == true
-                    ? contact.phones!.first.value
+                final phoneNumber = contact.phones.isNotEmpty
+                    ? contact.phones.first.number
                     : 'No phone';
                 return ListTile(
                   leading: const Icon(Icons.person),
-                  title: Text(contact.displayName ?? 'Unknown'),
-                  subtitle: Text(phoneNumber ?? 'No phone'),
+                  title: Text(contact.displayName),
+                  subtitle: Text(phoneNumber),
                   onTap: () => Navigator.pop(context, contact),
                 );
               },
@@ -1207,28 +1220,26 @@ class _InviteUserDialogState extends State<_InviteUserDialog> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text(loc.getString('cancel')),
+              child: const Text('Cancel'),
             ),
           ],
         ),
       );
 
-      if (selectedContact != null && selectedContact.phones?.isNotEmpty == true) {
-        final phoneValue = selectedContact.phones!.first.value;
-        if (phoneValue != null) {
-          final phoneNumber = phoneValue
-              .replaceAll(RegExp(r'[^\d+]'), '')
-              .trim();
-          setState(() {
-            _phoneController.text = phoneNumber;
-          });
-        }
+      if (selectedContact != null && selectedContact.phones.isNotEmpty) {
+        final phoneValue = selectedContact.phones.first.number;
+        final phoneNumber = phoneValue
+            .replaceAll(RegExp(r'[^\d+]'), '')
+            .trim();
+        setState(() {
+          _phoneController.text = phoneNumber;
+        });
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(loc.getStringWithParams('error_selecting_contact', {'error': e.toString()})),
+            content: Text('Error selecting contact: $e'),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -1307,7 +1318,7 @@ class _InviteUserDialogState extends State<_InviteUserDialog> {
                   const SizedBox(width: 8),
                   IconButton(
                     icon: const Icon(Icons.contacts),
-                      tooltip: Provider.of<LocalizationService>(context, listen: false).getString('select_from_contacts'),
+                    tooltip: 'Select from contacts',
                     onPressed: () => _selectFromContacts(context),
                     style: IconButton.styleFrom(
                       backgroundColor: cs.primaryContainer,

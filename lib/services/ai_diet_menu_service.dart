@@ -13,33 +13,16 @@ class AIDietMenuService {
     required int dayIndex,
     Map<String, double>? hemogramValues,
   }) {
-    // Generate unique seed for this day using date to ensure variety across days
-    // This ensures different menus even on the same weekday across different weeks
-    final now = DateTime.now();
-    final dateSeed = '${now.year}-${now.month}-${now.day}-$dayIndex-$riskTag';
-    final seedHash = _hash(dateSeed);
-    
-    // Use seed to add variety to day variations
-    final adjustedDayIndex = (dayIndex + (seedHash % 7)) % 7;
+    // Generate unique seed for this day to ensure variety
+    // Note: We use deterministic selection based on day and risk tag
+    // No need for Random since we're using predefined menus
 
     return {
-      'breakfast': _generateBreakfast(riskTag, adjustedDayIndex, hemogramValues),
-      'lunch': _generateLunch(riskTag, adjustedDayIndex, hemogramValues),
-      'snack': _generateSnack(riskTag, adjustedDayIndex, hemogramValues),
-      'dinner': _generateDinner(riskTag, adjustedDayIndex, hemogramValues),
+      'breakfast': _generateBreakfast(riskTag, dayIndex, hemogramValues),
+      'lunch': _generateLunch(riskTag, dayIndex, hemogramValues),
+      'snack': _generateSnack(riskTag, dayIndex, hemogramValues),
+      'dinner': _generateDinner(riskTag, dayIndex, hemogramValues),
     };
-  }
-  
-  // Simple hash function for deterministic variety
-  int _hash(String s) {
-    const int fnvOffset = 0x811C9DC5;
-    const int fnvPrime = 0x01000193;
-    int hash = fnvOffset;
-    for (int i = 0; i < s.length; i++) {
-      hash ^= s.codeUnitAt(i);
-      hash = (hash * fnvPrime) & 0xFFFFFFFF;
-    }
-    return hash & 0x7FFFFFFF;
   }
 
   /// Generate breakfast menu - varied and rich options

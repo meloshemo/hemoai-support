@@ -59,13 +59,15 @@ class LocalizationService extends ChangeNotifier {
 
       if (savedLanguage != null) {
         final locale = Locale(savedLanguage, '');
-        if (supportedLocales.any((l) => l.languageCode == locale.languageCode)) {
+        if (supportedLocales
+            .any((l) => l.languageCode == locale.languageCode)) {
           _currentLocale = locale;
         }
       } else {
         // No saved preference -> detect device locale
         try {
-          final deviceLocale = WidgetsBinding.instance.platformDispatcher.locale;
+          final deviceLocale =
+              WidgetsBinding.instance.platformDispatcher.locale;
           final deviceCode = deviceLocale.languageCode;
           final matched = supportedLocales.firstWhere(
             (l) => l.languageCode == deviceCode,
@@ -75,15 +77,17 @@ class LocalizationService extends ChangeNotifier {
         } catch (e) {
           // Fallback already English
           if (kDebugMode) {
-            debugPrint('⚠️ Failed to detect system locale, using fallback en. Error: $e');
+            debugPrint(
+                '⚠️ Failed to detect system locale, using fallback en. Error: $e');
           }
         }
       }
-      
+
       notifyListeners();
-      
+
       if (kDebugMode) {
-        debugPrint('🌍 LocalizationService initialized with locale: ${_currentLocale.languageCode}');
+        debugPrint(
+            '🌍 LocalizationService initialized with locale: ${_currentLocale.languageCode}');
       }
     } catch (e) {
       if (kDebugMode) {
@@ -96,17 +100,18 @@ class LocalizationService extends ChangeNotifier {
   Future<void> changeLanguage(String languageCode) async {
     try {
       final newLocale = Locale(languageCode, '');
-      
+
       // Check if language code is supported
-      if (supportedLocales.any((l) => l.languageCode == newLocale.languageCode)) {
+      if (supportedLocales
+          .any((l) => l.languageCode == newLocale.languageCode)) {
         _currentLocale = newLocale;
-        
+
         // Save to preferences
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('selected_language', languageCode);
-        
+
         notifyListeners();
-        
+
         if (kDebugMode) {
           debugPrint('🌍 Language changed to: $languageCode');
         }
@@ -126,7 +131,8 @@ class LocalizationService extends ChangeNotifier {
   String get currentLanguageCode => _currentLocale.languageCode;
 
   // Get current language name
-  String get currentLanguageName => languageNames[currentLanguageCode] ?? 'Unknown';
+  String get currentLanguageName =>
+      languageNames[currentLanguageCode] ?? 'Unknown';
 
   // Get current language flag
   String get currentLanguageFlag => languageFlags[currentLanguageCode] ?? '🌐';
@@ -135,7 +141,8 @@ class LocalizationService extends ChangeNotifier {
   bool get isRTL => currentLanguageCode == 'ar';
 
   // Get text direction
-  TextDirection get textDirection => isRTL ? TextDirection.rtl : TextDirection.ltr;
+  TextDirection get textDirection =>
+      isRTL ? TextDirection.rtl : TextDirection.ltr;
 
   // Localized strings - Main translations
   // Removed const to avoid constant evaluation issues with large map & escaped quotes
@@ -186,7 +193,7 @@ class LocalizationService extends ChangeNotifier {
       'ru': 'Вода сегодня',
     },
     'water_goal': {
-        'fr': 'Aujourd\'hui',
+      'fr': 'Aujourd\'hui',
       'en': 'Goal',
       'es': 'Meta',
       'fr': 'Objectif',
@@ -263,11 +270,11 @@ class LocalizationService extends ChangeNotifier {
       'pt': 'Adicionar Novo Teste',
       'ru': 'Добавить новый тест',
     },
-  'view_detailed_analysis': {
+    'view_detailed_analysis': {
       'tr': 'Detaylı Analizi Görüntüle',
       'en': 'View Detailed Analysis',
       'es': 'Ver Análisis Detallado',
-  'fr': 'Voir l\'Analyse Détaillée',
+      'fr': 'Voir l\'Analyse Détaillée',
       'de': 'Detaillierte Analyse Anzeigen',
       'ar': 'عرض التحليل التفصيلي',
       'it': 'Visualizza Analisi Dettagliata',
@@ -307,11 +314,11 @@ class LocalizationService extends ChangeNotifier {
       'pt': 'Página não encontrada',
       'ru': 'Страница не найдена',
     },
-  'page_not_found_message': {
+    'page_not_found_message': {
       'tr': 'Aradığınız sayfa mevcut değil.',
       'en': 'The page you are looking for does not exist.',
       'es': 'La página que busca no existe.',
-  'fr': 'La page que vous recherchez n\'existe pas.',
+      'fr': 'La page que vous recherchez n\'existe pas.',
       'de': 'Die gesuchte Seite existiert nicht.',
       'ar': 'الصفحة التي تبحث عنها غير موجودة.',
       'it': 'La pagina che stai cercando non esiste.',
@@ -340,11 +347,11 @@ class LocalizationService extends ChangeNotifier {
       'pt': 'Erro ao limpar cache: {error}',
       'ru': 'Ошибка очистки кэша: {error}',
     },
-  'error_applying_settings': {
+    'error_applying_settings': {
       'tr': 'Ayarlar uygulanırken hata: {error}',
       'en': 'Error applying settings: {error}',
       'es': 'Error al aplicar la configuración: {error}',
-  'fr': 'Erreur lors de l\'application des paramètres : {error}',
+      'fr': 'Erreur lors de l\'application des paramètres : {error}',
       'de': 'Fehler beim Anwenden der Einstellungen: {error}',
       'ar': 'خطأ أثناء تطبيق الإعدادات: {error}',
       'it': 'Errore nell\'applicazione delle impostazioni: {error}',
@@ -389,7 +396,8 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Add reminders to stay on top of your health',
       'es': 'Agrega recordatorios para mantener tu salud',
       'fr': 'Ajoutez des rappels pour rester attentif à votre santé',
-      'de': 'Fügen Sie Erinnerungen hinzu, um Ihre Gesundheit im Blick zu behalten',
+      'de':
+          'Fügen Sie Erinnerungen hinzu, um Ihre Gesundheit im Blick zu behalten',
       'ar': 'أضف تذكيرات للبقاء على متابعة صحتك',
       'it': 'Aggiungi promemoria per tenere sotto controllo la tua salute',
       'pt': 'Adicione lembretes para acompanhar sua saúde',
@@ -552,47 +560,71 @@ class LocalizationService extends ChangeNotifier {
     },
     'health_status_excellent': {
       'tr': 'Mükemmel! Sağlık ölçümleriniz harika durumda. Böyle devam edin!',
-      'en': 'Excellent! Your health metrics are in great shape. Keep up the good work!',
-      'es': '¡Excelente! Sus métricas de salud están en gran estado. ¡Siga así!',
-      'fr': 'Excellent ! Vos indicateurs de santé sont excellents. Continuez comme ça !',
-      'de': 'Ausgezeichnet! Ihre Gesundheitswerte sind in großartiger Verfassung. Weiter so!',
+      'en':
+          'Excellent! Your health metrics are in great shape. Keep up the good work!',
+      'es':
+          '¡Excelente! Sus métricas de salud están en gran estado. ¡Siga así!',
+      'fr':
+          'Excellent ! Vos indicateurs de santé sont excellents. Continuez comme ça !',
+      'de':
+          'Ausgezeichnet! Ihre Gesundheitswerte sind in großartiger Verfassung. Weiter so!',
       'ar': 'ممتاز! مؤشرات صحتك رائعة. استمر على هذا المنوال!',
-      'it': 'Eccellente! Le tue metriche di salute sono in ottima forma. Continua così!',
-      'pt': 'Excelente! Suas métricas de saúde estão em ótima forma. Continue assim!',
-      'ru': 'Отлично! Ваши показатели здоровья в отличной форме. Продолжайте в том же духе!',
+      'it':
+          'Eccellente! Le tue metriche di salute sono in ottima forma. Continua così!',
+      'pt':
+          'Excelente! Suas métricas de saúde estão em ótima forma. Continue assim!',
+      'ru':
+          'Отлично! Ваши показатели здоровья в отличной форме. Продолжайте в том же духе!',
     },
     'health_status_good': {
       'tr': 'Genel sağlık iyi. Birkaç küçük iyileştirme puanınızı artırabilir.',
-      'en': 'Good health overall. A few minor improvements could boost your score.',
-      'es': 'Buena salud en general. Algunas pequeñas mejoras podrían aumentar su puntuación.',
-      'fr': 'Bonne santé globale. Quelques petites améliorations pourraient augmenter votre score.',
-      'de': 'Insgesamt gute Gesundheit. Einige kleine Verbesserungen könnten Ihre Punktzahl erhöhen.',
+      'en':
+          'Good health overall. A few minor improvements could boost your score.',
+      'es':
+          'Buena salud en general. Algunas pequeñas mejoras podrían aumentar su puntuación.',
+      'fr':
+          'Bonne santé globale. Quelques petites améliorations pourraient augmenter votre score.',
+      'de':
+          'Insgesamt gute Gesundheit. Einige kleine Verbesserungen könnten Ihre Punktzahl erhöhen.',
       'ar': 'صحة جيدة بشكل عام. بعض التحسينات البسيطة قد ترفع درجتك.',
-      'it': 'Buona salute generale. Alcuni piccoli miglioramenti potrebbero aumentare il tuo punteggio.',
-      'pt': 'Boa saúde geral. Algumas pequenas melhorias podem aumentar sua pontuação.',
-      'ru': 'Хорошее здоровье в целом. Несколько небольших улучшений могут повысить ваш балл.',
+      'it':
+          'Buona salute generale. Alcuni piccoli miglioramenti potrebbero aumentare il tuo punteggio.',
+      'pt':
+          'Boa saúde geral. Algumas pequenas melhorias podem aumentar sua pontuação.',
+      'ru':
+          'Хорошее здоровье в целом. Несколько небольших улучшений могут повысить ваш балл.',
     },
     'health_status_fair': {
-      'tr': 'Orta düzey sağlık. Yaşam tarzı değişiklikleri ve düzenli takip önerilir.',
+      'tr':
+          'Orta düzey sağlık. Yaşam tarzı değişiklikleri ve düzenli takip önerilir.',
       'en': 'Fair health. Consider lifestyle changes and regular monitoring.',
-      'es': 'Salud regular. Considere cambios en el estilo de vida y un seguimiento regular.',
-      'fr': 'Santé moyenne. Envisagez des changements de mode de vie et un suivi régulier.',
-      'de': 'Mäßige Gesundheit. Ziehen Sie Lebensstiländerungen und regelmäßige Überwachung in Betracht.',
+      'es':
+          'Salud regular. Considere cambios en el estilo de vida y un seguimiento regular.',
+      'fr':
+          'Santé moyenne. Envisagez des changements de mode de vie et un suivi régulier.',
+      'de':
+          'Mäßige Gesundheit. Ziehen Sie Lebensstiländerungen und regelmäßige Überwachung in Betracht.',
       'ar': 'صحة متوسطة. انظر في تغييرات نمط الحياة والمراقبة المنتظمة.',
-      'it': 'Salute discreta. Considera cambiamenti nello stile di vita e monitoraggio regolare.',
-      'pt': 'Saúde razoável. Considere mudanças no estilo de vida e monitoramento regular.',
-      'ru': 'Удовлетворительное здоровье. Рассмотрите изменения образа жизни и регулярный мониторинг.',
+      'it':
+          'Salute discreta. Considera cambiamenti nello stile di vita e monitoraggio regolare.',
+      'pt':
+          'Saúde razoável. Considere mudanças no estilo de vida e monitoramento regular.',
+      'ru':
+          'Удовлетворительное здоровье. Рассмотрите изменения образа жизни и регулярный мониторинг.',
     },
     'health_status_attention_needed': {
       'tr': 'Dikkat gerekli. Lütfen sağlık uzmanınızla görüşün.',
       'en': 'Attention needed. Please consult with your healthcare provider.',
-      'es': 'Se necesita atención. Consulte con su proveedor de atención médica.',
-      'fr': 'Attention requise. Veuillez consulter votre professionnel de santé.',
+      'es':
+          'Se necesita atención. Consulte con su proveedor de atención médica.',
+      'fr':
+          'Attention requise. Veuillez consulter votre professionnel de santé.',
       'de': 'Aufmerksamkeit erforderlich. Bitte konsultieren Sie Ihren Arzt.',
       'ar': 'يتطلب الانتباه. يرجى استشارة مقدم الرعاية الصحية.',
       'it': 'Attenzione necessaria. Si prega di consultare il proprio medico.',
       'pt': 'Atenção necessária. Por favor, consulte seu provedor de saúde.',
-      'ru': 'Требуется внимание. Пожалуйста, проконсультируйтесь с вашим лечащим врачом.',
+      'ru':
+          'Требуется внимание. Пожалуйста, проконсультируйтесь с вашим лечащим врачом.',
     },
     // Quick actions
     'quick_actions': {
@@ -677,7 +709,7 @@ class LocalizationService extends ChangeNotifier {
       'tr': 'Bugün',
       'en': 'Today',
       'es': 'Hoy',
-  'fr': 'Aujourd\'hui',
+      'fr': 'Aujourd\'hui',
       'de': 'Heute',
       'ar': 'اليوم',
       'it': 'Oggi',
@@ -863,15 +895,24 @@ class LocalizationService extends ChangeNotifier {
       'ru': 'Экспорт ваших отчетов',
     },
     'export_header_subtitle': {
-      'en': 'Download your hemogram results, analysis reports, and reminders in PDF or Excel format',
-      'tr': 'Hemogram sonuçları, analiz raporları ve hatırlatıcılarınızı PDF veya Excel formatında indirin',
-      'es': 'Descarga tus resultados de hemograma, informes de análisis y recordatorios en formato PDF o Excel',
-      'fr': 'Téléchargez vos résultats d\'hémogramme, rapports d\'analyse et rappels au format PDF ou Excel',
-      'de': 'Laden Sie Ihre Hämogramm-Ergebnisse, Analyseberichte und Erinnerungen im PDF- oder Excel-Format herunter',
-      'ar': 'قم بتنزيل نتائج تعداد الدم وتقارير التحليل والتذكيرات بتنسيق PDF أو Excel',
-      'it': 'Scarica i tuoi risultati dell\'emogramma, rapporti di analisi e promemoria in formato PDF o Excel',
-      'pt': 'Baixe seus resultados de hemograma, relatórios de análise e lembretes em formato PDF ou Excel',
-      'ru': 'Загрузите результаты гемограммы, отчеты анализа и напоминания в формате PDF или Excel',
+      'en':
+          'Download your hemogram results, analysis reports, and reminders in PDF or Excel format',
+      'tr':
+          'Hemogram sonuçları, analiz raporları ve hatırlatıcılarınızı PDF veya Excel formatında indirin',
+      'es':
+          'Descarga tus resultados de hemograma, informes de análisis y recordatorios en formato PDF o Excel',
+      'fr':
+          'Téléchargez vos résultats d\'hémogramme, rapports d\'analyse et rappels au format PDF ou Excel',
+      'de':
+          'Laden Sie Ihre Hämogramm-Ergebnisse, Analyseberichte und Erinnerungen im PDF- oder Excel-Format herunter',
+      'ar':
+          'قم بتنزيل نتائج تعداد الدم وتقارير التحليل والتذكيرات بتنسيق PDF أو Excel',
+      'it':
+          'Scarica i tuoi risultati dell\'emogramma, rapporti di analisi e promemoria in formato PDF o Excel',
+      'pt':
+          'Baixe seus resultados de hemograma, relatórios de análise e lembretes em formato PDF ou Excel',
+      'ru':
+          'Загрузите результаты гемограммы, отчеты анализа и напоминания в формате PDF или Excel',
     },
     'hemogram_reports': {
       'en': 'Hemogram Reports',
@@ -973,14 +1014,19 @@ class LocalizationService extends ChangeNotifier {
       'ru': 'PDF отчет анализа',
     },
     'analysis_report_pdf_description': {
-      'en': 'Report including AI analysis, risk assessment, and recommendations',
+      'en':
+          'Report including AI analysis, risk assessment, and recommendations',
       'tr': 'AI analizi, risk değerlendirmesi ve önerileri içeren rapor',
-      'es': 'Informe que incluye análisis de IA, evaluación de riesgos y recomendaciones',
-      'fr': 'Rapport incluant l\'analyse IA, l\'évaluation des risques et les recommandations',
+      'es':
+          'Informe que incluye análisis de IA, evaluación de riesgos y recomendaciones',
+      'fr':
+          'Rapport incluant l\'analyse IA, l\'évaluation des risques et les recommandations',
       'de': 'Bericht mit KI-Analyse, Risikobewertung und Empfehlungen',
       'ar': 'تقرير يتضمن تحليل الذكاء الاصطناعي وتقييم المخاطر والتوصيات',
-      'it': 'Rapporto che include analisi AI, valutazione del rischio e raccomandazioni',
-      'pt': 'Relatório incluindo análise de IA, avaliação de riscos e recomendações',
+      'it':
+          'Rapporto che include analisi AI, valutazione del rischio e raccomandazioni',
+      'pt':
+          'Relatório incluindo análise de IA, avaliação de riscos e recomendações',
       'ru': 'Отчет, включающий анализ ИИ, оценку рисков и рекомендации',
     },
     'comprehensive_report': {
@@ -1094,15 +1140,24 @@ class LocalizationService extends ChangeNotifier {
       'ru': 'Информация об экспорте',
     },
     'export_info_content': {
-      'en': '• PDF reports include detailed analysis and reference values\n\n• Excel data is suitable for analysis and comparison\n\n• Comprehensive report presents all your data together\n\n• All reports are prepared for doctor consultation',
-      'tr': '• PDF raporları detaylı analiz ve referans değerleri içerir\n\n• Excel verileri analiz ve karşılaştırma için uygundur\n\n• Kapsamlı rapor tüm verilerinizi bir arada sunar\n\n• Tüm raporlar doktor konsültasyonu için hazırlanmıştır',
-      'es': '• Los informes PDF incluyen análisis detallado y valores de referencia\n\n• Los datos de Excel son adecuados para análisis y comparación\n\n• El informe integral presenta todos sus datos juntos\n\n• Todos los informes están preparados para consulta médica',
-      'fr': '• Les rapports PDF incluent une analyse détaillée et des valeurs de référence\n\n• Les données Excel conviennent à l\'analyse et à la comparaison\n\n• Le rapport complet présente toutes vos données ensemble\n\n• Tous les rapports sont préparés pour consultation médicale',
-      'de': '• PDF-Berichte enthalten detaillierte Analysen und Referenzwerte\n\n• Excel-Daten eignen sich für Analyse und Vergleich\n\n• Der umfassende Bericht präsentiert alle Ihre Daten zusammen\n\n• Alle Berichte sind für ärztliche Konsultation vorbereitet',
-      'ar': '• تتضمن تقارير PDF تحليلاً مفصلاً وقيم مرجعية\n\n• بيانات Excel مناسبة للتحليل والمقارنة\n\n• التقرير الشامل يعرض جميع بياناتك معًا\n\n• جميع التقارير جاهزة للاستشارة الطبية',
-      'it': '• I rapporti PDF includono analisi dettagliate e valori di riferimento\n\n• I dati Excel sono adatti per analisi e confronto\n\n• Il rapporto completo presenta tutti i tuoi dati insieme\n\n• Tutti i rapporti sono preparati per consultazione medica',
-      'pt': '• Os relatórios PDF incluem análise detalhada e valores de referência\n\n• Os dados do Excel são adequados para análise e comparação\n\n• O relatório abrangente apresenta todos os seus dados juntos\n\n• Todos os relatórios estão preparados para consulta médica',
-      'ru': '• PDF отчеты включают подробный анализ и референсные значения\n\n• Данные Excel подходят для анализа и сравнения\n\n• Комплексный отчет представляет все ваши данные вместе\n\n• Все отчеты подготовлены для медицинской консультации',
+      'en':
+          '• PDF reports include detailed analysis and reference values\n\n• Excel data is suitable for analysis and comparison\n\n• Comprehensive report presents all your data together\n\n• All reports are prepared for doctor consultation',
+      'tr':
+          '• PDF raporları detaylı analiz ve referans değerleri içerir\n\n• Excel verileri analiz ve karşılaştırma için uygundur\n\n• Kapsamlı rapor tüm verilerinizi bir arada sunar\n\n• Tüm raporlar doktor konsültasyonu için hazırlanmıştır',
+      'es':
+          '• Los informes PDF incluyen análisis detallado y valores de referencia\n\n• Los datos de Excel son adecuados para análisis y comparación\n\n• El informe integral presenta todos sus datos juntos\n\n• Todos los informes están preparados para consulta médica',
+      'fr':
+          '• Les rapports PDF incluent une analyse détaillée et des valeurs de référence\n\n• Les données Excel conviennent à l\'analyse et à la comparaison\n\n• Le rapport complet présente toutes vos données ensemble\n\n• Tous les rapports sont préparés pour consultation médicale',
+      'de':
+          '• PDF-Berichte enthalten detaillierte Analysen und Referenzwerte\n\n• Excel-Daten eignen sich für Analyse und Vergleich\n\n• Der umfassende Bericht präsentiert alle Ihre Daten zusammen\n\n• Alle Berichte sind für ärztliche Konsultation vorbereitet',
+      'ar':
+          '• تتضمن تقارير PDF تحليلاً مفصلاً وقيم مرجعية\n\n• بيانات Excel مناسبة للتحليل والمقارنة\n\n• التقرير الشامل يعرض جميع بياناتك معًا\n\n• جميع التقارير جاهزة للاستشارة الطبية',
+      'it':
+          '• I rapporti PDF includono analisi dettagliate e valori di riferimento\n\n• I dati Excel sono adatti per analisi e confronto\n\n• Il rapporto completo presenta tutti i tuoi dati insieme\n\n• Tutti i rapporti sono preparati per consultazione medica',
+      'pt':
+          '• Os relatórios PDF incluem análise detalhada e valores de referência\n\n• Os dados do Excel são adequados para análise e comparação\n\n• O relatório abrangente apresenta todos os seus dados juntos\n\n• Todos os relatórios estão preparados para consulta médica',
+      'ru':
+          '• PDF отчеты включают подробный анализ и референсные значения\n\n• Данные Excel подходят для анализа и сравнения\n\n• Комплексный отчет представляет все ваши данные вместе\n\n• Все отчеты подготовлены для медицинской консультации',
     },
     'register': {
       'tr': 'Kayıt Ol',
@@ -1380,7 +1435,7 @@ class LocalizationService extends ChangeNotifier {
       'tr': 'Yapay Zekâ Destekli Sağlık İçgörüleri',
       'en': 'AI-Powered Health Insights',
       'es': 'Información de Salud Impulsada por IA',
-  'fr': 'Informations de Santé Propulsées par l\'IA',
+      'fr': 'Informations de Santé Propulsées par l\'IA',
       'de': 'KI-gestützte Gesundheitsinformationen',
       'ar': 'رؤى صحية مدعومة بالذكاء الاصطناعي',
       'it': 'Informazioni Sanitarie Alimentate dall\'IA',
@@ -1470,7 +1525,8 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Enter the 6-digit code sent to your phone',
       'es': 'Ingrese el código de 6 dígitos enviado a su teléfono',
       'fr': 'Entrez le code à 6 chiffres envoyé à votre téléphone',
-      'de': 'Geben Sie den 6-stelligen Code ein, der an Ihr Telefon gesendet wurde',
+      'de':
+          'Geben Sie den 6-stelligen Code ein, der an Ihr Telefon gesendet wurde',
       'ar': 'أدخل الرمز المكون من 6 أرقام المرسل إلى هاتفك',
       'it': 'Inserisci il codice a 6 cifre inviato al tuo telefono',
       'pt': 'Digite o código de 6 dígitos enviado para seu telefone',
@@ -1945,11 +2001,14 @@ class LocalizationService extends ChangeNotifier {
       'tr': 'Şifre sıfırlama özelliği şu an geliştirme aşamasındadır.',
       'en': 'Password reset feature is currently under development.',
       'es': 'La función de restablecimiento de contraseña está en desarrollo.',
-      'fr': 'La fonctionnalité de réinitialisation du mot de passe est en cours de développement.',
+      'fr':
+          'La fonctionnalité de réinitialisation du mot de passe est en cours de développement.',
       'de': 'Die Passwort-Reset-Funktion wird derzeit entwickelt.',
       'ar': 'ميزة إعادة تعيين كلمة المرور قيد التطوير حاليًا.',
-      'it': 'La funzione di reimpostazione password è attualmente in fase di sviluppo.',
-      'pt': 'A funcionalidade de redefinição de senha está atualmente em desenvolvimento.',
+      'it':
+          'La funzione di reimpostazione password è attualmente in fase di sviluppo.',
+      'pt':
+          'A funcionalidade de redefinição de senha está atualmente em desenvolvimento.',
       'ru': 'Функция сброса пароля находится в разработке.',
     },
     'password_reset_warning': {
@@ -1964,28 +2023,44 @@ class LocalizationService extends ChangeNotifier {
       'ru': 'Временное решение',
     },
     'password_reset_solution': {
-      'tr': 'Şifrenizi sıfırlamak için lütfen destek ekibimizle iletişime geçin:\n\n📧 destek@hemoai.com\n\nVeya uygulama ayarlarından manuel olarak yedeğinizi alıp yeni bir hesap oluşturmanızı öneririz.',
-      'en': 'To reset your password, please contact our support team:\n\n📧 support@hemoai.com\n\nAlternatively, we recommend creating a manual backup from settings and creating a new account.',
-      'es': 'Para restablecer su contraseña, comuníquese con nuestro equipo de soporte:\n\n📧 soporte@hemoai.com\n\nAlternativamente, le recomendamos crear una copia de seguridad manual desde la configuración.',
-      'fr': 'Pour réinitialiser votre mot de passe, contactez notre équipe de support:\n\n📧 support@hemoai.com\n\nAlternativement, nous recommandons de créer une sauvegarde manuelle depuis les paramètres.',
-      'de': 'Um Ihr Passwort zurückzusetzen, kontaktieren Sie bitte unser Support-Team:\n\n📧 support@hemoai.com\n\nAlternativ empfehlen wir die Erstellung eines manuellen Backups in den Einstellungen.',
-      'ar': 'لإعادة تعيين كلمة المرور الخاصة بك، يرجى التواصل مع فريق الدعم:\n\n📧 support@hemoai.com\n\nبدلاً من ذلك، نوصي بإنشاء نسخة احتياطية يدويًا من الإعدادات.',
+      'tr':
+          'Şifrenizi sıfırlamak için lütfen destek ekibimizle iletişime geçin:\n\n📧 destek@hemoai.com\n\nVeya uygulama ayarlarından manuel olarak yedeğinizi alıp yeni bir hesap oluşturmanızı öneririz.',
+      'en':
+          'To reset your password, please contact our support team:\n\n📧 support@meloshemo.com\n\nAlternatively, we recommend creating a manual backup from settings and creating a new account.',
+      'es':
+          'Para restablecer su contraseña, comuníquese con nuestro equipo de soporte:\n\n📧 soporte@hemoai.com\n\nAlternativamente, le recomendamos crear una copia de seguridad manual desde la configuración.',
+      'fr':
+          'Pour réinitialiser votre mot de passe, contactez notre équipe de support:\n\n📧 support@meloshemo.com\n\nAlternativement, nous recommandons de créer une sauvegarde manuelle depuis les paramètres.',
+      'de':
+          'Um Ihr Passwort zurückzusetzen, kontaktieren Sie bitte unser Support-Team:\n\n📧 support@meloshemo.com\n\nAlternativ empfehlen wir die Erstellung eines manuellen Backups in den Einstellungen.',
+      'ar':
+          'لإعادة تعيين كلمة المرور الخاصة بك، يرجى التواصل مع فريق الدعم:\n\n📧 support@meloshemo.com\n\nبدلاً من ذلك، نوصي بإنشاء نسخة احتياطية يدويًا من الإعدادات.',
     },
     'enter_email_for_reset': {
-      'tr': 'Şifre sıfırlama bağlantısı göndermek için e-posta adresinizi girin.',
+      'tr':
+          'Şifre sıfırlama bağlantısı göndermek için e-posta adresinizi girin.',
       'en': 'Enter your email address to receive a password reset link.',
-      'es': 'Ingrese su dirección de correo electrónico para recibir un enlace de restablecimiento de contraseña.',
-      'fr': 'Entrez votre adresse e-mail pour recevoir un lien de réinitialisation du mot de passe.',
-      'de': 'Geben Sie Ihre E-Mail-Adresse ein, um einen Link zum Zurücksetzen des Passworts zu erhalten.',
+      'es':
+          'Ingrese su dirección de correo electrónico para recibir un enlace de restablecimiento de contraseña.',
+      'fr':
+          'Entrez votre adresse e-mail pour recevoir un lien de réinitialisation du mot de passe.',
+      'de':
+          'Geben Sie Ihre E-Mail-Adresse ein, um einen Link zum Zurücksetzen des Passworts zu erhalten.',
       'ar': 'أدخل عنوان بريدك الإلكتروني لتلقي رابط إعادة تعيين كلمة المرور.',
     },
     'password_reset_email_sent': {
-      'tr': 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi. Lütfen e-posta kutunuzu kontrol edin.',
-      'en': 'Password reset link has been sent to your email. Please check your inbox.',
-      'es': 'Se ha enviado un enlace de restablecimiento de contraseña a su correo electrónico. Por favor revise su bandeja de entrada.',
-      'fr': 'Un lien de réinitialisation du mot de passe a été envoyé à votre e-mail. Veuillez vérifier votre boîte de réception.',
-      'de': 'Ein Link zum Zurücksetzen des Passworts wurde an Ihre E-Mail gesendet. Bitte überprüfen Sie Ihren Posteingang.',
-      'ar': 'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني. يرجى التحقق من صندوق الوارد الخاص بك.',
+      'tr':
+          'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi. Lütfen e-posta kutunuzu kontrol edin.',
+      'en':
+          'Password reset link has been sent to your email. Please check your inbox.',
+      'es':
+          'Se ha enviado un enlace de restablecimiento de contraseña a su correo electrónico. Por favor revise su bandeja de entrada.',
+      'fr':
+          'Un lien de réinitialisation du mot de passe a été envoyé à votre e-mail. Veuillez vérifier votre boîte de réception.',
+      'de':
+          'Ein Link zum Zurücksetzen des Passworts wurde an Ihre E-Mail gesendet. Bitte überprüfen Sie Ihren Posteingang.',
+      'ar':
+          'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني. يرجى التحقق من صندوق الوارد الخاص بك.',
     },
     'send_reset_link': {
       'tr': 'Sıfırlama Bağlantısı Gönder',
@@ -2046,15 +2121,24 @@ class LocalizationService extends ChangeNotifier {
       'ru': 'Новое напоминание',
     },
     'reminder_header_description': {
-      'tr': 'İlaç, randevu, test ve diğer önemli konular için hatırlatıcı oluşturun',
-      'en': 'Create reminders for medications, appointments, tests and other important items',
-      'es': 'Cree recordatorios para medicamentos, citas, pruebas y otros elementos importantes',
-      'fr': 'Créez des rappels pour les médicaments, rendez-vous, tests et autres éléments importants',
-      'de': 'Erstellen Sie Erinnerungen für Medikamente, Termine, Tests und andere wichtige Dinge',
-      'ar': 'أنشئ تذكيرات للأدوية والمواعيد والاختبارات وغيرها من العناصر المهمة',
-      'it': 'Crea promemoria per farmaci, appuntamenti, test e altri elementi importanti',
-      'pt': 'Crie lembretes para medicamentos, consultas, exames e outros itens importantes',
-      'ru': 'Создавайте напоминания для лекарств, встреч, анализов и других важных вещей',
+      'tr':
+          'İlaç, randevu, test ve diğer önemli konular için hatırlatıcı oluşturun',
+      'en':
+          'Create reminders for medications, appointments, tests and other important items',
+      'es':
+          'Cree recordatorios para medicamentos, citas, pruebas y otros elementos importantes',
+      'fr':
+          'Créez des rappels pour les médicaments, rendez-vous, tests et autres éléments importants',
+      'de':
+          'Erstellen Sie Erinnerungen für Medikamente, Termine, Tests und andere wichtige Dinge',
+      'ar':
+          'أنشئ تذكيرات للأدوية والمواعيد والاختبارات وغيرها من العناصر المهمة',
+      'it':
+          'Crea promemoria per farmaci, appuntamenti, test e altri elementi importanti',
+      'pt':
+          'Crie lembretes para medicamentos, consultas, exames e outros itens importantes',
+      'ru':
+          'Создавайте напоминания для лекарств, встреч, анализов и других важных вещей',
     },
     'reminder_title_label': {
       'tr': 'Hatırlatıcı Başlığı *',
@@ -2831,8 +2915,10 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Welcome to HemoAI!',
     },
     'welcome_subtitle': {
-      'tr': 'Sağlığınızı takip edin, AI destekli analizler alın ve sağlıklı yaşam için öneriler keşfedin.',
-      'en': 'Track your health, get AI-powered analysis, and discover healthy living tips.',
+      'tr':
+          'Sağlığınızı takip edin, AI destekli analizler alın ve sağlıklı yaşam için öneriler keşfedin.',
+      'en':
+          'Track your health, get AI-powered analysis, and discover healthy living tips.',
     },
     'health_goals_achievements': {
       'tr': 'Sağlık Hedefleri ve Başarılar',
@@ -2962,7 +3048,7 @@ class LocalizationService extends ChangeNotifier {
       'de': 'Bald',
       'ar': 'قريباً',
     },
-    // Personal information translations  
+    // Personal information translations
     'name': {
       'tr': 'Ad',
       'en': 'Name',
@@ -3229,7 +3315,7 @@ class LocalizationService extends ChangeNotifier {
       'it': 'Vai al Pannello Principale',
       'pt': 'Ir para o Painel Principal',
       'ru': 'Перейти к главной панели',
-  },
+    },
     'underweight': {
       'tr': 'Zayıf',
       'en': 'Underweight',
@@ -3663,12 +3749,15 @@ class LocalizationService extends ChangeNotifier {
       'tr': 'OCR ile belge okuma özelliği yakında eklenecek.',
       'en': 'OCR document scanning feature will be added soon.',
       'es': 'La función de escaneo de documentos OCR se agregará pronto.',
-      'fr': 'La fonctionnalité de numérisation de documents OCR sera bientôt ajoutée.',
+      'fr':
+          'La fonctionnalité de numérisation de documents OCR sera bientôt ajoutée.',
       'de': 'OCR-Dokumentenscanning-Funktion wird bald hinzugefügt.',
       'ar': 'ستضاف ميزة مسح المستندات بتقنية OCR قريباً.',
       'it': 'La funzione di scansione documenti OCR sarà aggiunta presto.',
-      'pt': 'A funcionalidade de digitalização de documentos OCR será adicionada em breve.',
-      'ru': 'Функция сканирования документов OCR будет добавлена в ближайшее время.',
+      'pt':
+          'A funcionalidade de digitalização de documentos OCR será adicionada em breve.',
+      'ru':
+          'Функция сканирования документов OCR будет добавлена в ближайшее время.',
     },
     'scan_document_ocr': {
       'tr': 'Belgeyi Fotoğrafla Oku (OCR)',
@@ -3682,15 +3771,23 @@ class LocalizationService extends ChangeNotifier {
       'ru': 'Сканировать документ фото (OCR)',
     },
     'hemogram_info': {
-      'tr': 'Test sonuçlarınızı girin. Değerler referans aralığıyla karşılaştırılacak.',
-      'en': 'Enter your test results. Values will be compared with reference ranges.',
-      'es': 'Ingrese sus resultados de prueba. Los valores se compararán con los rangos de referencia.',
-      'fr': 'Saisissez vos résultats de test. Les valeurs seront comparées aux plages de référence.',
-      'de': 'Geben Sie Ihre Testergebnisse ein. Werte werden mit Referenzbereichen verglichen.',
+      'tr':
+          'Test sonuçlarınızı girin. Değerler referans aralığıyla karşılaştırılacak.',
+      'en':
+          'Enter your test results. Values will be compared with reference ranges.',
+      'es':
+          'Ingrese sus resultados de prueba. Los valores se compararán con los rangos de referencia.',
+      'fr':
+          'Saisissez vos résultats de test. Les valeurs seront comparées aux plages de référence.',
+      'de':
+          'Geben Sie Ihre Testergebnisse ein. Werte werden mit Referenzbereichen verglichen.',
       'ar': 'أدخل نتائج الفحص. ستتم مقارنة القيم مع النطاقات المرجعية.',
-      'it': 'Inserisci i tuoi risultati del test. I valori saranno confrontati con gli intervalli di riferimento.',
-      'pt': 'Digite seus resultados de teste. Os valores serão comparados com intervalos de referência.',
-      'ru': 'Введите результаты теста. Значения будут сравниваться с референсными диапазонами.',
+      'it':
+          'Inserisci i tuoi risultati del test. I valori saranno confrontati con gli intervalli di riferimento.',
+      'pt':
+          'Digite seus resultados de teste. Os valores serão comparados com intervalos de referência.',
+      'ru':
+          'Введите результаты теста. Значения будут сравниваться с референсными диапазонами.',
     },
     'invalid_value': {
       'tr': 'için geçersiz değer girildi',
@@ -3992,13 +4089,19 @@ class LocalizationService extends ChangeNotifier {
     },
     'low_hemoglobin_desc': {
       'tr': 'Hemoglobin değeriniz normalden düşük. Demir açığı olabilir.',
-      'en': 'Your hemoglobin level is below normal. You may have iron deficiency.',
-      'es': 'Su nivel de hemoglobina está por debajo de lo normal. Puede tener deficiencia de hierro.',
-      'fr': 'Votre taux d\'hémoglobine est inférieur à la normale. Vous pourriez avoir une carence en fer.',
-      'de': 'Ihr Hämoglobinspiegel liegt unter dem Normalbereich. Sie könnten einen Eisenmangel haben.',
+      'en':
+          'Your hemoglobin level is below normal. You may have iron deficiency.',
+      'es':
+          'Su nivel de hemoglobina está por debajo de lo normal. Puede tener deficiencia de hierro.',
+      'fr':
+          'Votre taux d\'hémoglobine est inférieur à la normale. Vous pourriez avoir une carence en fer.',
+      'de':
+          'Ihr Hämoglobinspiegel liegt unter dem Normalbereich. Sie könnten einen Eisenmangel haben.',
       'ar': 'مستوى الهيموجلوبين لديك أقل من الطبيعي. قد تعاني من نقص الحديد.',
-      'it': 'Il tuo livello di emoglobina è inferiore al normale. Potresti avere carenza di ferro.',
-      'pt': 'Seu nível de hemoglobina está abaixo do normal. Você pode ter deficiência de ferro.',
+      'it':
+          'Il tuo livello di emoglobina è inferiore al normale. Potresti avere carenza di ferro.',
+      'pt':
+          'Seu nível de hemoglobina está abaixo do normal. Você pode ter deficiência de ferro.',
       'ru': 'Уровень гемоглобина ниже нормы. Возможна нехватка железа.',
     },
     'low_iron_insight': {
@@ -4014,13 +4117,19 @@ class LocalizationService extends ChangeNotifier {
     },
     'low_iron_desc': {
       'tr': 'Demir seviyeniz düşük. Demir açığı anemisi riski var.',
-      'en': 'Your iron level is low. There is a risk of iron deficiency anemia.',
-      'es': 'Su nivel de hierro es bajo. Existe riesgo de anemia por deficiencia de hierro.',
+      'en':
+          'Your iron level is low. There is a risk of iron deficiency anemia.',
+      'es':
+          'Su nivel de hierro es bajo. Existe riesgo de anemia por deficiencia de hierro.',
       'fr': 'Votre taux de fer est bas. Il y a un risque d\'anémie ferriprive.',
-      'de': 'Ihr Eisenspiegel ist niedrig. Es besteht das Risiko einer Eisenmangelanämie.',
-      'ar': 'مستوى الحديد لديك منخفض. هناك خطر الإصابة بفقر الدم بسبب نقص الحديد.',
-      'it': 'Il tuo livello di ferro è basso. C\'è il rischio di anemia da carenza di ferro.',
-      'pt': 'Seu nível de ferro está baixo. Há risco de anemia por deficiência de ferro.',
+      'de':
+          'Ihr Eisenspiegel ist niedrig. Es besteht das Risiko einer Eisenmangelanämie.',
+      'ar':
+          'مستوى الحديد لديك منخفض. هناك خطر الإصابة بفقر الدم بسبب نقص الحديد.',
+      'it':
+          'Il tuo livello di ferro è basso. C\'è il rischio di anemia da carenza di ferro.',
+      'pt':
+          'Seu nível de ferro está baixo. Há risco de anemia por deficiência de ferro.',
       'ru': 'Уровень железа низкий. Есть риск железодефицитной анемии.',
     },
     'great_progress_insight': {
@@ -4037,9 +4146,12 @@ class LocalizationService extends ChangeNotifier {
     'great_progress_desc': {
       'tr': 'Kan değerleriniz mükemmel durumda. Bu düzeyi koruyun.',
       'en': 'Your blood values are in excellent condition. Keep this level.',
-      'es': 'Sus valores sanguíneos están en excelente condición. Mantenga este nivel.',
-      'fr': 'Vos valeurs sanguines sont en excellent état. Maintenez ce niveau.',
-      'de': 'Ihre Blutwerte sind in ausgezeichnetem Zustand. Halten Sie dieses Niveau.',
+      'es':
+          'Sus valores sanguíneos están en excelente condición. Mantenga este nivel.',
+      'fr':
+          'Vos valeurs sanguines sont en excellent état. Maintenez ce niveau.',
+      'de':
+          'Ihre Blutwerte sind in ausgezeichnetem Zustand. Halten Sie dieses Niveau.',
       'ar': 'قيم الدم لديك في حالة ممتازة. حافظ على هذا المستوى.',
     },
     'no_insights_insight': {
@@ -4051,20 +4163,27 @@ class LocalizationService extends ChangeNotifier {
       'ar': 'لا توجد رؤى حتى الآن',
     },
     'no_insights_desc': {
-      'tr': 'Daha fazla test verisi girdiğinizde AI içgörüleri burada görünecek.',
+      'tr':
+          'Daha fazla test verisi girdiğinizde AI içgörüleri burada görünecek.',
       'en': 'AI insights will appear here when you enter more test data.',
-      'es': 'Las perspectivas de IA aparecerán aquí cuando ingrese más datos de prueba.',
-      'fr': 'Les aperçus IA apparaîtront ici lorsque vous saisissez plus de données de test.',
-      'de': 'KI-Einblicke werden hier angezeigt, wenn Sie mehr Testdaten eingeben.',
-      'ar': 'ستظهر رؤى الذكاء الاصطناعي هنا عند إدخال المزيد من بيانات الاختبار.',
+      'es':
+          'Las perspectivas de IA aparecerán aquí cuando ingrese más datos de prueba.',
+      'fr':
+          'Les aperçus IA apparaîtront ici lorsque vous saisissez plus de données de test.',
+      'de':
+          'KI-Einblicke werden hier angezeigt, wenn Sie mehr Testdaten eingeben.',
+      'ar':
+          'ستظهر رؤى الذكاء الاصطناعي هنا عند إدخال المزيد من بيانات الاختبار.',
     },
     'test_history_count': {
       'tr': 'Son {count} test sonucunuz:',
       'en': 'Your last {count} test results:',
     },
     'first_test_message': {
-      'tr': 'Bu ilk test sonucunuz. Gelecekteki testleriniz burada karşılaştırılacak.',
-      'en': 'This is your first test result. Your future tests will be compared here.',
+      'tr':
+          'Bu ilk test sonucunuz. Gelecekteki testleriniz burada karşılaştırılacak.',
+      'en':
+          'This is your first test result. Your future tests will be compared here.',
     },
     // Common small labels
     'no_data': {
@@ -4113,6 +4232,46 @@ class LocalizationService extends ChangeNotifier {
     'snooze_10m': {
       'tr': '10 dk ertele',
       'en': 'Snooze 10m',
+      'es': 'Aplazar 10m',
+      'fr': 'Repos 10m',
+      'de': '10 Min. verschieben',
+      'ar': 'تأجيل 10 د',
+      'it': 'Rinvia 10m',
+      'pt': 'Adiar 10m',
+      'ru': 'Отложить 10м',
+    },
+    'snoozed_for_10': {
+      'tr': '10 dakika ertelendi',
+      'en': 'Snoozed for 10 minutes',
+      'es': 'Aplazado por 10 minutos',
+      'fr': 'Reposé pendant 10 minutes',
+      'de': '10 Minuten verschoben',
+      'ar': 'تم التأجيل لمدة 10 دقائق',
+      'it': 'Rinviato per 10 minuti',
+      'pt': 'Adiado por 10 minutos',
+      'ru': 'Отложено на 10 минут',
+    },
+    'snooze_dismiss_today': {
+      'tr': 'Bugünlük kapat',
+      'en': 'Dismiss for today',
+      'es': 'Descartar por hoy',
+      'fr': 'Ignorer pour aujourd\'hui',
+      'de': 'Für heute schließen',
+      'ar': 'إغلاق اليوم',
+      'it': 'Ignora per oggi',
+      'pt': 'Descartar por hoje',
+      'ru': 'Закрыть на сегодня',
+    },
+    'dismissed_for_today': {
+      'tr': 'Bugün için kapatıldı',
+      'en': 'Dismissed for today',
+      'es': 'Descartado por hoy',
+      'fr': 'Ignoré pour aujourd\'hui',
+      'de': 'Für heute geschlossen',
+      'ar': 'تم الإغلاق لليوم',
+      'it': 'Ignorato per oggi',
+      'pt': 'Descartado por hoje',
+      'ru': 'Закрыто на сегодня',
     },
     'current_streak_label': {
       'tr': 'Seri',
@@ -4258,7 +4417,8 @@ class LocalizationService extends ChangeNotifier {
       'en': 'About HemoAI',
     },
     'about_hemoai_full': {
-      'tr': 'HemoAI, hemogram ve sağlık takibi için geliştirilen akıllı bir asistandır.',
+      'tr':
+          'HemoAI, hemogram ve sağlık takibi için geliştirilen akıllı bir asistandır.',
       'en': 'HemoAI is a smart assistant for hemogram and health tracking.',
     },
     'version_label': {
@@ -4271,7 +4431,8 @@ class LocalizationService extends ChangeNotifier {
     },
     'about_hemoai_description': {
       'tr': 'Bu uygulama tıbbi tavsiye vermez; bilgi amaçlıdır.',
-      'en': 'This app does not provide medical advice; it is for informational purposes.',
+      'en':
+          'This app does not provide medical advice; it is for informational purposes.',
     },
     'medical_disclaimer_short': {
       'tr': 'Tıbbi kararlar için doktorunuza danışın.',
@@ -4420,8 +4581,10 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Guest Mode',
     },
     'guest_description': {
-      'tr': 'Kayıt olmadan uygulamanın temel özelliklerini deneyimleyebilirsiniz.\n\nKişisel bilgilerinizi girip hemogram sonuçlarınızı analiz ettirebilir, AI destekli tavsiye ve diyet programı alabilirsiniz.',
-      'en': 'You can try the core features without registering.\n\nEnter your personal info and hemogram results to get analysis, AI-powered advice, and a diet program.',
+      'tr':
+          'Kayıt olmadan uygulamanın temel özelliklerini deneyimleyebilirsiniz.\n\nKişisel bilgilerinizi girip hemogram sonuçlarınızı analiz ettirebilir, AI destekli tavsiye ve diyet programı alabilirsiniz.',
+      'en':
+          'You can try the core features without registering.\n\nEnter your personal info and hemogram results to get analysis, AI-powered advice, and a diet program.',
     },
     'enter_personal_info_short': {
       'tr': 'Kişisel Bilgi Gir',
@@ -4441,7 +4604,8 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Select Language',
     },
     'privacy_notice': {
-      'tr': 'Üye olarak Gizlilik Politikası ve Kullanım Şartlarını kabul etmiş olursunuz.',
+      'tr':
+          'Üye olarak Gizlilik Politikası ve Kullanım Şartlarını kabul etmiş olursunuz.',
       'en': 'By registering, you accept the Privacy Policy and Terms of Use.',
     },
     // Onboarding missing keys
@@ -4695,8 +4859,10 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Lab Reminders',
     },
     'family_lab_reminders_desc': {
-      'tr': 'Aile üyelerinizin düzenli tahlil hatırlatıcılarını burada yönetebileceksiniz.',
-      'en': 'You will be able to manage regular lab reminders for your family members here.',
+      'tr':
+          'Aile üyelerinizin düzenli tahlil hatırlatıcılarını burada yönetebileceksiniz.',
+      'en':
+          'You will be able to manage regular lab reminders for your family members here.',
     },
     'relation_label': {
       'tr': 'Yakınlık Derecesi',
@@ -4716,16 +4882,22 @@ class LocalizationService extends ChangeNotifier {
     },
     // Comparison summary templates
     'comparison_stable': {
-      'tr': 'Sağlık durumunuz {risk} risk seviyesinde stabil kalıyor. Mevcut tedavi ve beslenme planınıza devam edin.',
-      'en': 'Your health status remains at {risk} risk level. Continue your current treatment and diet plan.',
+      'tr':
+          'Sağlık durumunuz {risk} risk seviyesinde stabil kalıyor. Mevcut tedavi ve beslenme planınıza devam edin.',
+      'en':
+          'Your health status remains at {risk} risk level. Continue your current treatment and diet plan.',
     },
     'comparison_improved': {
-      'tr': 'Tebrikler! Sağlık durumunuzda iyileşme var. {prev} riskten {curr} riske düştünüz. Programınıza devam edin.',
-      'en': 'Congratulations! Your condition has improved. You went from {prev} risk to {curr} risk. Keep up your program.',
+      'tr':
+          'Tebrikler! Sağlık durumunuzda iyileşme var. {prev} riskten {curr} riske düştünüz. Programınıza devam edin.',
+      'en':
+          'Congratulations! Your condition has improved. You went from {prev} risk to {curr} risk. Keep up your program.',
     },
     'comparison_worsened': {
-      'tr': 'Dikkat! Risk seviyeniz {prev}’tan {curr}’a yükseldi. Doktor kontrolü ve plan revizyonu gerekebilir.',
-      'en': 'Attention! Your risk level increased from {prev} to {curr}. A doctor check and plan revision may be needed.',
+      'tr':
+          'Dikkat! Risk seviyeniz {prev}’tan {curr}’a yükseldi. Doktor kontrolü ve plan revizyonu gerekebilir.',
+      'en':
+          'Attention! Your risk level increased from {prev} to {curr}. A doctor check and plan revision may be needed.',
     },
     // Tabs and headings for legacy family panel dialog
     'current_status': {
@@ -4780,8 +4952,10 @@ class LocalizationService extends ChangeNotifier {
       'tr': 'Sorun Giderme İpuçları',
     },
     'export_troubleshooting': {
-      'en': '• Check file permissions\n• Ensure enough storage space\n• Try another format',
-      'tr': '• Dosya izinlerini kontrol edin\n• Yeterli depolama alanı olduğundan emin olun\n• Başka bir format deneyin',
+      'en':
+          '• Check file permissions\n• Ensure enough storage space\n• Try another format',
+      'tr':
+          '• Dosya izinlerini kontrol edin\n• Yeterli depolama alanı olduğundan emin olun\n• Başka bir format deneyin',
     },
     'try_again': {
       'en': 'Try Again',
@@ -5098,10 +5272,13 @@ class LocalizationService extends ChangeNotifier {
     'cache_info': {
       'en': 'Cache helps speed up the app but may take storage.',
       'tr': 'Önbellek uygulamayı hızlandırır ancak depolama kullanabilir.',
-      'es': 'El caché ayuda a acelerar la aplicación pero puede ocupar almacenamiento.',
-      'fr': 'Le cache accélère l\'application mais peut occuper de l\'espace de stockage.',
+      'es':
+          'El caché ayuda a acelerar la aplicación pero puede ocupar almacenamiento.',
+      'fr':
+          'Le cache accélère l\'application mais peut occuper de l\'espace de stockage.',
       'de': 'Cache beschleunigt die App, kann aber Speicherplatz belegen.',
-      'ar': 'تساعد الذاكرة المؤقتة في تسريع التطبيق ولكنها قد تستخدم مساحة التخزين.',
+      'ar':
+          'تساعد الذاكرة المؤقتة في تسريع التطبيق ولكنها قد تستخدم مساحة التخزين.',
       'it': 'La cache accelera l\'app ma può occupare spazio di archiviazione.',
       'pt': 'O cache ajuda a acelerar o app, mas pode ocupar armazenamento.',
       'ru': 'Кэш ускоряет приложение, но может занимать место в хранилище.',
@@ -5256,12 +5433,15 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Adds backup items without removing your current data.',
       'tr': 'Mevcut verilerinizi silmeden yedek öğeleri ekler.',
       'es': 'Agrega elementos del respaldo sin eliminar tus datos actuales.',
-      'fr': 'Ajoute les éléments de la sauvegarde sans supprimer vos données actuelles.',
-      'de': 'Fügt Backup-Elemente hinzu, ohne Ihre aktuellen Daten zu entfernen.',
+      'fr':
+          'Ajoute les éléments de la sauvegarde sans supprimer vos données actuelles.',
+      'de':
+          'Fügt Backup-Elemente hinzu, ohne Ihre aktuellen Daten zu entfernen.',
       'ar': 'يضيف عناصر النسخ الاحتياطي دون إزالة بياناتك الحالية.',
       'it': 'Aggiunge elementi del backup senza rimuovere i tuoi dati attuali.',
       'pt': 'Adiciona itens do backup sem remover seus dados atuais.',
-      'ru': 'Добавляет элементы резервной копии без удаления ваших текущих данных.',
+      'ru':
+          'Добавляет элементы резервной копии без удаления ваших текущих данных.',
     },
     'restore_replace_desc': {
       'en': 'Erases current data and replaces everything with backup.',
@@ -5368,8 +5548,10 @@ class LocalizationService extends ChangeNotifier {
     'privacy_allow_in_app_reminders_desc': {
       'en': 'Schedule daily advice and water reminders inside the app',
       'tr': 'Uygulama içinde günlük öneri ve su hatırlatmalarını planla',
-      'es': 'Programa consejos diarios y recordatorios de agua dentro de la aplicación',
-      'fr': 'Planifier les conseils quotidiens et les rappels d\'eau dans l\'application',
+      'es':
+          'Programa consejos diarios y recordatorios de agua dentro de la aplicación',
+      'fr':
+          'Planifier les conseils quotidiens et les rappels d\'eau dans l\'application',
       'de': 'Tägliche Ratschläge und Wasser-Erinnerungen in der App planen',
       'ar': 'جدولة النصائح اليومية وتذكيرات الماء داخل التطبيق',
       'it': 'Programma consigli quotidiani e promemoria dell\'acqua nell\'app',
@@ -5388,15 +5570,24 @@ class LocalizationService extends ChangeNotifier {
       'ru': 'Разрешить push-уведомления',
     },
     'privacy_allow_push_notifications_desc': {
-      'en': 'Control whether the app should use push notifications (requires OS permission)',
-      'tr': 'Uygulamanın anlık bildirimleri kullanmasına izin ver (işletim sistemi izni gerekir)',
-      'es': 'Controla si la aplicación debe usar notificaciones push (requiere permiso del sistema operativo)',
-      'fr': 'Contrôler si l\'application doit utiliser les notifications push (nécessite l\'autorisation du système d\'exploitation)',
-      'de': 'Steuern, ob die App Push-Benachrichtigungen verwenden soll (erfordert OS-Berechtigung)',
-      'ar': 'التحكم في ما إذا كان التطبيق يجب أن يستخدم الإشعارات الفورية (يتطلب إذن نظام التشغيل)',
-      'it': 'Controlla se l\'app deve usare le notifiche push (richiede il permesso del sistema operativo)',
-      'pt': 'Controlar se o aplicativo deve usar notificações push (requer permissão do sistema operacional)',
-      'ru': 'Управлять использованием push-уведомлений в приложении (требуется разрешение ОС)',
+      'en':
+          'Control whether the app should use push notifications (requires OS permission)',
+      'tr':
+          'Uygulamanın anlık bildirimleri kullanmasına izin ver (işletim sistemi izni gerekir)',
+      'es':
+          'Controla si la aplicación debe usar notificaciones push (requiere permiso del sistema operativo)',
+      'fr':
+          'Contrôler si l\'application doit utiliser les notifications push (nécessite l\'autorisation du système d\'exploitation)',
+      'de':
+          'Steuern, ob die App Push-Benachrichtigungen verwenden soll (erfordert OS-Berechtigung)',
+      'ar':
+          'التحكم في ما إذا كان التطبيق يجب أن يستخدم الإشعارات الفورية (يتطلب إذن نظام التشغيل)',
+      'it':
+          'Controlla se l\'app deve usare le notifiche push (richiede il permesso del sistema operativo)',
+      'pt':
+          'Controlar se o aplicativo deve usar notificações push (requer permissão do sistema operacional)',
+      'ru':
+          'Управлять использованием push-уведомлений в приложении (требуется разрешение ОС)',
     },
     'privacy_allow_medication_access': {
       'en': 'Allow medication data',
@@ -5412,13 +5603,20 @@ class LocalizationService extends ChangeNotifier {
     'privacy_allow_medication_access_desc': {
       'en': 'Use your medication records for reminders and dashboard pillbox',
       'tr': 'İlaç kayıtlarını hatırlatmalar ve çekmece için kullan',
-      'es': 'Usa tus registros de medicamentos para recordatorios y el pastillero del panel',
-      'fr': 'Utilisez vos dossiers de médicaments pour les rappels et la boîte à pilules du tableau de bord',
-      'de': 'Verwenden Sie Ihre Medikamentenaufzeichnungen für Erinnerungen und das Armaturenbrett-Pillendöschen',
-      'ar': 'استخدم سجلات الأدوية الخاصة بك للتذكيرات وصندوق الأدوية في لوحة التحكم',
-      'it': 'Usa i tuoi registri dei farmaci per promemoria e il portapillole nella dashboard',
-      'pt': 'Use seus registros de medicamentos para lembretes e o porta-comprimidos no painel',
-      'ru': 'Используйте ваши записи о лекарствах для напоминаний и таблеточницы в панели',
+      'es':
+          'Usa tus registros de medicamentos para recordatorios y el pastillero del panel',
+      'fr':
+          'Utilisez vos dossiers de médicaments pour les rappels et la boîte à pilules du tableau de bord',
+      'de':
+          'Verwenden Sie Ihre Medikamentenaufzeichnungen für Erinnerungen und das Armaturenbrett-Pillendöschen',
+      'ar':
+          'استخدم سجلات الأدوية الخاصة بك للتذكيرات وصندوق الأدوية في لوحة التحكم',
+      'it':
+          'Usa i tuoi registri dei farmaci per promemoria e il portapillole nella dashboard',
+      'pt':
+          'Use seus registros de medicamentos para lembretes e o porta-comprimidos no painel',
+      'ru':
+          'Используйте ваши записи о лекарствах для напоминаний и таблеточницы в панели',
     },
     'privacy_allow_family_features': {
       'en': 'Allow family features',
@@ -5456,13 +5654,20 @@ class LocalizationService extends ChangeNotifier {
     'secure_pii_desc': {
       'en': 'Move e-mail/phone to secure storage and remove legacy copies',
       'tr': 'E-posta/telefonu güvenli depoya taşı ve eski kopyaları kaldır',
-      'es': 'Mover correo electrónico/teléfono al almacenamiento seguro y eliminar copias antiguas',
-      'fr': 'Déplacer l\'e-mail/téléphone vers le stockage sécurisé et supprimer les copies obsolètes',
-      'de': 'E-Mail/Telefon in sicheren Speicher verschieben und Legacy-Kopien entfernen',
-      'ar': 'نقل البريد الإلكتروني/الهاتف إلى التخزين الآمن وإزالة النسخ القديمة',
-      'it': 'Sposta e-mail/telefono in archiviazione sicura e rimuovi copie obsolete',
-      'pt': 'Mover e-mail/telefone para armazenamento seguro e remover cópias antigas',
-      'ru': 'Переместить e-mail/телефон в безопасное хранилище и удалить старые копии',
+      'es':
+          'Mover correo electrónico/teléfono al almacenamiento seguro y eliminar copias antiguas',
+      'fr':
+          'Déplacer l\'e-mail/téléphone vers le stockage sécurisé et supprimer les copies obsolètes',
+      'de':
+          'E-Mail/Telefon in sicheren Speicher verschieben und Legacy-Kopien entfernen',
+      'ar':
+          'نقل البريد الإلكتروني/الهاتف إلى التخزين الآمن وإزالة النسخ القديمة',
+      'it':
+          'Sposta e-mail/telefono in archiviazione sicura e rimuovi copie obsolete',
+      'pt':
+          'Mover e-mail/telefone para armazenamento seguro e remover cópias antigas',
+      'ru':
+          'Переместить e-mail/телефон в безопасное хранилище и удалить старые копии',
     },
     'pii_migrated_success': {
       'en': 'Sensitive info secured',
@@ -5511,13 +5716,16 @@ class LocalizationService extends ChangeNotifier {
     'clear_backup_password_desc': {
       'en': 'Remove the saved backup password from secure storage',
       'tr': 'Kayıtlı yedek parolasını güvenli depodan kaldır',
-      'es': 'Eliminar la contraseña de respaldo guardada del almacenamiento seguro',
-      'fr': 'Supprimer le mot de passe de sauvegarde enregistré du stockage sécurisé',
+      'es':
+          'Eliminar la contraseña de respaldo guardada del almacenamiento seguro',
+      'fr':
+          'Supprimer le mot de passe de sauvegarde enregistré du stockage sécurisé',
       'de': 'Gespeichertes Backup-Passwort aus sicherem Speicher entfernen',
       'ar': 'إزالة كلمة مرور النسخ الاحتياطي المحفوظة من التخزين الآمن',
       'it': 'Rimuovi la password backup salvata dall\'archiviazione sicura',
       'pt': 'Remover a senha do backup salva do armazenamento seguro',
-      'ru': 'Удалить сохраненный пароль резервной копии из безопасного хранилища',
+      'ru':
+          'Удалить сохраненный пароль резервной копии из безопасного хранилища',
     },
     'password_saved': {
       'en': 'Password saved',
@@ -5565,10 +5773,13 @@ class LocalizationService extends ChangeNotifier {
     },
     'privacy_policy_body': {
       'en': 'We store your data locally and respect your privacy.',
-      'tr': 'Verilerinizi yerel olarak saklarız ve gizliliğinize saygı duyarız.',
+      'tr':
+          'Verilerinizi yerel olarak saklarız ve gizliliğinize saygı duyarız.',
       'es': 'Almacenamos tus datos localmente y respetamos tu privacidad.',
-      'fr': 'Nous stockons vos données localement et respectons votre vie privée.',
-      'de': 'Wir speichern Ihre Daten lokal und respektieren Ihre Privatsphäre.',
+      'fr':
+          'Nous stockons vos données localement et respectons votre vie privée.',
+      'de':
+          'Wir speichern Ihre Daten lokal und respektieren Ihre Privatsphäre.',
       'ar': 'نخزن بياناتك محلياً ونحترم خصوصيتك.',
       'it': 'Archiviamo i tuoi dati localmente e rispettiamo la tua privacy.',
       'pt': 'Armazenamos seus dados localmente e respeitamos sua privacidade.',
@@ -5600,12 +5811,14 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Use at your own responsibility. Not a medical device.',
       'tr': 'Kullanım sorumluluğu size aittir. Tıbbi cihaz değildir.',
       'es': 'Usa bajo tu propia responsabilidad. No es un dispositivo médico.',
-      'fr': 'Utilisez à vos propres risques. Ce n\'est pas un dispositif médical.',
+      'fr':
+          'Utilisez à vos propres risques. Ce n\'est pas un dispositif médical.',
       'de': 'Verwendung auf eigene Verantwortung. Kein Medizinprodukt.',
       'ar': 'استخدم على مسؤوليتك الخاصة. ليس جهازاً طبياً.',
       'it': 'Usa a tuo rischio. Non è un dispositivo medico.',
       'pt': 'Use por sua própria conta e risco. Não é um dispositivo médico.',
-      'ru': 'Используйте на свой страх и риск. Не является медицинским устройством.',
+      'ru':
+          'Используйте на свой страх и риск. Не является медицинским устройством.',
     },
     'analytics_opt_in': {
       'en': 'Allow anonymous analytics',
@@ -5622,12 +5835,15 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Help us improve by sharing anonymous usage data',
       'tr': 'Anonim kullanım verileri paylaşarak gelişime yardımcı olun',
       'es': 'Ayúdanos a mejorar compartiendo datos de uso anónimos',
-      'fr': 'Aidez-nous à nous améliorer en partageant des données d\'utilisation anonymes',
-      'de': 'Helfen Sie uns zu verbessern, indem Sie anonyme Nutzungsdaten teilen',
+      'fr':
+          'Aidez-nous à nous améliorer en partageant des données d\'utilisation anonymes',
+      'de':
+          'Helfen Sie uns zu verbessern, indem Sie anonyme Nutzungsdaten teilen',
       'ar': 'ساعدنا على التحسين من خلال مشاركة بيانات الاستخدام المجهولة',
       'it': 'Aiutaci a migliorare condividendo dati di utilizzo anonimi',
       'pt': 'Ajude-nos a melhorar compartilhando dados de uso anônimos',
-      'ru': 'Помогите нам улучшиться, поделившись анонимными данными об использовании',
+      'ru':
+          'Помогите нам улучшиться, поделившись анонимными данными об использовании',
     },
     'settings_security': {
       'en': 'Security',
@@ -5667,11 +5883,15 @@ class LocalizationService extends ChangeNotifier {
       'tr': 'Verileriniz, dışa aktarmadığınız sürece cihazınızda kalır.',
       'es': 'Tus datos permanecen en tu dispositivo a menos que los exportes.',
       'fr': 'Vos données restent sur votre appareil sauf si vous les exportez.',
-      'de': 'Ihre Daten bleiben auf Ihrem Gerät, es sei denn, Sie exportieren sie.',
+      'de':
+          'Ihre Daten bleiben auf Ihrem Gerät, es sei denn, Sie exportieren sie.',
       'ar': 'تبقى بياناتك على جهازك ما لم تقم بتصديرها.',
-      'it': 'I tuoi dati rimangono sul tuo dispositivo a meno che non li esporti.',
-      'pt': 'Seus dados permanecem no seu dispositivo, a menos que você os exporte.',
-      'ru': 'Ваши данные остаются на вашем устройстве, если вы их не экспортируете.',
+      'it':
+          'I tuoi dati rimangono sul tuo dispositivo a meno che non li esporti.',
+      'pt':
+          'Seus dados permanecem no seu dispositivo, a menos que você os exporte.',
+      'ru':
+          'Ваши данные остаются на вашем устройстве, если вы их не экспортируете.',
     },
     'app_lock': {
       'en': 'App Lock',
@@ -5742,12 +5962,15 @@ class LocalizationService extends ChangeNotifier {
     'allow_notifications_desc': {
       'en': 'Request notification permission from device settings',
       'tr': 'Cihaz ayarlarından bildirim izni iste',
-      'es': 'Solicitar permiso de notificación desde la configuración del dispositivo',
-      'fr': 'Demander l\'autorisation de notification depuis les paramètres de l\'appareil',
+      'es':
+          'Solicitar permiso de notificación desde la configuración del dispositivo',
+      'fr':
+          'Demander l\'autorisation de notification depuis les paramètres de l\'appareil',
       'de': 'Benachrichtigungsberechtigung von Geräteeinstellungen anfordern',
       'ar': 'طلب إذن الإشعارات من إعدادات الجهاز',
       'it': 'Richiedi permesso notifiche dalle impostazioni del dispositivo',
-      'pt': 'Solicitar permissão de notificação das configurações do dispositivo',
+      'pt':
+          'Solicitar permissão de notificação das configurações do dispositivo',
       'ru': 'Запросить разрешение на уведомления из настроек устройства',
     },
     'open_system_settings': {
@@ -5865,11 +6088,13 @@ class LocalizationService extends ChangeNotifier {
       'tr': 'Nasıl çalıştığını görmek için hızlı bir yedek oluşturun',
       'es': 'Crea un respaldo rápido para ver cómo funciona',
       'fr': 'Créez une sauvegarde rapide pour voir comment cela fonctionne',
-      'de': 'Erstellen Sie ein schnelles Backup, um zu sehen, wie es funktioniert',
+      'de':
+          'Erstellen Sie ein schnelles Backup, um zu sehen, wie es funktioniert',
       'ar': 'أنشئ نسخة احتياطية سريعة لمعرفة كيفية عملها',
       'it': 'Crea un backup rapido per vedere come funziona',
       'pt': 'Crie um backup rápido para ver como funciona',
-      'ru': 'Создайте быстрое резервное копирование, чтобы увидеть, как это работает',
+      'ru':
+          'Создайте быстрое резервное копирование, чтобы увидеть, как это работает',
     },
     'stats_overview_title': {
       'en': 'Statistics Overview',
@@ -5886,7 +6111,8 @@ class LocalizationService extends ChangeNotifier {
       'en': 'See your app usage and health stats',
       'tr': 'Uygulama kullanımı ve sağlık istatistiklerinizi görün',
       'es': 'Ve tu uso de la aplicación y estadísticas de salud',
-      'fr': 'Voir votre utilisation de l\'application et vos statistiques de santé',
+      'fr':
+          'Voir votre utilisation de l\'application et vos statistiques de santé',
       'de': 'Sehen Sie Ihre App-Nutzung und Gesundheitsstatistiken',
       'ar': 'اطلع على استخدام التطبيق وإحصائيات الصحة',
       'it': 'Vedi il tuo utilizzo dell\'app e le statistiche sulla salute',
@@ -6007,7 +6233,8 @@ class LocalizationService extends ChangeNotifier {
       'en': 'This will permanently remove all app data',
       'tr': 'Bu işlem tüm uygulama verilerini kalıcı olarak silecek',
       'es': 'Esto eliminará permanentemente todos los datos de la aplicación',
-      'fr': 'Cela supprimera définitivement toutes les données de l\'application',
+      'fr':
+          'Cela supprimera définitivement toutes les données de l\'application',
       'de': 'Dies wird alle App-Daten dauerhaft entfernen',
       'ar': 'سيؤدي هذا إلى إزالة جميع بيانات التطبيق بشكل دائم',
       'it': 'Questo rimuoverà permanentemente tutti i dati dell\'app',
@@ -6114,15 +6341,24 @@ class LocalizationService extends ChangeNotifier {
       'ru': 'Юридическая информация',
     },
     'app_description_detailed': {
-      'en': 'HemoAI helps you track hemogram values, analyze trends, and manage reminders for a healthier life.',
-      'tr': 'HemoAI, hemogram değerlerinizi takip etmenize, trendleri analiz etmenize ve daha sağlıklı bir yaşam için hatırlatıcıları yönetmenize yardımcı olur.',
-      'es': 'HemoAI te ayuda a rastrear valores de hemograma, analizar tendencias y gestionar recordatorios para una vida más saludable.',
-      'fr': 'HemoAI vous aide à suivre les valeurs d\'hémogramme, à analyser les tendances et à gérer les rappels pour une vie plus saine.',
-      'de': 'HemoAI hilft Ihnen, Hämogrammwerte zu verfolgen, Trends zu analysieren und Erinnerungen für ein gesünderes Leben zu verwalten.',
-      'ar': 'يساعدك HemoAI على تتبع قيم تعداد الدم وتحليل الاتجاهات وإدارة التذكيرات لحياة أكثر صحة.',
-      'it': 'HemoAI ti aiuta a tracciare i valori dell\'emogramma, analizzare le tendenze e gestire i promemoria per una vita più sana.',
-      'pt': 'HemoAI ajuda você a rastrear valores de hemograma, analisar tendências e gerenciar lembretes para uma vida mais saudável.',
-      'ru': 'HemoAI помогает отслеживать значения гемограммы, анализировать тенденции и управлять напоминаниями для более здоровой жизни.',
+      'en':
+          'HemoAI helps you track hemogram values, analyze trends, and manage reminders for a healthier life.',
+      'tr':
+          'HemoAI, hemogram değerlerinizi takip etmenize, trendleri analiz etmenize ve daha sağlıklı bir yaşam için hatırlatıcıları yönetmenize yardımcı olur.',
+      'es':
+          'HemoAI te ayuda a rastrear valores de hemograma, analizar tendencias y gestionar recordatorios para una vida más saludable.',
+      'fr':
+          'HemoAI vous aide à suivre les valeurs d\'hémogramme, à analyser les tendances et à gérer les rappels pour une vie plus saine.',
+      'de':
+          'HemoAI hilft Ihnen, Hämogrammwerte zu verfolgen, Trends zu analysieren und Erinnerungen für ein gesünderes Leben zu verwalten.',
+      'ar':
+          'يساعدك HemoAI على تتبع قيم تعداد الدم وتحليل الاتجاهات وإدارة التذكيرات لحياة أكثر صحة.',
+      'it':
+          'HemoAI ti aiuta a tracciare i valori dell\'emogramma, analizzare le tendenze e gestire i promemoria per una vita più sana.',
+      'pt':
+          'HemoAI ajuda você a rastrear valores de hemograma, analisar tendências e gerenciar lembretes para uma vida mais saudável.',
+      'ru':
+          'HemoAI помогает отслеживать значения гемограммы, анализировать тенденции и управлять напоминаниями для более здоровой жизни.',
     },
     'medical_disclaimer': {
       'en': 'Medical Disclaimer',
@@ -6139,23 +6375,29 @@ class LocalizationService extends ChangeNotifier {
       'en': 'This app is not a substitute for professional medical advice.',
       'tr': 'Bu uygulama profesyonel tıbbi tavsiyenin yerine geçmez.',
       'es': 'Esta aplicación no sustituye el consejo médico profesional.',
-      'fr': 'Cette application n\'est pas un substitut aux conseils médicaux professionnels.',
+      'fr':
+          'Cette application n\'est pas un substitut aux conseils médicaux professionnels.',
       'de': 'Diese App ist kein Ersatz für professionellen medizinischen Rat.',
       'ar': 'هذا التطبيق ليس بديلاً عن المشورة الطبية المهنية.',
       'it': 'Questa app non sostituisce il consiglio medico professionale.',
-      'pt': 'Este aplicativo não substitui o aconselhamento médico profissional.',
-      'ru': 'Это приложение не заменяет профессиональную медицинскую консультацию.',
+      'pt':
+          'Este aplicativo não substitui o aconselhamento médico profissional.',
+      'ru':
+          'Это приложение не заменяет профессиональную медицинскую консультацию.',
     },
     'medical_disclaimer_body': {
       'en': 'Always consult your doctor for medical questions and decisions.',
       'tr': 'Tıbbi sorular ve kararlar için daima doktorunuza danışın.',
       'es': 'Siempre consulta a tu médico para preguntas y decisiones médicas.',
-      'fr': 'Consultez toujours votre médecin pour les questions et décisions médicales.',
-      'de': 'Konsultieren Sie immer Ihren Arzt bei medizinischen Fragen und Entscheidungen.',
+      'fr':
+          'Consultez toujours votre médecin pour les questions et décisions médicales.',
+      'de':
+          'Konsultieren Sie immer Ihren Arzt bei medizinischen Fragen und Entscheidungen.',
       'ar': 'استشر دائماً طبيبك للحصول على الأسئلة والقرارات الطبية.',
       'it': 'Consulta sempre il tuo medico per domande e decisioni mediche.',
       'pt': 'Sempre consulte seu médico para questões e decisões médicas.',
-      'ru': 'Всегда консультируйтесь с врачом по медицинским вопросам и решениям.',
+      'ru':
+          'Всегда консультируйтесь с врачом по медицинским вопросам и решениям.',
     },
     'help_support_desc': {
       'en': 'How to get help and support',
@@ -6170,14 +6412,21 @@ class LocalizationService extends ChangeNotifier {
     },
     'help_support_body': {
       'en': 'Contact us via feedback form or check documentation.',
-      'tr': 'Geri bildirim formundan bize ulaşın veya dokümantasyonu inceleyin.',
-      'es': 'Contáctanos a través del formulario de comentarios o consulta la documentación.',
-      'fr': 'Contactez-nous via le formulaire de commentaires ou consultez la documentation.',
-      'de': 'Kontaktieren Sie uns über das Feedback-Formular oder konsultieren Sie die Dokumentation.',
+      'tr':
+          'Geri bildirim formundan bize ulaşın veya dokümantasyonu inceleyin.',
+      'es':
+          'Contáctanos a través del formulario de comentarios o consulta la documentación.',
+      'fr':
+          'Contactez-nous via le formulaire de commentaires ou consultez la documentation.',
+      'de':
+          'Kontaktieren Sie uns über das Feedback-Formular oder konsultieren Sie die Dokumentation.',
       'ar': 'اتصل بنا عبر نموذج الملاحظات أو راجع الوثائق.',
-      'it': 'Contattaci tramite il modulo di feedback o consulta la documentazione.',
-      'pt': 'Entre em contato conosco através do formulário de feedback ou consulte a documentação.',
-      'ru': 'Свяжитесь с нами через форму обратной связи или ознакомьтесь с документацией.',
+      'it':
+          'Contattaci tramite il modulo di feedback o consulta la documentazione.',
+      'pt':
+          'Entre em contato conosco através do formulário de feedback ou consulte a documentação.',
+      'ru':
+          'Свяжитесь с нами через форму обратной связи или ознакомьтесь с документацией.',
     },
     'set_backup_password': {
       'en': 'Set backup password',
@@ -6221,7 +6470,8 @@ class LocalizationService extends ChangeNotifier {
       'de': 'Backup verschlüsseln und in Cloud-Speicher hochladen',
       'ar': 'تشفير ورفع النسخ الاحتياطي إلى التخزين السحابي',
       'it': 'Crittografa e carica backup nell\'archiviazione cloud',
-      'pt': 'Criptografar e fazer upload do backup para o armazenamento na nuvem',
+      'pt':
+          'Criptografar e fazer upload do backup para o armazenamento na nuvem',
       'ru': 'Зашифровать и загрузить резервную копию в облачное хранилище',
     },
     'cloud_restore_title': {
@@ -6252,10 +6502,12 @@ class LocalizationService extends ChangeNotifier {
       'es': 'Último respaldo en la nube: {date} • {size} KB • {platform}',
       'fr': 'Dernière sauvegarde cloud: {date} • {size} Ko • {platform}',
       'de': 'Letztes Cloud-Backup: {date} • {size} KB • {platform}',
-      'ar': 'آخر نسخ احتياطي على السحابة: {date} • {size} كيلوبايت • {platform}',
+      'ar':
+          'آخر نسخ احتياطي على السحابة: {date} • {size} كيلوبايت • {platform}',
       'it': 'Ultimo backup cloud: {date} • {size} KB • {platform}',
       'pt': 'Último backup na nuvem: {date} • {size} KB • {platform}',
-      'ru': 'Последнее облачное резервное копирование: {date} • {size} КБ • {platform}',
+      'ru':
+          'Последнее облачное резервное копирование: {date} • {size} КБ • {platform}',
     },
     'cloud_no_backup': {
       'en': 'No cloud backup found yet',
@@ -6365,7 +6617,8 @@ class LocalizationService extends ChangeNotifier {
       'ar': 'نسخ احتياطي لبياناتك بشكل دوري في الخلفية',
       'it': 'Esegui backup dei tuoi dati periodicamente in background',
       'pt': 'Fazer backup dos seus dados periodicamente em segundo plano',
-      'ru': 'Периодически создавать резервные копии ваших данных в фоновом режиме',
+      'ru':
+          'Периодически создавать резервные копии ваших данных в фоновом режиме',
     },
     'last_auto_backup': {
       'en': 'Last auto backup: {date}',
@@ -6439,13 +6692,19 @@ class LocalizationService extends ChangeNotifier {
     'privacy_local_analytics_note': {
       'en': 'Analytics are processed locally and never leave your device.',
       'tr': 'Analizler yerel olarak işlenir ve cihazınızdan dışarı çıkmaz.',
-      'es': 'Los análisis se procesan localmente y nunca salen de tu dispositivo.',
-      'fr': 'Les analyses sont traitées localement et ne quittent jamais votre appareil.',
-      'de': 'Analysen werden lokal verarbeitet und verlassen niemals Ihr Gerät.',
+      'es':
+          'Los análisis se procesan localmente y nunca salen de tu dispositivo.',
+      'fr':
+          'Les analyses sont traitées localement et ne quittent jamais votre appareil.',
+      'de':
+          'Analysen werden lokal verarbeitet und verlassen niemals Ihr Gerät.',
       'ar': 'يتم معالجة التحليلات محلياً ولا تغادر جهازك أبداً.',
-      'it': 'Le analisi sono elaborate localmente e non lasciano mai il tuo dispositivo.',
-      'pt': 'As análises são processadas localmente e nunca saem do seu dispositivo.',
-      'ru': 'Аналитика обрабатывается локально и никогда не покидает ваше устройство.',
+      'it':
+          'Le analisi sono elaborate localmente e non lasciano mai il tuo dispositivo.',
+      'pt':
+          'As análises são processadas localmente e nunca saem do seu dispositivo.',
+      'ru':
+          'Аналитика обрабатывается локально и никогда не покидает ваше устройство.',
     },
     // =====================
     // Export service headings
@@ -6988,7 +7247,8 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Recommendations are personalized by age and condition.',
       'tr': 'Öneriler yaş ve duruma göre kişiselleştirilir.',
       'es': 'Las recomendaciones se personalizan por edad y condición.',
-      'fr': 'Les recommandations sont personnalisées selon l\'âge et la condition.',
+      'fr':
+          'Les recommandations sont personnalisées selon l\'âge et la condition.',
       'de': 'Empfehlungen werden nach Alter und Zustand personalisiert.',
       'ar': 'يتم تخصيص التوصيات حسب العمر والحالة.',
       'it': 'Le raccomandazioni sono personalizzate per età e condizione.',
@@ -7000,11 +7260,13 @@ class LocalizationService extends ChangeNotifier {
       'tr': 'Hamilelik ve emzirme döneminde doktorunuza danışın.',
       'es': 'Consulta a tu médico durante el embarazo y la lactancia.',
       'fr': 'Consultez votre médecin pendant la grossesse et l\'allaitement.',
-      'de': 'Konsultieren Sie Ihren Arzt während Schwangerschaft und Stillzeit.',
+      'de':
+          'Konsultieren Sie Ihren Arzt während Schwangerschaft und Stillzeit.',
       'ar': 'استشر طبيبك أثناء الحمل والرضاعة.',
       'it': 'Consulta il tuo medico durante la gravidanza e l\'allattamento.',
       'pt': 'Consulte seu médico durante a gravidez e amamentação.',
-      'ru': 'Проконсультируйтесь с врачом во время беременности и кормления грудью.',
+      'ru':
+          'Проконсультируйтесь с врачом во время беременности и кормления грудью.',
     },
     // =====================
     // Data Import Flow
@@ -7053,9 +7315,9 @@ class LocalizationService extends ChangeNotifier {
       'pt': 'Opções de Importação',
       'ru': 'Параметры импорта',
     },
-  'import_from_edevlet': {
+    'import_from_edevlet': {
       'en': 'Import from e-Devlet',
-  'tr': 'e-Devlet\'ten içe aktar',
+      'tr': 'e-Devlet\'ten içe aktar',
       'es': 'Importar desde e-Devlet',
       'fr': 'Importer depuis e-Devlet',
       'de': 'Von e-Devlet importieren',
@@ -7069,15 +7331,16 @@ class LocalizationService extends ChangeNotifier {
       'tr': 'e-Devlet hemogram metnini yapıştırın veya bağlanın',
       'es': 'Pega tu fragmento de hemograma de e-Devlet o conéctate',
       'fr': 'Collez votre extrait d\'hémogramme e-Devlet ou connectez-vous',
-      'de': 'Fügen Sie Ihren e-Devlet-Hämogramm-Ausschnitt ein oder verbinden Sie sich',
+      'de':
+          'Fügen Sie Ihren e-Devlet-Hämogramm-Ausschnitt ein oder verbinden Sie sich',
       'ar': 'الصق مقتطف تعداد الدم من e-Devlet أو اتصل',
       'it': 'Incolla il tuo frammento di emogramma e-Devlet o connetti',
       'pt': 'Cole seu snippet de hemograma e-Devlet ou conecte',
       'ru': 'Вставьте фрагмент гемограммы e-Devlet или подключитесь',
     },
-  'import_from_qr': {
+    'import_from_qr': {
       'en': 'Import from QR',
-  'tr': 'QR\'dan içe aktar',
+      'tr': 'QR\'dan içe aktar',
       'es': 'Importar desde QR',
       'fr': 'Importer depuis QR',
       'de': 'Von QR importieren',
@@ -7210,11 +7473,15 @@ class LocalizationService extends ChangeNotifier {
     'paste_text_instructions': {
       'en': 'Paste your hemogram text below to parse the values.',
       'tr': 'Hemogram metninizi aşağıya yapıştırın; değerler çözümlenecektir.',
-      'es': 'Pega tu texto de hemograma a continuación para analizar los valores.',
-      'fr': 'Collez votre texte d\'hémogramme ci-dessous pour analyser les valeurs.',
-      'de': 'Fügen Sie Ihren Hämogramm-Text unten ein, um die Werte zu analysieren.',
+      'es':
+          'Pega tu texto de hemograma a continuación para analizar los valores.',
+      'fr':
+          'Collez votre texte d\'hémogramme ci-dessous pour analyser les valeurs.',
+      'de':
+          'Fügen Sie Ihren Hämogramm-Text unten ein, um die Werte zu analysieren.',
       'ar': 'الصق نص تعداد الدم أدناه لتحليل القيم.',
-      'it': 'Incolla il tuo testo dell\'emogramma qui sotto per analizzare i valori.',
+      'it':
+          'Incolla il tuo testo dell\'emogramma qui sotto per analizzare i valori.',
       'pt': 'Cole seu texto de hemograma abaixo para analisar os valores.',
       'ru': 'Вставьте текст гемограммы ниже, чтобы разобрать значения.',
     },
@@ -7343,8 +7610,10 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Connect with your e-Devlet to import records',
       'tr': 'Kayıtları içe aktarmak için e-Devlet ile bağlanın',
       'es': 'Conéctate con tu e-Devlet para importar registros',
-      'fr': 'Connectez-vous avec votre e-Devlet pour importer les enregistrements',
-      'de': 'Verbinden Sie sich mit Ihrem e-Devlet, um Datensätze zu importieren',
+      'fr':
+          'Connectez-vous avec votre e-Devlet pour importer les enregistrements',
+      'de':
+          'Verbinden Sie sich mit Ihrem e-Devlet, um Datensätze zu importieren',
       'ar': 'اتصل بـ e-Devlet لاستيراد السجلات',
       'it': 'Connettiti con il tuo e-Devlet per importare i record',
       'pt': 'Conecte-se com seu e-Devlet para importar registros',
@@ -7427,9 +7696,9 @@ class LocalizationService extends ChangeNotifier {
       'pt': 'Credenciais necessárias',
       'ru': 'Требуются учетные данные',
     },
-  'edevlet_connecting': {
+    'edevlet_connecting': {
       'en': 'Connecting to e-Devlet...',
-  'tr': 'e-Devlet\'e bağlanılıyor...',
+      'tr': 'e-Devlet\'e bağlanılıyor...',
       'es': 'Conectando a e-Devlet...',
       'fr': 'Connexion à e-Devlet...',
       'de': 'Verbindung zu e-Devlet...',
@@ -7701,185 +7970,1965 @@ class LocalizationService extends ChangeNotifier {
       'ru': 'Регистрация успешна!',
     },
     // Diet items - AI-generated menu items
-    'diet_item_apple': {'tr': 'Elma', 'en': 'Apple', 'es': 'Manzana', 'fr': 'Pomme', 'de': 'Apfel', 'ar': 'تفاحة', 'it': 'Mela', 'pt': 'Maçã', 'ru': 'Яблоко'},
-    'diet_item_apple_slices': {'tr': 'Elma Dilimleri', 'en': 'Apple Slices', 'es': 'Rodajas de Manzana', 'fr': 'Tranches de Pomme', 'de': 'Apfelscheiben', 'ar': 'شرائح التفاح', 'it': 'Fette di Mela', 'pt': 'Fatias de Maçã', 'ru': 'Дольки яблока'},
-    'diet_item_avocado_toast': {'tr': 'Avokado Tostu', 'en': 'Avocado Toast', 'es': 'Tostada de Aguacate', 'fr': 'Toast à l\'Avocat', 'de': 'Avocado-Toast', 'ar': 'توست الأفوكادو', 'it': 'Toast all\'Avocado', 'pt': 'Torrada com Abacate', 'ru': 'Тост с авокадо'},
-    'diet_item_banana': {'tr': 'Muz', 'en': 'Banana', 'es': 'Plátano', 'fr': 'Banane', 'de': 'Banan', 'ar': 'موز', 'it': 'Banana', 'pt': 'Banana', 'ru': 'Банан'},
-    'diet_item_black_bean_breakfast': {'tr': 'Siyah Fasulye Kahvaltısı', 'en': 'Black Bean Breakfast', 'es': 'Desayuno de Frijoles Negros', 'fr': 'Petit-déjeuner aux Haricots Noirs', 'de': 'Schwarze Bohnen Frühstück', 'ar': 'إفطار الفاصوليا السوداء', 'it': 'Colazione con Fagioli Neri', 'pt': 'Café da Manhã com Feijão Preto', 'ru': 'Завтрак с черной фасолью'},
-    'diet_item_black_bean_burger': {'tr': 'Siyah Fasulye Burger', 'en': 'Black Bean Burger', 'es': 'Hamburguesa de Frijoles Negros', 'fr': 'Burger aux Haricots Noirs', 'de': 'Schwarze Bohnen Burger', 'ar': 'برجر الفاصوليا السوداء', 'it': 'Burger di Fagioli Neri', 'pt': 'Hambúrguer de Feijão Preto', 'ru': 'Бургер с черной фасолью'},
-    'diet_item_braised_beef': {'tr': 'Kavrulmuş Sığır Eti', 'en': 'Braised Beef', 'es': 'Carne de Res Guisada', 'fr': 'Bœuf Braisé', 'de': 'Geschmortes Rindfleisch', 'ar': 'لحم البقر المطبوخ', 'it': 'Manzo Brasato', 'pt': 'Carne de Vaca Refogada', 'ru': 'Тушеная говядина'},
-    'diet_item_breakfast_burrito': {'tr': 'Kahvaltı Burrito', 'en': 'Breakfast Burrito', 'es': 'Burrito de Desayuno', 'fr': 'Burrito Petit-déjeuner', 'de': 'Frühstücks-Burrito', 'ar': 'بوريتو الإفطار', 'it': 'Burrito della Colazione', 'pt': 'Burrito de Café da Manhã', 'ru': 'Буррито на завтрак'},
-    'diet_item_chia_pudding': {'tr': 'Chia Pudingi', 'en': 'Chia Pudding', 'es': 'Pudín de Chía', 'fr': 'Pudding au Chia', 'de': 'Chia-Pudding', 'ar': 'بودينغ الشيا', 'it': 'Budino di Chia', 'pt': 'Pudim de Chia', 'ru': 'Пудинг из чиа'},
-    'diet_item_chia_seed_pudding': {'tr': 'Chia Tohumu Pudingi', 'en': 'Chia Seed Pudding', 'es': 'Pudín de Semillas de Chía', 'fr': 'Pudding aux Graines de Chia', 'de': 'Chiasamen-Pudding', 'ar': 'بودينغ بذور الشيا', 'it': 'Budino ai Semi di Chia', 'pt': 'Pudim de Sementes de Chia', 'ru': 'Пудинг из семян чиа'},
-    'diet_item_chickpea_flour_pancakes': {'tr': 'Nohut Unlu Pancake', 'en': 'Chickpea Flour Pancakes', 'es': 'Tortitas de Harina de Garbanzo', 'fr': 'Pancakes à la Farine de Pois Chiches', 'de': 'Kichererbsenmehl-Pfannkuchen', 'ar': 'فطائر دقيق الحمص', 'it': 'Frittelle di Farina di Ceci', 'pt': 'Panquecas de Farinha de Grão-de-Bico', 'ru': 'Оладьи из нутовой муки'},
-    'diet_item_chickpea_salad': {'tr': 'Nohut Salatası', 'en': 'Chickpea Salad', 'es': 'Ensalada de Garbanzos', 'fr': 'Salade de Pois Chiches', 'de': 'Kichererbsensalat', 'ar': 'سلطة الحمص', 'it': 'Insalata di Ceci', 'pt': 'Salada de Grão-de-Bico', 'ru': 'Салат из нута'},
-    'diet_item_chickpea_scramble': {'tr': 'Nohut Karıştırması', 'en': 'Chickpea Scramble', 'es': 'Revoltillo de Garbanzos', 'fr': 'Brouillade de Pois Chiches', 'de': 'Kichererbsen-Rührei', 'ar': 'خلطة الحمص', 'it': 'Uova Stracciate con Ceci', 'pt': 'Ovos Mexidos com Grão-de-Bico', 'ru': 'Яичница с нутом'},
-    'diet_item_chickpea_snacks': {'tr': 'Nohut Atıştırmalıkları', 'en': 'Chickpea Snacks', 'es': 'Snacks de Garbanzos', 'fr': 'Snacks aux Pois Chiches', 'de': 'Kichererbsen-Snacks', 'ar': 'وجبات خفيفة من الحمص', 'it': 'Snack di Ceci', 'pt': 'Lanches de Grão-de-Bico', 'ru': 'Закуски из нута'},
-    'diet_item_chickpea_stew': {'tr': 'Nohut Yahnisi', 'en': 'Chickpea Stew', 'es': 'Estofado de Garbanzos', 'fr': 'Ragoût de Pois Chiches', 'de': 'Kichererbsen-Eintopf', 'ar': 'يخنة الحمص', 'it': 'Stufato di Ceci', 'pt': 'Ensopado de Grão-de-Bico', 'ru': 'Рагу из нута'},
-    'diet_item_cottage_cheese': {'tr': 'Lor Peyniri', 'en': 'Cottage Cheese', 'es': 'Requesón', 'fr': 'Fromage Blanc', 'de': 'Hüttenkäse', 'ar': 'الجبن القريش', 'it': 'Ricotta', 'pt': 'Queijo Cottage', 'ru': 'Творог'},
-    'diet_item_dark_chocolate_70': {'tr': 'Bitter Çikolata %70', 'en': 'Dark Chocolate 70%', 'es': 'Chocolate Negro 70%', 'fr': 'Chocolat Noir 70%', 'de': 'Dunkle Schokolade 70%', 'ar': 'شوكولاتة داكنة 70%', 'it': 'Cioccolato Fondente 70%', 'pt': 'Chocolate Amargo 70%', 'ru': 'Темный шоколад 70%'},
-    'diet_item_egg_white_omelette': {'tr': 'Yumurta Akı Omlet', 'en': 'Egg White Omelette', 'es': 'Tortilla de Clara de Huevo', 'fr': 'Omelette aux Blancs d\'Œufs', 'de': 'Eiweiß-Omelett', 'ar': 'عجة بياض البيض', 'it': 'Frittata con Solo Albumi', 'pt': 'Omelete de Clara de Ovo', 'ru': 'Омлет из белков'},
-    'diet_item_egg_white_scramble': {'tr': 'Yumurta Akı Karıştırması', 'en': 'Egg White Scramble', 'es': 'Revoltillo de Clara de Huevo', 'fr': 'Brouillade de Blancs d\'Œufs', 'de': 'Eiweiß-Rührei', 'ar': 'خلطة بياض البيض', 'it': 'Uova Stracciate con Solo Albumi', 'pt': 'Ovos Mexidos com Clara de Ovo', 'ru': 'Яичница из белков'},
-    'diet_item_energy_balls': {'tr': 'Enerji Topları', 'en': 'Energy Balls', 'es': 'Bolitas de Energía', 'fr': 'Boules d\'Énergie', 'de': 'Energiebällchen', 'ar': 'كرات الطاقة', 'it': 'Palle Energetiche', 'pt': 'Bolinhas Energéticas', 'ru': 'Энергетические шарики'},
-    'diet_item_french_toast_whole_grain': {'tr': 'Tam Tahıllı Fransız Tostu', 'en': 'French Toast Whole Grain', 'es': 'Tostada Francesa Integral', 'fr': 'Pain Perdu Complet', 'de': 'Französisches Toast Vollkorn', 'ar': 'توست فرنسي بالحبوب الكاملة', 'it': 'Pain Perdu Integrale', 'pt': 'Rabanada Integral', 'ru': 'Французский тост из цельного зерна'},
-    'diet_item_fresh_apple': {'tr': 'Taze Elma', 'en': 'Fresh Apple', 'es': 'Manzana Fresca', 'fr': 'Pomme Fraîche', 'de': 'Frischer Apfel', 'ar': 'تفاحة طازجة', 'it': 'Mela Fresca', 'pt': 'Maçã Fresca', 'ru': 'Свежее яблоко'},
-    'diet_item_fresh_fruit': {'tr': 'Taze Meyve', 'en': 'Fresh Fruit', 'es': 'Fruta Fresca', 'fr': 'Fruit Frais', 'de': 'Frisches Obst', 'ar': 'فاكهة طازجة', 'it': 'Frutta Fresca', 'pt': 'Fruta Fresca', 'ru': 'Свежие фрукты'},
-    'diet_item_fruit_salad': {'tr': 'Meyve Salatası', 'en': 'Fruit Salad', 'es': 'Ensalada de Frutas', 'fr': 'Salade de Fruits', 'de': 'Obstsalat', 'ar': 'سلطة الفواكه', 'it': 'Macedonia', 'pt': 'Salada de Frutas', 'ru': 'Фруктовый салат'},
-    'diet_item_granola_bowl': {'tr': 'Granola Kasesi', 'en': 'Granola Bowl', 'es': 'Tazón de Granola', 'fr': 'Bol de Granola', 'de': 'Granola-Schüssel', 'ar': 'وعاء الجرانولا', 'it': 'Ciotola di Granola', 'pt': 'Tigela de Granola', 'ru': 'Чаша с гранолой'},
-    'diet_item_greek_yogurt': {'tr': 'Yunan Yoğurdu', 'en': 'Greek Yogurt', 'es': 'Yogur Griego', 'fr': 'Yaourt Grec', 'de': 'Griechischer Joghurt', 'ar': 'زبادي يوناني', 'it': 'Yogurt Greco', 'pt': 'Iogurte Grego', 'ru': 'Греческий йогурт'},
-    'diet_item_greek_yogurt_berries': {'tr': 'Yunan Yoğurdu ve Çilek', 'en': 'Greek Yogurt with Berries', 'es': 'Yogur Griego con Bayas', 'fr': 'Yaourt Grec aux Baies', 'de': 'Griechischer Joghurt mit Beeren', 'ar': 'زبادي يوناني مع التوت', 'it': 'Yogurt Greco con Bacche', 'pt': 'Iogurte Grego com Frutas Vermelhas', 'ru': 'Греческий йогурт с ягодами'},
-    'diet_item_grilled_chicken': {'tr': 'Izgara Tavuk', 'en': 'Grilled Chicken', 'es': 'Pollo a la Parrilla', 'fr': 'Poulet Grillé', 'de': 'Gegrilltes Hähnchen', 'ar': 'دجاج مشوي', 'it': 'Pollo alla Griglia', 'pt': 'Frango Grelhado', 'ru': 'Жареный цыпленок'},
-    'diet_item_grilled_chicken_breast': {'tr': 'Izgara Tavuk Göğsü', 'en': 'Grilled Chicken Breast', 'es': 'Pechuga de Pollo a la Parrilla', 'fr': 'Blanc de Poulet Grillé', 'de': 'Gegrillte Hähnchenbrust', 'ar': 'صدر الدجاج المشوي', 'it': 'Petto di Pollo alla Griglia', 'pt': 'Peito de Frango Grelhado', 'ru': 'Жареная куриная грудка'},
-    'diet_item_grilled_chicken_thigh': {'tr': 'Izgara Tavuk Butu', 'en': 'Grilled Chicken Thigh', 'es': 'Muslo de Pollo a la Parrilla', 'fr': 'Cuisse de Poulet Grillée', 'de': 'Gegrilltes Hähnchenschenkel', 'ar': 'فخذ الدجاج المشوي', 'it': 'Coscia di Pollo alla Griglia', 'pt': 'Coxa de Frango Grelhada', 'ru': 'Жареное куриное бедро'},
-    'diet_item_grilled_fish': {'tr': 'Izgara Balık', 'en': 'Grilled Fish', 'es': 'Pescado a la Parrilla', 'fr': 'Poisson Grillé', 'de': 'Gegrillter Fisch', 'ar': 'سمك مشوي', 'it': 'Pesce alla Griglia', 'pt': 'Peixe Grelhado', 'ru': 'Жареная рыба'},
-    'diet_item_grilled_lamb': {'tr': 'Izgara Kuzu', 'en': 'Grilled Lamb', 'es': 'Cordero a la Parrilla', 'fr': 'Agneau Grillé', 'de': 'Gegrilltes Lamm', 'ar': 'لحم ضأن مشوي', 'it': 'Agnello alla Griglia', 'pt': 'Cordeiro Grelhado', 'ru': 'Жареный барашек'},
-    'diet_item_grilled_lean_steak': {'tr': 'Izgara Yağsız Biftek', 'en': 'Grilled Lean Steak', 'es': 'Filete Magro a la Parrilla', 'fr': 'Steak Maigre Grillé', 'de': 'Gegrilltes Mageres Steak', 'ar': 'شريحة لحم مشوية خالية من الدهون', 'it': 'Bistecca Magra alla Griglia', 'pt': 'Bife Magro Grelhado', 'ru': 'Жареный постный стейк'},
-    'diet_item_grilled_salmon': {'tr': 'Izgara Somon', 'en': 'Grilled Salmon', 'es': 'Salmón a la Parrilla', 'fr': 'Saumon Grillé', 'de': 'Gegrillter Lachs', 'ar': 'سلمون مشوي', 'it': 'Salmone alla Griglia', 'pt': 'Salmão Grelhado', 'ru': 'Жареный лосось'},
-    'diet_item_grilled_sardines': {'tr': 'Izgara Sardalya', 'en': 'Grilled Sardines', 'es': 'Sardinas a la Parrilla', 'fr': 'Sardines Grillées', 'de': 'Gegrillte Sardinen', 'ar': 'سردين مشوي', 'it': 'Sardine alla Griglia', 'pt': 'Sardinhas Grelhadas', 'ru': 'Жареные сардины'},
-    'diet_item_grilled_shrimp': {'tr': 'Izgara Karides', 'en': 'Grilled Shrimp', 'es': 'Camarones a la Parrilla', 'fr': 'Crevettes Grillées', 'de': 'Gegrillte Garnelen', 'ar': 'جمبري مشوي', 'it': 'Gamberi alla Griglia', 'pt': 'Camarão Grelhado', 'ru': 'Жареные креветки'},
-    'diet_item_grilled_steak': {'tr': 'Izgara Biftek', 'en': 'Grilled Steak', 'es': 'Filete a la Parrilla', 'fr': 'Steak Grillé', 'de': 'Gegrilltes Steak', 'ar': 'شريحة لحم مشوية', 'it': 'Bistecca alla Griglia', 'pt': 'Bife Grelhado', 'ru': 'Жареный стейк'},
-    'diet_item_grilled_turkey': {'tr': 'Izgara Hindi', 'en': 'Grilled Turkey', 'es': 'Pavo a la Parrilla', 'fr': 'Dinde Grillée', 'de': 'Gegrillter Truthahn', 'ar': 'ديك رومي مشوي', 'it': 'Tacchino alla Griglia', 'pt': 'Peru Grelhado', 'ru': 'Жареная индейка'},
-    'diet_item_grilled_white_fish': {'tr': 'Izgara Beyaz Balık', 'en': 'Grilled White Fish', 'es': 'Pescado Blanco a la Parrilla', 'fr': 'Poisson Blanc Grillé', 'de': 'Gegrillter Weißfisch', 'ar': 'سمك أبيض مشوي', 'it': 'Pesce Bianco alla Griglia', 'pt': 'Peixe Branco Grelhado', 'ru': 'Жареная белая рыба'},
-    'diet_item_hummus': {'tr': 'Humus', 'en': 'Hummus', 'es': 'Hummus', 'fr': 'Houmous', 'de': 'Hummus', 'ar': 'حمص', 'it': 'Hummus', 'pt': 'Homus', 'ru': 'Хумус'},
-    'diet_item_iron_fortified_cereal_bar': {'tr': 'Demir Takviyeli Tahıl Çubuğu', 'en': 'Iron Fortified Cereal Bar', 'es': 'Barra de Cereales Fortificada con Hierro', 'fr': 'Barre de Céréales Fortifiée en Fer', 'de': 'Eisenergänztes Müsliriegel', 'ar': 'شريط الحبوب المدعم بالحديد', 'it': 'Barretta di Cereali Fortificata con Ferro', 'pt': 'Barra de Cereais Fortificada com Ferro', 'ru': 'Зерновой батончик, обогащенный железом'},
-    'diet_item_iron_fortified_smoothie': {'tr': 'Demir Takviyeli Smoothie', 'en': 'Iron Fortified Smoothie', 'es': 'Batido Fortificado con Hierro', 'fr': 'Smoothie Fortifié en Fer', 'de': 'Eisenergänzter Smoothie', 'ar': 'سموذي مدعم بالحديد', 'it': 'Frullato Fortificato con Ferro', 'pt': 'Smoothie Fortificado com Ferro', 'ru': 'Смузи, обогащенный железом'},
-    'diet_item_lean_beef_stir_fry': {'tr': 'Yağsız Sığır Eti Karıştırması', 'en': 'Lean Beef Stir Fry', 'es': 'Sofrito de Carne Magra', 'fr': 'Sauté de Bœuf Maigre', 'de': 'Mageres Rindfleisch-Pfannengericht', 'ar': 'لحم بقري قليل الدهون سوتيه', 'it': 'Manzo Magro Saltato', 'pt': 'Carne de Vaca Magra Salteada', 'ru': 'Жаркое из постной говядины'},
-    'diet_item_lentil_curry': {'tr': 'Mercimek Köri', 'en': 'Lentil Curry', 'es': 'Curry de Lentejas', 'fr': 'Curry de Lentilles', 'de': 'Linsen-Curry', 'ar': 'كاري العدس', 'it': 'Curry di Lenticchie', 'pt': 'Caril de Lentilhas', 'ru': 'Карри из чечевицы'},
-    'diet_item_lentil_dal': {'tr': 'Mercimek Dal', 'en': 'Lentil Dal', 'es': 'Dal de Lentejas', 'fr': 'Dal de Lentilles', 'de': 'Linsen-Dal', 'ar': 'دال العدس', 'it': 'Dal di Lenticchie', 'pt': 'Dal de Lentilhas', 'ru': 'Дал из чечевицы'},
-    'diet_item_lentil_pancakes': {'tr': 'Mercimek Pancake', 'en': 'Lentil Pancakes', 'es': 'Tortitas de Lentejas', 'fr': 'Pancakes aux Lentilles', 'de': 'Linsen-Pfannkuchen', 'ar': 'فطائر العدس', 'it': 'Frittelle di Lenticchie', 'pt': 'Panquecas de Lentilhas', 'ru': 'Оладьи из чечевицы'},
-    'diet_item_lentil_soup': {'tr': 'Mercimek Çorbası', 'en': 'Lentil Soup', 'es': 'Sopa de Lentejas', 'fr': 'Soupe de Lentilles', 'de': 'Linsensuppe', 'ar': 'شوربة العدس', 'it': 'Zuppa di Lenticchie', 'pt': 'Sopa de Lentilhas', 'ru': 'Суп из чечевицы'},
-    'diet_item_liver_pate': {'tr': 'Karaciğer Ezmesi', 'en': 'Liver Pate', 'es': 'Paté de Hígado', 'fr': 'Pâté de Foie', 'de': 'Leberpastete', 'ar': 'معجون الكبد', 'it': 'Paté di Fegato', 'pt': 'Patê de Fígado', 'ru': 'Печеночный паштет'},
-    'diet_item_mediterranean_bowl': {'tr': 'Akdeniz Kasesi', 'en': 'Mediterranean Bowl', 'es': 'Bol Mediterráneo', 'fr': 'Bol Méditerranéen', 'de': 'Mittelmeer-Schüssel', 'ar': 'وعاء البحر المتوسط', 'it': 'Ciotola Mediterranea', 'pt': 'Tigela Mediterrânea', 'ru': 'Средиземноморская чаша'},
-    'diet_item_mediterranean_salad': {'tr': 'Akdeniz Salatası', 'en': 'Mediterranean Salad', 'es': 'Ensalada Mediterránea', 'fr': 'Salade Méditerranéenne', 'de': 'Mittelmeer-Salat', 'ar': 'سلطة البحر المتوسط', 'it': 'Insalata Mediterranea', 'pt': 'Salada Mediterrânea', 'ru': 'Средиземноморский салат'},
-    'diet_item_nut_butter': {'tr': 'Fındık Ezmesi', 'en': 'Nut Butter', 'es': 'Mantequilla de Nueces', 'fr': 'Beurre de Noix', 'de': 'Nussbutter', 'ar': 'زبدة المكسرات', 'it': 'Burro di Noci', 'pt': 'Manteiga de Nozes', 'ru': 'Ореховое масло'},
-    'diet_item_oatmeal_apple': {'tr': 'Elmalı Yulaf Ezmesi', 'en': 'Oatmeal with Apple', 'es': 'Avena con Manzana', 'fr': 'Flocons d\'Avoine aux Pommes', 'de': 'Haferflocken mit Apfel', 'ar': 'دقيق الشوفان مع التفاح', 'it': 'Fiocchi d\'Avena con Mela', 'pt': 'Aveia com Maçã', 'ru': 'Овсянка с яблоком'},
-    'diet_item_oatmeal_berries': {'tr': 'Çilekli Yulaf Ezmesi', 'en': 'Oatmeal with Berries', 'es': 'Avena con Bayas', 'fr': 'Flocons d\'Avoine aux Baies', 'de': 'Haferflocken mit Beeren', 'ar': 'دقيق الشوفان مع التوت', 'it': 'Fiocchi d\'Avena con Bacche', 'pt': 'Aveia com Frutas Vermelhas', 'ru': 'Овсянка с ягодами'},
-    'diet_item_pear': {'tr': 'Armut', 'en': 'Pear', 'es': 'Pera', 'fr': 'Poire', 'de': 'Birne', 'ar': 'كمثرى', 'it': 'Pera', 'pt': 'Pêra', 'ru': 'Груша'},
-    'diet_item_poached_eggs': {'tr': 'Poşe Yumurta', 'en': 'Poached Eggs', 'es': 'Huevos Escalfados', 'fr': 'Œufs Pochés', 'de': 'Pochierte Eier', 'ar': 'بيض مسلوق', 'it': 'Uova in Camicia', 'pt': 'Ovos Escalfados', 'ru': 'Яйца-пашот'},
-    'diet_item_quinoa_breakfast': {'tr': 'Kinoa Kahvaltısı', 'en': 'Quinoa Breakfast', 'es': 'Desayuno de Quinoa', 'fr': 'Petit-déjeuner au Quinoa', 'de': 'Quinoa-Frühstück', 'ar': 'إفطار الكينوا', 'it': 'Colazione con Quinoa', 'pt': 'Café da Manhã com Quinoa', 'ru': 'Завтрак с киноа'},
-    'diet_item_quinoa_breakfast_bowl': {'tr': 'Kinoa Kahvaltı Kasesi', 'en': 'Quinoa Breakfast Bowl', 'es': 'Tazón de Desayuno de Quinoa', 'fr': 'Bol Petit-déjeuner au Quinoa', 'de': 'Quinoa-Frühstücksschüssel', 'ar': 'وعاء إفطار الكينوا', 'it': 'Ciotola di Colazione con Quinoa', 'pt': 'Tigela de Café da Manhã com Quinoa', 'ru': 'Чаша с киноа на завтрак'},
-    'diet_item_quinoa_porridge': {'tr': 'Kinoa Lapası', 'en': 'Quinoa Porridge', 'es': 'Gachas de Quinoa', 'fr': 'Porridge de Quinoa', 'de': 'Quinoa-Brei', 'ar': 'عصيدة الكينوا', 'it': 'Porridge di Quinoa', 'pt': 'Mingau de Quinoa', 'ru': 'Каша из киноа'},
-    'diet_item_red_bean_stew': {'tr': 'Kırmızı Fasulye Yahnisi', 'en': 'Red Bean Stew', 'es': 'Estofado de Frijoles Rojos', 'fr': 'Ragoût de Haricots Rouges', 'de': 'Rote Bohnen-Eintopf', 'ar': 'يخنة الفاصوليا الحمراء', 'it': 'Stufato di Fagioli Rossi', 'pt': 'Ensopado de Feijão Vermelho', 'ru': 'Рагу из красной фасоли'},
-    'diet_item_red_meat_omelette': {'tr': 'Kırmızı Etli Omlet', 'en': 'Red Meat Omelette', 'es': 'Tortilla de Carne Roja', 'fr': 'Omelette à la Viande Rouge', 'de': 'Rindfleisch-Omelett', 'ar': 'عجة اللحم الأحمر', 'it': 'Frittata con Carne Rossa', 'pt': 'Omelete com Carne Vermelha', 'ru': 'Омлет с красным мясом'},
-    'diet_item_smoothie': {'tr': 'Smoothie', 'en': 'Smoothie', 'es': 'Batido', 'fr': 'Smoothie', 'de': 'Smoothie', 'ar': 'سموذي', 'it': 'Frullato', 'pt': 'Smoothie', 'ru': 'Смузи'},
-    'diet_item_smoothie_bowl': {'tr': 'Smoothie Kasesi', 'en': 'Smoothie Bowl', 'es': 'Tazón de Batido', 'fr': 'Bol Smoothie', 'de': 'Smoothie-Schüssel', 'ar': 'وعاء السموذي', 'it': 'Ciotola di Frullato', 'pt': 'Tigela de Smoothie', 'ru': 'Чаша смузи'},
-    'diet_item_steamed_chicken': {'tr': 'Buharda Pişmiş Tavuk', 'en': 'Steamed Chicken', 'es': 'Pollo al Vapor', 'fr': 'Poulet à la Vapeur', 'de': 'Gedämpftes Hähnchen', 'ar': 'دجاج مطبوخ على البخار', 'it': 'Pollo al Vapore', 'pt': 'Frango ao Vapor', 'ru': 'Курица на пару'},
-    'diet_item_steamed_cod': {'tr': 'Buharda Pişmiş Morina', 'en': 'Steamed Cod', 'es': 'Bacalao al Vapor', 'fr': 'Cabillaud à la Vapeur', 'de': 'Gedämpfter Kabeljau', 'ar': 'سمك القد المطبوخ على البخار', 'it': 'Merluzzo al Vapore', 'pt': 'Bacalhau ao Vapor', 'ru': 'Треска на пару'},
-    'diet_item_steamed_fish': {'tr': 'Buharda Pişmiş Balık', 'en': 'Steamed Fish', 'es': 'Pescado al Vapor', 'fr': 'Poisson à la Vapeur', 'de': 'Gedämpfter Fisch', 'ar': 'سمك مطبوخ على البخار', 'it': 'Pesce al Vapore', 'pt': 'Peixe ao Vapor', 'ru': 'Рыба на пару'},
-    'diet_item_steamed_oatmeal': {'tr': 'Buharda Pişmiş Yulaf Ezmesi', 'en': 'Steamed Oatmeal', 'es': 'Avena al Vapor', 'fr': 'Flocons d\'Avoine à la Vapeur', 'de': 'Gedämpfte Haferflocken', 'ar': 'دقيق الشوفان المطبوخ على البخار', 'it': 'Fiocchi d\'Avena al Vapore', 'pt': 'Aveia ao Vapor', 'ru': 'Овсянка на пару'},
-    'diet_item_steamed_rice': {'tr': 'Buharda Pişmiş Pirinç', 'en': 'Steamed Rice', 'es': 'Arroz al Vapor', 'fr': 'Riz à la Vapeur', 'de': 'Gedämpfter Reis', 'ar': 'أرز مطبوخ على البخار', 'it': 'Riso al Vapore', 'pt': 'Arroz ao Vapor', 'ru': 'Рис на пару'},
-    'diet_item_steamed_rice_congee': {'tr': 'Pirinç Çorbası', 'en': 'Steamed Rice Congee', 'es': 'Congee de Arroz al Vapor', 'fr': 'Congee de Riz à la Vapeur', 'de': 'Gedämpfte Reissuppe', 'ar': 'حساء الأرز المطبوخ على البخار', 'it': 'Congee di Riso al Vapore', 'pt': 'Congee de Arroz ao Vapor', 'ru': 'Рисовая каша на пару'},
-    'diet_item_steamed_salmon': {'tr': 'Buharda Pişmiş Somon', 'en': 'Steamed Salmon', 'es': 'Salmón al Vapor', 'fr': 'Saumon à la Vapeur', 'de': 'Gedämpfter Lachs', 'ar': 'سلمون مطبوخ على البخار', 'it': 'Salmone al Vapore', 'pt': 'Salmão ao Vapor', 'ru': 'Лосось на пару'},
-    'diet_item_steamed_vegetables': {'tr': 'Buharda Pişmiş Sebzeler', 'en': 'Steamed Vegetables', 'es': 'Verduras al Vapor', 'fr': 'Légumes à la Vapeur', 'de': 'Gedämpftes Gemüse', 'ar': 'خضار مطبوخة على البخار', 'it': 'Verdure al Vapore', 'pt': 'Legumes ao Vapor', 'ru': 'Овощи на пару'},
-    'diet_item_steamed_white_fish': {'tr': 'Buharda Pişmiş Beyaz Balık', 'en': 'Steamed White Fish', 'es': 'Pescado Blanco al Vapor', 'fr': 'Poisson Blanc à la Vapeur', 'de': 'Gedämpfter Weißfisch', 'ar': 'سمك أبيض مطبوخ على البخار', 'it': 'Pesce Bianco al Vapore', 'pt': 'Peixe Branco ao Vapor', 'ru': 'Белая рыба на пару'},
-    'diet_item_steel_cut_oats': {'tr': 'Çelik Kesim Yulaf', 'en': 'Steel Cut Oats', 'es': 'Avena Cortada al Acero', 'fr': 'Flocons d\'Avoine Coupés à l\'Acier', 'de': 'Stahlgeschnittene Haferflocken', 'ar': 'دقيق الشوفان المقطع بالفولاذ', 'it': 'Fiocchi d\'Avena Tagliati all\'Acciaio', 'pt': 'Aveia Cortada em Aço', 'ru': 'Овсянка стального помола'},
-    'diet_item_trail_mix': {'tr': 'Kuru Yemiş Karışımı', 'en': 'Trail Mix', 'es': 'Mezcla de Frutos Secos', 'fr': 'Mélange de Fruits Secs', 'de': 'Studentenfutter', 'ar': 'مزيج المكسرات', 'it': 'Mix di Frutta Secca', 'pt': 'Mistura de Frutas Secas', 'ru': 'Смесь сухофруктов'},
-    'diet_item_turkey_breast': {'tr': 'Hindi Göğsü', 'en': 'Turkey Breast', 'es': 'Pechuga de Pavo', 'fr': 'Blanc de Dinde', 'de': 'Putenbrust', 'ar': 'صدر الديك الرومي', 'it': 'Petto di Tacchino', 'pt': 'Peito de Peru', 'ru': 'Грудка индейки'},
-    'diet_item_whole_grain_cereal': {'tr': 'Tam Tahıllı Tahıl', 'en': 'Whole Grain Cereal', 'es': 'Cereal Integral', 'fr': 'Céréales Complètes', 'de': 'Vollkorn-Müsli', 'ar': 'حبوب الحبة الكاملة', 'it': 'Cereali Integrali', 'pt': 'Cereal Integral', 'ru': 'Цельнозерновые хлопья'},
-    'diet_item_whole_grain_pancakes': {'tr': 'Tam Tahıllı Pancake', 'en': 'Whole Grain Pancakes', 'es': 'Tortitas Integrales', 'fr': 'Pancakes Complets', 'de': 'Vollkorn-Pfannkuchen', 'ar': 'فطائر الحبة الكاملة', 'it': 'Frittelle Integrali', 'pt': 'Panquecas Integrais', 'ru': 'Цельнозерновые оладьи'},
-    'diet_item_whole_grain_pita': {'tr': 'Tam Tahıllı Pide', 'en': 'Whole Grain Pita', 'es': 'Pita Integral', 'fr': 'Pita Complet', 'de': 'Vollkorn-Pita', 'ar': 'خبز البيتا الكامل', 'it': 'Pita Integrale', 'pt': 'Pão Pita Integral', 'ru': 'Цельнозерновая пита'},
-    'diet_item_whole_grain_waffles': {'tr': 'Tam Tahıllı Waffle', 'en': 'Whole Grain Waffles', 'es': 'Gofres Integrales', 'fr': 'Gaufres Complètes', 'de': 'Vollkorn-Waffeln', 'ar': 'وافل الحبة الكاملة', 'it': 'Waffle Integrali', 'pt': 'Waffles Integrais', 'ru': 'Цельнозерновые вафли'},
+    'diet_item_apple': {
+      'tr': 'Elma',
+      'en': 'Apple',
+      'es': 'Manzana',
+      'fr': 'Pomme',
+      'de': 'Apfel',
+      'ar': 'تفاحة',
+      'it': 'Mela',
+      'pt': 'Maçã',
+      'ru': 'Яблоко'
+    },
+    'diet_item_apple_slices': {
+      'tr': 'Elma Dilimleri',
+      'en': 'Apple Slices',
+      'es': 'Rodajas de Manzana',
+      'fr': 'Tranches de Pomme',
+      'de': 'Apfelscheiben',
+      'ar': 'شرائح التفاح',
+      'it': 'Fette di Mela',
+      'pt': 'Fatias de Maçã',
+      'ru': 'Дольки яблока'
+    },
+    'diet_item_avocado_toast': {
+      'tr': 'Avokado Tostu',
+      'en': 'Avocado Toast',
+      'es': 'Tostada de Aguacate',
+      'fr': 'Toast à l\'Avocat',
+      'de': 'Avocado-Toast',
+      'ar': 'توست الأفوكادو',
+      'it': 'Toast all\'Avocado',
+      'pt': 'Torrada com Abacate',
+      'ru': 'Тост с авокадо'
+    },
+    'diet_item_banana': {
+      'tr': 'Muz',
+      'en': 'Banana',
+      'es': 'Plátano',
+      'fr': 'Banane',
+      'de': 'Banan',
+      'ar': 'موز',
+      'it': 'Banana',
+      'pt': 'Banana',
+      'ru': 'Банан'
+    },
+    'diet_item_black_bean_breakfast': {
+      'tr': 'Siyah Fasulye Kahvaltısı',
+      'en': 'Black Bean Breakfast',
+      'es': 'Desayuno de Frijoles Negros',
+      'fr': 'Petit-déjeuner aux Haricots Noirs',
+      'de': 'Schwarze Bohnen Frühstück',
+      'ar': 'إفطار الفاصوليا السوداء',
+      'it': 'Colazione con Fagioli Neri',
+      'pt': 'Café da Manhã com Feijão Preto',
+      'ru': 'Завтрак с черной фасолью'
+    },
+    'diet_item_black_bean_burger': {
+      'tr': 'Siyah Fasulye Burger',
+      'en': 'Black Bean Burger',
+      'es': 'Hamburguesa de Frijoles Negros',
+      'fr': 'Burger aux Haricots Noirs',
+      'de': 'Schwarze Bohnen Burger',
+      'ar': 'برجر الفاصوليا السوداء',
+      'it': 'Burger di Fagioli Neri',
+      'pt': 'Hambúrguer de Feijão Preto',
+      'ru': 'Бургер с черной фасолью'
+    },
+    'diet_item_braised_beef': {
+      'tr': 'Kavrulmuş Sığır Eti',
+      'en': 'Braised Beef',
+      'es': 'Carne de Res Guisada',
+      'fr': 'Bœuf Braisé',
+      'de': 'Geschmortes Rindfleisch',
+      'ar': 'لحم البقر المطبوخ',
+      'it': 'Manzo Brasato',
+      'pt': 'Carne de Vaca Refogada',
+      'ru': 'Тушеная говядина'
+    },
+    'diet_item_breakfast_burrito': {
+      'tr': 'Kahvaltı Burrito',
+      'en': 'Breakfast Burrito',
+      'es': 'Burrito de Desayuno',
+      'fr': 'Burrito Petit-déjeuner',
+      'de': 'Frühstücks-Burrito',
+      'ar': 'بوريتو الإفطار',
+      'it': 'Burrito della Colazione',
+      'pt': 'Burrito de Café da Manhã',
+      'ru': 'Буррито на завтрак'
+    },
+    'diet_item_chia_pudding': {
+      'tr': 'Chia Pudingi',
+      'en': 'Chia Pudding',
+      'es': 'Pudín de Chía',
+      'fr': 'Pudding au Chia',
+      'de': 'Chia-Pudding',
+      'ar': 'بودينغ الشيا',
+      'it': 'Budino di Chia',
+      'pt': 'Pudim de Chia',
+      'ru': 'Пудинг из чиа'
+    },
+    'diet_item_chia_seed_pudding': {
+      'tr': 'Chia Tohumu Pudingi',
+      'en': 'Chia Seed Pudding',
+      'es': 'Pudín de Semillas de Chía',
+      'fr': 'Pudding aux Graines de Chia',
+      'de': 'Chiasamen-Pudding',
+      'ar': 'بودينغ بذور الشيا',
+      'it': 'Budino ai Semi di Chia',
+      'pt': 'Pudim de Sementes de Chia',
+      'ru': 'Пудинг из семян чиа'
+    },
+    'diet_item_chickpea_flour_pancakes': {
+      'tr': 'Nohut Unlu Pancake',
+      'en': 'Chickpea Flour Pancakes',
+      'es': 'Tortitas de Harina de Garbanzo',
+      'fr': 'Pancakes à la Farine de Pois Chiches',
+      'de': 'Kichererbsenmehl-Pfannkuchen',
+      'ar': 'فطائر دقيق الحمص',
+      'it': 'Frittelle di Farina di Ceci',
+      'pt': 'Panquecas de Farinha de Grão-de-Bico',
+      'ru': 'Оладьи из нутовой муки'
+    },
+    'diet_item_chickpea_salad': {
+      'tr': 'Nohut Salatası',
+      'en': 'Chickpea Salad',
+      'es': 'Ensalada de Garbanzos',
+      'fr': 'Salade de Pois Chiches',
+      'de': 'Kichererbsensalat',
+      'ar': 'سلطة الحمص',
+      'it': 'Insalata di Ceci',
+      'pt': 'Salada de Grão-de-Bico',
+      'ru': 'Салат из нута'
+    },
+    'diet_item_chickpea_scramble': {
+      'tr': 'Nohut Karıştırması',
+      'en': 'Chickpea Scramble',
+      'es': 'Revoltillo de Garbanzos',
+      'fr': 'Brouillade de Pois Chiches',
+      'de': 'Kichererbsen-Rührei',
+      'ar': 'خلطة الحمص',
+      'it': 'Uova Stracciate con Ceci',
+      'pt': 'Ovos Mexidos com Grão-de-Bico',
+      'ru': 'Яичница с нутом'
+    },
+    'diet_item_chickpea_snacks': {
+      'tr': 'Nohut Atıştırmalıkları',
+      'en': 'Chickpea Snacks',
+      'es': 'Snacks de Garbanzos',
+      'fr': 'Snacks aux Pois Chiches',
+      'de': 'Kichererbsen-Snacks',
+      'ar': 'وجبات خفيفة من الحمص',
+      'it': 'Snack di Ceci',
+      'pt': 'Lanches de Grão-de-Bico',
+      'ru': 'Закуски из нута'
+    },
+    'diet_item_chickpea_stew': {
+      'tr': 'Nohut Yahnisi',
+      'en': 'Chickpea Stew',
+      'es': 'Estofado de Garbanzos',
+      'fr': 'Ragoût de Pois Chiches',
+      'de': 'Kichererbsen-Eintopf',
+      'ar': 'يخنة الحمص',
+      'it': 'Stufato di Ceci',
+      'pt': 'Ensopado de Grão-de-Bico',
+      'ru': 'Рагу из нута'
+    },
+    'diet_item_cottage_cheese': {
+      'tr': 'Lor Peyniri',
+      'en': 'Cottage Cheese',
+      'es': 'Requesón',
+      'fr': 'Fromage Blanc',
+      'de': 'Hüttenkäse',
+      'ar': 'الجبن القريش',
+      'it': 'Ricotta',
+      'pt': 'Queijo Cottage',
+      'ru': 'Творог'
+    },
+    'diet_item_dark_chocolate_70': {
+      'tr': 'Bitter Çikolata %70',
+      'en': 'Dark Chocolate 70%',
+      'es': 'Chocolate Negro 70%',
+      'fr': 'Chocolat Noir 70%',
+      'de': 'Dunkle Schokolade 70%',
+      'ar': 'شوكولاتة داكنة 70%',
+      'it': 'Cioccolato Fondente 70%',
+      'pt': 'Chocolate Amargo 70%',
+      'ru': 'Темный шоколад 70%'
+    },
+    'diet_item_egg_white_omelette': {
+      'tr': 'Yumurta Akı Omlet',
+      'en': 'Egg White Omelette',
+      'es': 'Tortilla de Clara de Huevo',
+      'fr': 'Omelette aux Blancs d\'Œufs',
+      'de': 'Eiweiß-Omelett',
+      'ar': 'عجة بياض البيض',
+      'it': 'Frittata con Solo Albumi',
+      'pt': 'Omelete de Clara de Ovo',
+      'ru': 'Омлет из белков'
+    },
+    'diet_item_egg_white_scramble': {
+      'tr': 'Yumurta Akı Karıştırması',
+      'en': 'Egg White Scramble',
+      'es': 'Revoltillo de Clara de Huevo',
+      'fr': 'Brouillade de Blancs d\'Œufs',
+      'de': 'Eiweiß-Rührei',
+      'ar': 'خلطة بياض البيض',
+      'it': 'Uova Stracciate con Solo Albumi',
+      'pt': 'Ovos Mexidos com Clara de Ovo',
+      'ru': 'Яичница из белков'
+    },
+    'diet_item_energy_balls': {
+      'tr': 'Enerji Topları',
+      'en': 'Energy Balls',
+      'es': 'Bolitas de Energía',
+      'fr': 'Boules d\'Énergie',
+      'de': 'Energiebällchen',
+      'ar': 'كرات الطاقة',
+      'it': 'Palle Energetiche',
+      'pt': 'Bolinhas Energéticas',
+      'ru': 'Энергетические шарики'
+    },
+    'diet_item_french_toast_whole_grain': {
+      'tr': 'Tam Tahıllı Fransız Tostu',
+      'en': 'French Toast Whole Grain',
+      'es': 'Tostada Francesa Integral',
+      'fr': 'Pain Perdu Complet',
+      'de': 'Französisches Toast Vollkorn',
+      'ar': 'توست فرنسي بالحبوب الكاملة',
+      'it': 'Pain Perdu Integrale',
+      'pt': 'Rabanada Integral',
+      'ru': 'Французский тост из цельного зерна'
+    },
+    'diet_item_fresh_apple': {
+      'tr': 'Taze Elma',
+      'en': 'Fresh Apple',
+      'es': 'Manzana Fresca',
+      'fr': 'Pomme Fraîche',
+      'de': 'Frischer Apfel',
+      'ar': 'تفاحة طازجة',
+      'it': 'Mela Fresca',
+      'pt': 'Maçã Fresca',
+      'ru': 'Свежее яблоко'
+    },
+    'diet_item_fresh_fruit': {
+      'tr': 'Taze Meyve',
+      'en': 'Fresh Fruit',
+      'es': 'Fruta Fresca',
+      'fr': 'Fruit Frais',
+      'de': 'Frisches Obst',
+      'ar': 'فاكهة طازجة',
+      'it': 'Frutta Fresca',
+      'pt': 'Fruta Fresca',
+      'ru': 'Свежие фрукты'
+    },
+    'diet_item_fruit_salad': {
+      'tr': 'Meyve Salatası',
+      'en': 'Fruit Salad',
+      'es': 'Ensalada de Frutas',
+      'fr': 'Salade de Fruits',
+      'de': 'Obstsalat',
+      'ar': 'سلطة الفواكه',
+      'it': 'Macedonia',
+      'pt': 'Salada de Frutas',
+      'ru': 'Фруктовый салат'
+    },
+    'diet_item_granola_bowl': {
+      'tr': 'Granola Kasesi',
+      'en': 'Granola Bowl',
+      'es': 'Tazón de Granola',
+      'fr': 'Bol de Granola',
+      'de': 'Granola-Schüssel',
+      'ar': 'وعاء الجرانولا',
+      'it': 'Ciotola di Granola',
+      'pt': 'Tigela de Granola',
+      'ru': 'Чаша с гранолой'
+    },
+    'diet_item_greek_yogurt': {
+      'tr': 'Yunan Yoğurdu',
+      'en': 'Greek Yogurt',
+      'es': 'Yogur Griego',
+      'fr': 'Yaourt Grec',
+      'de': 'Griechischer Joghurt',
+      'ar': 'زبادي يوناني',
+      'it': 'Yogurt Greco',
+      'pt': 'Iogurte Grego',
+      'ru': 'Греческий йогурт'
+    },
+    'diet_item_greek_yogurt_berries': {
+      'tr': 'Yunan Yoğurdu ve Çilek',
+      'en': 'Greek Yogurt with Berries',
+      'es': 'Yogur Griego con Bayas',
+      'fr': 'Yaourt Grec aux Baies',
+      'de': 'Griechischer Joghurt mit Beeren',
+      'ar': 'زبادي يوناني مع التوت',
+      'it': 'Yogurt Greco con Bacche',
+      'pt': 'Iogurte Grego com Frutas Vermelhas',
+      'ru': 'Греческий йогурт с ягодами'
+    },
+    'diet_item_grilled_chicken': {
+      'tr': 'Izgara Tavuk',
+      'en': 'Grilled Chicken',
+      'es': 'Pollo a la Parrilla',
+      'fr': 'Poulet Grillé',
+      'de': 'Gegrilltes Hähnchen',
+      'ar': 'دجاج مشوي',
+      'it': 'Pollo alla Griglia',
+      'pt': 'Frango Grelhado',
+      'ru': 'Жареный цыпленок'
+    },
+    'diet_item_grilled_chicken_breast': {
+      'tr': 'Izgara Tavuk Göğsü',
+      'en': 'Grilled Chicken Breast',
+      'es': 'Pechuga de Pollo a la Parrilla',
+      'fr': 'Blanc de Poulet Grillé',
+      'de': 'Gegrillte Hähnchenbrust',
+      'ar': 'صدر الدجاج المشوي',
+      'it': 'Petto di Pollo alla Griglia',
+      'pt': 'Peito de Frango Grelhado',
+      'ru': 'Жареная куриная грудка'
+    },
+    'diet_item_grilled_chicken_thigh': {
+      'tr': 'Izgara Tavuk Butu',
+      'en': 'Grilled Chicken Thigh',
+      'es': 'Muslo de Pollo a la Parrilla',
+      'fr': 'Cuisse de Poulet Grillée',
+      'de': 'Gegrilltes Hähnchenschenkel',
+      'ar': 'فخذ الدجاج المشوي',
+      'it': 'Coscia di Pollo alla Griglia',
+      'pt': 'Coxa de Frango Grelhada',
+      'ru': 'Жареное куриное бедро'
+    },
+    'diet_item_grilled_fish': {
+      'tr': 'Izgara Balık',
+      'en': 'Grilled Fish',
+      'es': 'Pescado a la Parrilla',
+      'fr': 'Poisson Grillé',
+      'de': 'Gegrillter Fisch',
+      'ar': 'سمك مشوي',
+      'it': 'Pesce alla Griglia',
+      'pt': 'Peixe Grelhado',
+      'ru': 'Жареная рыба'
+    },
+    'diet_item_grilled_lamb': {
+      'tr': 'Izgara Kuzu',
+      'en': 'Grilled Lamb',
+      'es': 'Cordero a la Parrilla',
+      'fr': 'Agneau Grillé',
+      'de': 'Gegrilltes Lamm',
+      'ar': 'لحم ضأن مشوي',
+      'it': 'Agnello alla Griglia',
+      'pt': 'Cordeiro Grelhado',
+      'ru': 'Жареный барашек'
+    },
+    'diet_item_grilled_lean_steak': {
+      'tr': 'Izgara Yağsız Biftek',
+      'en': 'Grilled Lean Steak',
+      'es': 'Filete Magro a la Parrilla',
+      'fr': 'Steak Maigre Grillé',
+      'de': 'Gegrilltes Mageres Steak',
+      'ar': 'شريحة لحم مشوية خالية من الدهون',
+      'it': 'Bistecca Magra alla Griglia',
+      'pt': 'Bife Magro Grelhado',
+      'ru': 'Жареный постный стейк'
+    },
+    'diet_item_grilled_salmon': {
+      'tr': 'Izgara Somon',
+      'en': 'Grilled Salmon',
+      'es': 'Salmón a la Parrilla',
+      'fr': 'Saumon Grillé',
+      'de': 'Gegrillter Lachs',
+      'ar': 'سلمون مشوي',
+      'it': 'Salmone alla Griglia',
+      'pt': 'Salmão Grelhado',
+      'ru': 'Жареный лосось'
+    },
+    'diet_item_grilled_sardines': {
+      'tr': 'Izgara Sardalya',
+      'en': 'Grilled Sardines',
+      'es': 'Sardinas a la Parrilla',
+      'fr': 'Sardines Grillées',
+      'de': 'Gegrillte Sardinen',
+      'ar': 'سردين مشوي',
+      'it': 'Sardine alla Griglia',
+      'pt': 'Sardinhas Grelhadas',
+      'ru': 'Жареные сардины'
+    },
+    'diet_item_grilled_shrimp': {
+      'tr': 'Izgara Karides',
+      'en': 'Grilled Shrimp',
+      'es': 'Camarones a la Parrilla',
+      'fr': 'Crevettes Grillées',
+      'de': 'Gegrillte Garnelen',
+      'ar': 'جمبري مشوي',
+      'it': 'Gamberi alla Griglia',
+      'pt': 'Camarão Grelhado',
+      'ru': 'Жареные креветки'
+    },
+    'diet_item_grilled_steak': {
+      'tr': 'Izgara Biftek',
+      'en': 'Grilled Steak',
+      'es': 'Filete a la Parrilla',
+      'fr': 'Steak Grillé',
+      'de': 'Gegrilltes Steak',
+      'ar': 'شريحة لحم مشوية',
+      'it': 'Bistecca alla Griglia',
+      'pt': 'Bife Grelhado',
+      'ru': 'Жареный стейк'
+    },
+    'diet_item_grilled_turkey': {
+      'tr': 'Izgara Hindi',
+      'en': 'Grilled Turkey',
+      'es': 'Pavo a la Parrilla',
+      'fr': 'Dinde Grillée',
+      'de': 'Gegrillter Truthahn',
+      'ar': 'ديك رومي مشوي',
+      'it': 'Tacchino alla Griglia',
+      'pt': 'Peru Grelhado',
+      'ru': 'Жареная индейка'
+    },
+    'diet_item_grilled_white_fish': {
+      'tr': 'Izgara Beyaz Balık',
+      'en': 'Grilled White Fish',
+      'es': 'Pescado Blanco a la Parrilla',
+      'fr': 'Poisson Blanc Grillé',
+      'de': 'Gegrillter Weißfisch',
+      'ar': 'سمك أبيض مشوي',
+      'it': 'Pesce Bianco alla Griglia',
+      'pt': 'Peixe Branco Grelhado',
+      'ru': 'Жареная белая рыба'
+    },
+    'diet_item_hummus': {
+      'tr': 'Humus',
+      'en': 'Hummus',
+      'es': 'Hummus',
+      'fr': 'Houmous',
+      'de': 'Hummus',
+      'ar': 'حمص',
+      'it': 'Hummus',
+      'pt': 'Homus',
+      'ru': 'Хумус'
+    },
+    'diet_item_iron_fortified_cereal_bar': {
+      'tr': 'Demir Takviyeli Tahıl Çubuğu',
+      'en': 'Iron Fortified Cereal Bar',
+      'es': 'Barra de Cereales Fortificada con Hierro',
+      'fr': 'Barre de Céréales Fortifiée en Fer',
+      'de': 'Eisenergänztes Müsliriegel',
+      'ar': 'شريط الحبوب المدعم بالحديد',
+      'it': 'Barretta di Cereali Fortificata con Ferro',
+      'pt': 'Barra de Cereais Fortificada com Ferro',
+      'ru': 'Зерновой батончик, обогащенный железом'
+    },
+    'diet_item_iron_fortified_smoothie': {
+      'tr': 'Demir Takviyeli Smoothie',
+      'en': 'Iron Fortified Smoothie',
+      'es': 'Batido Fortificado con Hierro',
+      'fr': 'Smoothie Fortifié en Fer',
+      'de': 'Eisenergänzter Smoothie',
+      'ar': 'سموذي مدعم بالحديد',
+      'it': 'Frullato Fortificato con Ferro',
+      'pt': 'Smoothie Fortificado com Ferro',
+      'ru': 'Смузи, обогащенный железом'
+    },
+    'diet_item_lean_beef_stir_fry': {
+      'tr': 'Yağsız Sığır Eti Karıştırması',
+      'en': 'Lean Beef Stir Fry',
+      'es': 'Sofrito de Carne Magra',
+      'fr': 'Sauté de Bœuf Maigre',
+      'de': 'Mageres Rindfleisch-Pfannengericht',
+      'ar': 'لحم بقري قليل الدهون سوتيه',
+      'it': 'Manzo Magro Saltato',
+      'pt': 'Carne de Vaca Magra Salteada',
+      'ru': 'Жаркое из постной говядины'
+    },
+    'diet_item_lentil_curry': {
+      'tr': 'Mercimek Köri',
+      'en': 'Lentil Curry',
+      'es': 'Curry de Lentejas',
+      'fr': 'Curry de Lentilles',
+      'de': 'Linsen-Curry',
+      'ar': 'كاري العدس',
+      'it': 'Curry di Lenticchie',
+      'pt': 'Caril de Lentilhas',
+      'ru': 'Карри из чечевицы'
+    },
+    'diet_item_lentil_dal': {
+      'tr': 'Mercimek Dal',
+      'en': 'Lentil Dal',
+      'es': 'Dal de Lentejas',
+      'fr': 'Dal de Lentilles',
+      'de': 'Linsen-Dal',
+      'ar': 'دال العدس',
+      'it': 'Dal di Lenticchie',
+      'pt': 'Dal de Lentilhas',
+      'ru': 'Дал из чечевицы'
+    },
+    'diet_item_lentil_pancakes': {
+      'tr': 'Mercimek Pancake',
+      'en': 'Lentil Pancakes',
+      'es': 'Tortitas de Lentejas',
+      'fr': 'Pancakes aux Lentilles',
+      'de': 'Linsen-Pfannkuchen',
+      'ar': 'فطائر العدس',
+      'it': 'Frittelle di Lenticchie',
+      'pt': 'Panquecas de Lentilhas',
+      'ru': 'Оладьи из чечевицы'
+    },
+    'diet_item_lentil_soup': {
+      'tr': 'Mercimek Çorbası',
+      'en': 'Lentil Soup',
+      'es': 'Sopa de Lentejas',
+      'fr': 'Soupe de Lentilles',
+      'de': 'Linsensuppe',
+      'ar': 'شوربة العدس',
+      'it': 'Zuppa di Lenticchie',
+      'pt': 'Sopa de Lentilhas',
+      'ru': 'Суп из чечевицы'
+    },
+    'diet_item_liver_pate': {
+      'tr': 'Karaciğer Ezmesi',
+      'en': 'Liver Pate',
+      'es': 'Paté de Hígado',
+      'fr': 'Pâté de Foie',
+      'de': 'Leberpastete',
+      'ar': 'معجون الكبد',
+      'it': 'Paté di Fegato',
+      'pt': 'Patê de Fígado',
+      'ru': 'Печеночный паштет'
+    },
+    'diet_item_mediterranean_bowl': {
+      'tr': 'Akdeniz Kasesi',
+      'en': 'Mediterranean Bowl',
+      'es': 'Bol Mediterráneo',
+      'fr': 'Bol Méditerranéen',
+      'de': 'Mittelmeer-Schüssel',
+      'ar': 'وعاء البحر المتوسط',
+      'it': 'Ciotola Mediterranea',
+      'pt': 'Tigela Mediterrânea',
+      'ru': 'Средиземноморская чаша'
+    },
+    'diet_item_mediterranean_salad': {
+      'tr': 'Akdeniz Salatası',
+      'en': 'Mediterranean Salad',
+      'es': 'Ensalada Mediterránea',
+      'fr': 'Salade Méditerranéenne',
+      'de': 'Mittelmeer-Salat',
+      'ar': 'سلطة البحر المتوسط',
+      'it': 'Insalata Mediterranea',
+      'pt': 'Salada Mediterrânea',
+      'ru': 'Средиземноморский салат'
+    },
+    'diet_item_nut_butter': {
+      'tr': 'Fındık Ezmesi',
+      'en': 'Nut Butter',
+      'es': 'Mantequilla de Nueces',
+      'fr': 'Beurre de Noix',
+      'de': 'Nussbutter',
+      'ar': 'زبدة المكسرات',
+      'it': 'Burro di Noci',
+      'pt': 'Manteiga de Nozes',
+      'ru': 'Ореховое масло'
+    },
+    'diet_item_oatmeal_apple': {
+      'tr': 'Elmalı Yulaf Ezmesi',
+      'en': 'Oatmeal with Apple',
+      'es': 'Avena con Manzana',
+      'fr': 'Flocons d\'Avoine aux Pommes',
+      'de': 'Haferflocken mit Apfel',
+      'ar': 'دقيق الشوفان مع التفاح',
+      'it': 'Fiocchi d\'Avena con Mela',
+      'pt': 'Aveia com Maçã',
+      'ru': 'Овсянка с яблоком'
+    },
+    'diet_item_oatmeal_berries': {
+      'tr': 'Çilekli Yulaf Ezmesi',
+      'en': 'Oatmeal with Berries',
+      'es': 'Avena con Bayas',
+      'fr': 'Flocons d\'Avoine aux Baies',
+      'de': 'Haferflocken mit Beeren',
+      'ar': 'دقيق الشوفان مع التوت',
+      'it': 'Fiocchi d\'Avena con Bacche',
+      'pt': 'Aveia com Frutas Vermelhas',
+      'ru': 'Овсянка с ягодами'
+    },
+    'diet_item_pear': {
+      'tr': 'Armut',
+      'en': 'Pear',
+      'es': 'Pera',
+      'fr': 'Poire',
+      'de': 'Birne',
+      'ar': 'كمثرى',
+      'it': 'Pera',
+      'pt': 'Pêra',
+      'ru': 'Груша'
+    },
+    'diet_item_poached_eggs': {
+      'tr': 'Poşe Yumurta',
+      'en': 'Poached Eggs',
+      'es': 'Huevos Escalfados',
+      'fr': 'Œufs Pochés',
+      'de': 'Pochierte Eier',
+      'ar': 'بيض مسلوق',
+      'it': 'Uova in Camicia',
+      'pt': 'Ovos Escalfados',
+      'ru': 'Яйца-пашот'
+    },
+    'diet_item_quinoa_breakfast': {
+      'tr': 'Kinoa Kahvaltısı',
+      'en': 'Quinoa Breakfast',
+      'es': 'Desayuno de Quinoa',
+      'fr': 'Petit-déjeuner au Quinoa',
+      'de': 'Quinoa-Frühstück',
+      'ar': 'إفطار الكينوا',
+      'it': 'Colazione con Quinoa',
+      'pt': 'Café da Manhã com Quinoa',
+      'ru': 'Завтрак с киноа'
+    },
+    'diet_item_quinoa_breakfast_bowl': {
+      'tr': 'Kinoa Kahvaltı Kasesi',
+      'en': 'Quinoa Breakfast Bowl',
+      'es': 'Tazón de Desayuno de Quinoa',
+      'fr': 'Bol Petit-déjeuner au Quinoa',
+      'de': 'Quinoa-Frühstücksschüssel',
+      'ar': 'وعاء إفطار الكينوا',
+      'it': 'Ciotola di Colazione con Quinoa',
+      'pt': 'Tigela de Café da Manhã com Quinoa',
+      'ru': 'Чаша с киноа на завтрак'
+    },
+    'diet_item_quinoa_porridge': {
+      'tr': 'Kinoa Lapası',
+      'en': 'Quinoa Porridge',
+      'es': 'Gachas de Quinoa',
+      'fr': 'Porridge de Quinoa',
+      'de': 'Quinoa-Brei',
+      'ar': 'عصيدة الكينوا',
+      'it': 'Porridge di Quinoa',
+      'pt': 'Mingau de Quinoa',
+      'ru': 'Каша из киноа'
+    },
+    'diet_item_red_bean_stew': {
+      'tr': 'Kırmızı Fasulye Yahnisi',
+      'en': 'Red Bean Stew',
+      'es': 'Estofado de Frijoles Rojos',
+      'fr': 'Ragoût de Haricots Rouges',
+      'de': 'Rote Bohnen-Eintopf',
+      'ar': 'يخنة الفاصوليا الحمراء',
+      'it': 'Stufato di Fagioli Rossi',
+      'pt': 'Ensopado de Feijão Vermelho',
+      'ru': 'Рагу из красной фасоли'
+    },
+    'diet_item_red_meat_omelette': {
+      'tr': 'Kırmızı Etli Omlet',
+      'en': 'Red Meat Omelette',
+      'es': 'Tortilla de Carne Roja',
+      'fr': 'Omelette à la Viande Rouge',
+      'de': 'Rindfleisch-Omelett',
+      'ar': 'عجة اللحم الأحمر',
+      'it': 'Frittata con Carne Rossa',
+      'pt': 'Omelete com Carne Vermelha',
+      'ru': 'Омлет с красным мясом'
+    },
+    'diet_item_smoothie': {
+      'tr': 'Smoothie',
+      'en': 'Smoothie',
+      'es': 'Batido',
+      'fr': 'Smoothie',
+      'de': 'Smoothie',
+      'ar': 'سموذي',
+      'it': 'Frullato',
+      'pt': 'Smoothie',
+      'ru': 'Смузи'
+    },
+    'diet_item_smoothie_bowl': {
+      'tr': 'Smoothie Kasesi',
+      'en': 'Smoothie Bowl',
+      'es': 'Tazón de Batido',
+      'fr': 'Bol Smoothie',
+      'de': 'Smoothie-Schüssel',
+      'ar': 'وعاء السموذي',
+      'it': 'Ciotola di Frullato',
+      'pt': 'Tigela de Smoothie',
+      'ru': 'Чаша смузи'
+    },
+    'diet_item_steamed_chicken': {
+      'tr': 'Buharda Pişmiş Tavuk',
+      'en': 'Steamed Chicken',
+      'es': 'Pollo al Vapor',
+      'fr': 'Poulet à la Vapeur',
+      'de': 'Gedämpftes Hähnchen',
+      'ar': 'دجاج مطبوخ على البخار',
+      'it': 'Pollo al Vapore',
+      'pt': 'Frango ao Vapor',
+      'ru': 'Курица на пару'
+    },
+    'diet_item_steamed_cod': {
+      'tr': 'Buharda Pişmiş Morina',
+      'en': 'Steamed Cod',
+      'es': 'Bacalao al Vapor',
+      'fr': 'Cabillaud à la Vapeur',
+      'de': 'Gedämpfter Kabeljau',
+      'ar': 'سمك القد المطبوخ على البخار',
+      'it': 'Merluzzo al Vapore',
+      'pt': 'Bacalhau ao Vapor',
+      'ru': 'Треска на пару'
+    },
+    'diet_item_steamed_fish': {
+      'tr': 'Buharda Pişmiş Balık',
+      'en': 'Steamed Fish',
+      'es': 'Pescado al Vapor',
+      'fr': 'Poisson à la Vapeur',
+      'de': 'Gedämpfter Fisch',
+      'ar': 'سمك مطبوخ على البخار',
+      'it': 'Pesce al Vapore',
+      'pt': 'Peixe ao Vapor',
+      'ru': 'Рыба на пару'
+    },
+    'diet_item_steamed_oatmeal': {
+      'tr': 'Buharda Pişmiş Yulaf Ezmesi',
+      'en': 'Steamed Oatmeal',
+      'es': 'Avena al Vapor',
+      'fr': 'Flocons d\'Avoine à la Vapeur',
+      'de': 'Gedämpfte Haferflocken',
+      'ar': 'دقيق الشوفان المطبوخ على البخار',
+      'it': 'Fiocchi d\'Avena al Vapore',
+      'pt': 'Aveia ao Vapor',
+      'ru': 'Овсянка на пару'
+    },
+    'diet_item_steamed_rice': {
+      'tr': 'Buharda Pişmiş Pirinç',
+      'en': 'Steamed Rice',
+      'es': 'Arroz al Vapor',
+      'fr': 'Riz à la Vapeur',
+      'de': 'Gedämpfter Reis',
+      'ar': 'أرز مطبوخ على البخار',
+      'it': 'Riso al Vapore',
+      'pt': 'Arroz ao Vapor',
+      'ru': 'Рис на пару'
+    },
+    'diet_item_steamed_rice_congee': {
+      'tr': 'Pirinç Çorbası',
+      'en': 'Steamed Rice Congee',
+      'es': 'Congee de Arroz al Vapor',
+      'fr': 'Congee de Riz à la Vapeur',
+      'de': 'Gedämpfte Reissuppe',
+      'ar': 'حساء الأرز المطبوخ على البخار',
+      'it': 'Congee di Riso al Vapore',
+      'pt': 'Congee de Arroz ao Vapor',
+      'ru': 'Рисовая каша на пару'
+    },
+    'diet_item_steamed_salmon': {
+      'tr': 'Buharda Pişmiş Somon',
+      'en': 'Steamed Salmon',
+      'es': 'Salmón al Vapor',
+      'fr': 'Saumon à la Vapeur',
+      'de': 'Gedämpfter Lachs',
+      'ar': 'سلمون مطبوخ على البخار',
+      'it': 'Salmone al Vapore',
+      'pt': 'Salmão ao Vapor',
+      'ru': 'Лосось на пару'
+    },
+    'diet_item_steamed_vegetables': {
+      'tr': 'Buharda Pişmiş Sebzeler',
+      'en': 'Steamed Vegetables',
+      'es': 'Verduras al Vapor',
+      'fr': 'Légumes à la Vapeur',
+      'de': 'Gedämpftes Gemüse',
+      'ar': 'خضار مطبوخة على البخار',
+      'it': 'Verdure al Vapore',
+      'pt': 'Legumes ao Vapor',
+      'ru': 'Овощи на пару'
+    },
+    'diet_item_steamed_white_fish': {
+      'tr': 'Buharda Pişmiş Beyaz Balık',
+      'en': 'Steamed White Fish',
+      'es': 'Pescado Blanco al Vapor',
+      'fr': 'Poisson Blanc à la Vapeur',
+      'de': 'Gedämpfter Weißfisch',
+      'ar': 'سمك أبيض مطبوخ على البخار',
+      'it': 'Pesce Bianco al Vapore',
+      'pt': 'Peixe Branco ao Vapor',
+      'ru': 'Белая рыба на пару'
+    },
+    'diet_item_steel_cut_oats': {
+      'tr': 'Çelik Kesim Yulaf',
+      'en': 'Steel Cut Oats',
+      'es': 'Avena Cortada al Acero',
+      'fr': 'Flocons d\'Avoine Coupés à l\'Acier',
+      'de': 'Stahlgeschnittene Haferflocken',
+      'ar': 'دقيق الشوفان المقطع بالفولاذ',
+      'it': 'Fiocchi d\'Avena Tagliati all\'Acciaio',
+      'pt': 'Aveia Cortada em Aço',
+      'ru': 'Овсянка стального помола'
+    },
+    'diet_item_trail_mix': {
+      'tr': 'Kuru Yemiş Karışımı',
+      'en': 'Trail Mix',
+      'es': 'Mezcla de Frutos Secos',
+      'fr': 'Mélange de Fruits Secs',
+      'de': 'Studentenfutter',
+      'ar': 'مزيج المكسرات',
+      'it': 'Mix di Frutta Secca',
+      'pt': 'Mistura de Frutas Secas',
+      'ru': 'Смесь сухофруктов'
+    },
+    'diet_item_turkey_breast': {
+      'tr': 'Hindi Göğsü',
+      'en': 'Turkey Breast',
+      'es': 'Pechuga de Pavo',
+      'fr': 'Blanc de Dinde',
+      'de': 'Putenbrust',
+      'ar': 'صدر الديك الرومي',
+      'it': 'Petto di Tacchino',
+      'pt': 'Peito de Peru',
+      'ru': 'Грудка индейки'
+    },
+    'diet_item_whole_grain_cereal': {
+      'tr': 'Tam Tahıllı Tahıl',
+      'en': 'Whole Grain Cereal',
+      'es': 'Cereal Integral',
+      'fr': 'Céréales Complètes',
+      'de': 'Vollkorn-Müsli',
+      'ar': 'حبوب الحبة الكاملة',
+      'it': 'Cereali Integrali',
+      'pt': 'Cereal Integral',
+      'ru': 'Цельнозерновые хлопья'
+    },
+    'diet_item_whole_grain_pancakes': {
+      'tr': 'Tam Tahıllı Pancake',
+      'en': 'Whole Grain Pancakes',
+      'es': 'Tortitas Integrales',
+      'fr': 'Pancakes Complets',
+      'de': 'Vollkorn-Pfannkuchen',
+      'ar': 'فطائر الحبة الكاملة',
+      'it': 'Frittelle Integrali',
+      'pt': 'Panquecas Integrais',
+      'ru': 'Цельнозерновые оладьи'
+    },
+    'diet_item_whole_grain_pita': {
+      'tr': 'Tam Tahıllı Pide',
+      'en': 'Whole Grain Pita',
+      'es': 'Pita Integral',
+      'fr': 'Pita Complet',
+      'de': 'Vollkorn-Pita',
+      'ar': 'خبز البيتا الكامل',
+      'it': 'Pita Integrale',
+      'pt': 'Pão Pita Integral',
+      'ru': 'Цельнозерновая пита'
+    },
+    'diet_item_whole_grain_waffles': {
+      'tr': 'Tam Tahıllı Waffle',
+      'en': 'Whole Grain Waffles',
+      'es': 'Gofres Integrales',
+      'fr': 'Gaufres Complètes',
+      'de': 'Vollkorn-Waffeln',
+      'ar': 'وافل الحبة الكاملة',
+      'it': 'Waffle Integrali',
+      'pt': 'Waffles Integrais',
+      'ru': 'Цельнозерновые вафли'
+    },
     // Additional diet items
-    'diet_item_almonds': {'tr': 'Badem', 'en': 'Almonds', 'es': 'Almendras', 'fr': 'Amandes', 'de': 'Mandel', 'ar': 'لوز', 'it': 'Mandorle', 'pt': 'Amêndoas', 'ru': 'Миндаль'},
-    'diet_item_almonds_walnuts': {'tr': 'Badem ve Ceviz', 'en': 'Almonds and Walnuts', 'es': 'Almendras y Nueces', 'fr': 'Amandes et Noix', 'de': 'Mandel und Walnüsse', 'ar': 'لوز وجوز', 'it': 'Mandorle e Noci', 'pt': 'Amêndoas e Nozes', 'ru': 'Миндаль и грецкие орехи'},
-    'diet_item_almond_butter': {'tr': 'Badem Ezmesi', 'en': 'Almond Butter', 'es': 'Mantequilla de Almendras', 'fr': 'Beurre d\'Amande', 'de': 'Mandelbutter', 'ar': 'زبدة اللوز', 'it': 'Burro di Mandorle', 'pt': 'Manteiga de Amêndoas', 'ru': 'Миндальное масло'},
-    'diet_item_almond_milk': {'tr': 'Badem Sütü', 'en': 'Almond Milk', 'es': 'Leche de Almendras', 'fr': 'Lait d\'Amande', 'de': 'Mandelmilch', 'ar': 'حليب اللوز', 'it': 'Latte di Mandorle', 'pt': 'Leite de Amêndoas', 'ru': 'Миндальное молоко'},
-    'diet_item_avocado': {'tr': 'Avokado', 'en': 'Avocado', 'es': 'Aguacate', 'fr': 'Avocat', 'de': 'Avocado', 'ar': 'أفوكادو', 'it': 'Avocado', 'pt': 'Abacate', 'ru': 'Авокадо'},
-    'diet_item_avocado_slice': {'tr': 'Avokado Dilimi', 'en': 'Avocado Slice', 'es': 'Rodaja de Aguacate', 'fr': 'Tranche d\'Avocat', 'de': 'Avocado-Scheibe', 'ar': 'شريحة أفوكادو', 'it': 'Fetta di Avocado', 'pt': 'Fatia de Abacate', 'ru': 'Ломтик авокадо'},
-    'diet_item_berries': {'tr': 'Çilek', 'en': 'Berries', 'es': 'Bayas', 'fr': 'Baies', 'de': 'Beeren', 'ar': 'توت', 'it': 'Bacche', 'pt': 'Frutas Vermelhas', 'ru': 'Ягоды'},
-    'diet_item_blueberries': {'tr': 'Yaban Mersini', 'en': 'Blueberries', 'es': 'Arándanos', 'fr': 'Myrtilles', 'de': 'Heidelbeeren', 'ar': 'توت أزرق', 'it': 'Mirtilli', 'pt': 'Mirtilos', 'ru': 'Черника'},
-    'diet_item_beetroot': {'tr': 'Pancar', 'en': 'Beetroot', 'es': 'Remolacha', 'fr': 'Betterave', 'de': 'Rote Bete', 'ar': 'شمندر', 'it': 'Barbabietola', 'pt': 'Beterraba', 'ru': 'Свекла'},
-    'diet_item_beetroot_salad': {'tr': 'Pancar Salatası', 'en': 'Beetroot Salad', 'es': 'Ensalada de Remolacha', 'fr': 'Salade de Betterave', 'de': 'Rote-Bete-Salat', 'ar': 'سلطة الشمندر', 'it': 'Insalata di Barbabietola', 'pt': 'Salada de Beterraba', 'ru': 'Салат из свеклы'},
-    'diet_item_brown_rice': {'tr': 'Esmer Pirinç', 'en': 'Brown Rice', 'es': 'Arroz Integral', 'fr': 'Riz Brun', 'de': 'Brauner Reis', 'ar': 'أرز بني', 'it': 'Riso Integrale', 'pt': 'Arroz Integral', 'ru': 'Коричневый рис'},
-    'diet_item_bulgur_pilaf': {'tr': 'Bulgur Pilavı', 'en': 'Bulgur Pilaf', 'es': 'Pilaf de Bulgur', 'fr': 'Pilaf de Boulgour', 'de': 'Bulgur-Pilaf', 'ar': 'برغل باللبن', 'it': 'Pilaf di Bulgur', 'pt': 'Pilaf de Bulgur', 'ru': 'Плов из булгура'},
-    'diet_item_cherry_tomatoes': {'tr': 'Kiraz Domates', 'en': 'Cherry Tomatoes', 'es': 'Tomates Cherry', 'fr': 'Tomates Cerises', 'de': 'Kirschtomaten', 'ar': 'طماطم كرزية', 'it': 'Pomodorini', 'pt': 'Tomates Cereja', 'ru': 'Помидоры черри'},
-    'diet_item_cinnamon': {'tr': 'Tarçın', 'en': 'Cinnamon', 'es': 'Canela', 'fr': 'Cannelle', 'de': 'Zimt', 'ar': 'قرفة', 'it': 'Cannella', 'pt': 'Canela', 'ru': 'Корица'},
-    'diet_item_citrus_fruit': {'tr': 'Narenciye', 'en': 'Citrus Fruit', 'es': 'Fruta Cítrica', 'fr': 'Fruit Agrumes', 'de': 'Zitrusfrucht', 'ar': 'فاكهة حمضية', 'it': 'Frutto Agrumi', 'pt': 'Fruta Cítrica', 'ru': 'Цитрусовые'},
-    'diet_item_citrus_salad': {'tr': 'Narenciye Salatası', 'en': 'Citrus Salad', 'es': 'Ensalada de Cítricos', 'fr': 'Salade d\'Agrumes', 'de': 'Zitrusfrucht-Salat', 'ar': 'سلطة الحمضيات', 'it': 'Insalata di Agrumi', 'pt': 'Salada de Cítricos', 'ru': 'Салат из цитрусовых'},
-    'diet_item_coconut_water': {'tr': 'Hindistan Cevizi Suyu', 'en': 'Coconut Water', 'es': 'Agua de Coco', 'fr': 'Eau de Coco', 'de': 'Kokosnusswasser', 'ar': 'ماء جوز الهند', 'it': 'Acqua di Cocco', 'pt': 'Água de Coco', 'ru': 'Кокосовая вода'},
-    'diet_item_dandelion_tea': {'tr': 'Karahindiba Çayı', 'en': 'Dandelion Tea', 'es': 'Té de Diente de León', 'fr': 'Thé de Pissenlit', 'de': 'Löwenzahntee', 'ar': 'شاي الهندباء', 'it': 'Tè di Tarassaco', 'pt': 'Chá de Dente-de-Leão', 'ru': 'Чай из одуванчика'},
-    'diet_item_dried_apricots': {'tr': 'Kuru Kayısı', 'en': 'Dried Apricots', 'es': 'Albaricoques Secos', 'fr': 'Abricots Secs', 'de': 'Getrocknete Aprikosen', 'ar': 'مشمش مجفف', 'it': 'Albicocche Secche', 'pt': 'Damasco Seco', 'ru': 'Сушеные абрикосы'},
-    'diet_item_dried_dates': {'tr': 'Kuru Hurma', 'en': 'Dried Dates', 'es': 'Dátiles Secos', 'fr': 'Dattes Sèches', 'de': 'Getrocknete Datteln', 'ar': 'تمر مجفف', 'it': 'Datteri Secchi', 'pt': 'Tâmaras Secas', 'ru': 'Сушеные финики'},
-    'diet_item_dried_figs': {'tr': 'Kuru İncir', 'en': 'Dried Figs', 'es': 'Higos Secos', 'fr': 'Figues Sèches', 'de': 'Getrocknete Feigen', 'ar': 'تين مجفف', 'it': 'Fichi Secchi', 'pt': 'Figos Secos', 'ru': 'Сушеный инжир'},
-    'diet_item_dried_fruits': {'tr': 'Kuru Meyveler', 'en': 'Dried Fruits', 'es': 'Frutas Secas', 'fr': 'Fruits Secs', 'de': 'Trockenfrüchte', 'ar': 'فواكه مجففة', 'it': 'Frutta Secca', 'pt': 'Frutas Secas', 'ru': 'Сухофрукты'},
-    'diet_item_feta_cheese': {'tr': 'Beyaz Peynir', 'en': 'Feta Cheese', 'es': 'Queso Feta', 'fr': 'Fromage Feta', 'de': 'Fetakäse', 'ar': 'جبنة فيتا', 'it': 'Formaggio Feta', 'pt': 'Queijo Feta', 'ru': 'Сыр фета'},
-    'diet_item_fresh_berries': {'tr': 'Taze Çilek', 'en': 'Fresh Berries', 'es': 'Bayas Frescas', 'fr': 'Baies Fraîches', 'de': 'Frische Beeren', 'ar': 'توت طازج', 'it': 'Bacche Fresche', 'pt': 'Frutas Vermelhas Frescas', 'ru': 'Свежие ягоды'},
-    'diet_item_fresh_figs': {'tr': 'Taze İncir', 'en': 'Fresh Figs', 'es': 'Higos Frescos', 'fr': 'Figues Fraîches', 'de': 'Frische Feigen', 'ar': 'تين طازج', 'it': 'Fichi Freschi', 'pt': 'Figos Frescos', 'ru': 'Свежий инжир'},
-    'diet_item_fresh_fruit_salad': {'tr': 'Taze Meyve Salatası', 'en': 'Fresh Fruit Salad', 'es': 'Ensalada de Frutas Frescas', 'fr': 'Salade de Fruits Frais', 'de': 'Frischer Obstsalat', 'ar': 'سلطة الفواكه الطازجة', 'it': 'Macedonia Fresca', 'pt': 'Salada de Frutas Frescas', 'ru': 'Свежий фруктовый салат'},
-    'diet_item_fresh_fruits': {'tr': 'Taze Meyveler', 'en': 'Fresh Fruits', 'es': 'Frutas Frescas', 'fr': 'Fruits Frais', 'de': 'Frisches Obst', 'ar': 'فواكه طازجة', 'it': 'Frutta Fresca', 'pt': 'Frutas Frescas', 'ru': 'Свежие фрукты'},
-    'diet_item_fresh_juice': {'tr': 'Taze Meyve Suyu', 'en': 'Fresh Juice', 'es': 'Jugo Fresco', 'fr': 'Jus Frais', 'de': 'Frischer Saft', 'ar': 'عصير طازج', 'it': 'Succo Fresco', 'pt': 'Suco Fresco', 'ru': 'Свежий сок'},
-    'diet_item_fresh_orange_juice': {'tr': 'Taze Portakal Suyu', 'en': 'Fresh Orange Juice', 'es': 'Jugo de Naranja Fresco', 'fr': 'Jus d\'Orange Frais', 'de': 'Frischer Orangensaft', 'ar': 'عصير البرتقال الطازج', 'it': 'Succo d\'Arancia Fresco', 'pt': 'Suco de Laranja Fresco', 'ru': 'Свежий апельсиновый сок'},
-    'diet_item_fresh_salsa': {'tr': 'Taze Salsa', 'en': 'Fresh Salsa', 'es': 'Salsa Fresca', 'fr': 'Salsa Fraîche', 'de': 'Frische Salsa', 'ar': 'صلصة طازجة', 'it': 'Salsa Fresca', 'pt': 'Salsa Fresca', 'ru': 'Свежая сальса'},
-    'diet_item_fresh_salad': {'tr': 'Taze Salata', 'en': 'Fresh Salad', 'es': 'Ensalada Fresca', 'fr': 'Salade Fraîche', 'de': 'Frischer Salat', 'ar': 'سلطة طازجة', 'it': 'Insalata Fresca', 'pt': 'Salada Fresca', 'ru': 'Свежий салат'},
-    'diet_item_fresh_vegetables': {'tr': 'Taze Sebzeler', 'en': 'Fresh Vegetables', 'es': 'Verduras Frescas', 'fr': 'Légumes Frais', 'de': 'Frisches Gemüse', 'ar': 'خضار طازجة', 'it': 'Verdure Fresche', 'pt': 'Legumes Frescos', 'ru': 'Свежие овощи'},
-    'diet_item_fruit_smoothie': {'tr': 'Meyve Smoothie', 'en': 'Fruit Smoothie', 'es': 'Batido de Frutas', 'fr': 'Smoothie aux Fruits', 'de': 'Frucht-Smoothie', 'ar': 'سموذي الفواكه', 'it': 'Frullato di Frutta', 'pt': 'Smoothie de Frutas', 'ru': 'Фруктовый смузи'},
-    'diet_item_ginger_tea': {'tr': 'Zencefil Çayı', 'en': 'Ginger Tea', 'es': 'Té de Jengibre', 'fr': 'Thé au Gingembre', 'de': 'Ingwertee', 'ar': 'شاي الزنجبيل', 'it': 'Tè allo Zenzero', 'pt': 'Chá de Gengibre', 'ru': 'Имбирный чай'},
-    'diet_item_green_tea': {'tr': 'Yeşil Çay', 'en': 'Green Tea', 'es': 'Té Verde', 'fr': 'Thé Vert', 'de': 'Grüner Tee', 'ar': 'شاي أخضر', 'it': 'Tè Verde', 'pt': 'Chá Verde', 'ru': 'Зеленый чай'},
-    'diet_item_greek_salad': {'tr': 'Yunan Salatası', 'en': 'Greek Salad', 'es': 'Ensalada Griega', 'fr': 'Salade Grecque', 'de': 'Griechischer Salat', 'ar': 'سلطة يونانية', 'it': 'Insalata Greca', 'pt': 'Salada Grega', 'ru': 'Греческий салат'},
-    'diet_item_herbal_tea': {'tr': 'Bitki Çayı', 'en': 'Herbal Tea', 'es': 'Té de Hierbas', 'fr': 'Tisane', 'de': 'Kräutertee', 'ar': 'شاي أعشاب', 'it': 'Tè alle Erbe', 'pt': 'Chá de Ervas', 'ru': 'Травяной чай'},
-    'diet_item_honey': {'tr': 'Bal', 'en': 'Honey', 'es': 'Miel', 'fr': 'Miel', 'de': 'Honig', 'ar': 'عسل', 'it': 'Miele', 'pt': 'Mel', 'ru': 'Мед'},
-    'diet_item_honey_drizzle': {'tr': 'Bal Damlası', 'en': 'Honey Drizzle', 'es': 'Chorro de Miel', 'fr': 'Filet de Miel', 'de': 'Honigtröpfchen', 'ar': 'قطرات العسل', 'it': 'Gocce di Miele', 'pt': 'Fio de Mel', 'ru': 'Медовая капля'},
-    'diet_item_iron_fortified_juice': {'tr': 'Demir Takviyeli Meyve Suyu', 'en': 'Iron Fortified Juice', 'es': 'Jugo Fortificado con Hierro', 'fr': 'Jus Fortifié en Fer', 'de': 'Eisenergänzter Saft', 'ar': 'عصير مدعم بالحديد', 'it': 'Succo Fortificato con Ferro', 'pt': 'Suco Fortificado com Ferro', 'ru': 'Сок, обогащенный железом'},
-    'diet_item_iron_fortified_milk': {'tr': 'Demir Takviyeli Süt', 'en': 'Iron Fortified Milk', 'es': 'Leche Fortificada con Hierro', 'fr': 'Lait Fortifié en Fer', 'de': 'Eisenergänzte Milch', 'ar': 'حليب مدعم بالحديد', 'it': 'Latte Fortificato con Ferro', 'pt': 'Leite Fortificado com Ferro', 'ru': 'Молоко, обогащенное железом'},
-    'diet_item_kiwi': {'tr': 'Kivi', 'en': 'Kiwi', 'es': 'Kiwi', 'fr': 'Kiwi', 'de': 'Kiwi', 'ar': 'كيوي', 'it': 'Kiwi', 'pt': 'Kiwi', 'ru': 'Киви'},
-    'diet_item_lean_ground_beef': {'tr': 'Yağsız Kıyma', 'en': 'Lean Ground Beef', 'es': 'Carne Molida Magra', 'fr': 'Bœuf Haché Maigre', 'de': 'Mageres Rinderhackfleisch', 'ar': 'لحم مفروم قليل الدهون', 'it': 'Manzo Macinato Magro', 'pt': 'Carne Moída Magra', 'ru': 'Постный говяжий фарш'},
-    'diet_item_lean_beef_stew': {'tr': 'Yağsız Sığır Eti Yahnisi', 'en': 'Lean Beef Stew', 'es': 'Estofado de Carne Magra', 'fr': 'Ragoût de Bœuf Maigre', 'de': 'Mageres Rindfleisch-Eintopf', 'ar': 'يخنة لحم بقري قليل الدهون', 'it': 'Stufato di Manzo Magro', 'pt': 'Ensopado de Carne Magra', 'ru': 'Рагу из постной говядины'},
-    'diet_item_grilled_lamb_kofta': {'tr': 'Izgara Kuzu Köfte', 'en': 'Grilled Lamb Kofta', 'es': 'Köfte de Cordero a la Parrilla', 'fr': 'Köfte d\'Agneau Grillé', 'de': 'Gegrilltes Lamm-Köfte', 'ar': 'كفتة لحم ضأن مشوية', 'it': 'Köfte di Agnello alla Griglia', 'pt': 'Köfte de Cordeiro Grelhado', 'ru': 'Жареные котлеты из баранины'},
-    'diet_item_maple_syrup': {'tr': 'Akçaağaç Şurubu', 'en': 'Maple Syrup', 'es': 'Jarabe de Arce', 'fr': 'Sirop d\'Érable', 'de': 'Ahornsirup', 'ar': 'شراب القيقب', 'it': 'Sciroppo d\'Acero', 'pt': 'Xarope de Bordo', 'ru': 'Кленовый сироп'},
-    'diet_item_mashed_sweet_potato': {'tr': 'Püre Tatlı Patates', 'en': 'Mashed Sweet Potato', 'es': 'Puré de Batata', 'fr': 'Purée de Patate Douce', 'de': 'Süßkartoffel-Püree', 'ar': 'بطاطا حلوة مهروسة', 'it': 'Purè di Patata Dolce', 'pt': 'Purê de Batata Doce', 'ru': 'Пюре из сладкого картофеля'},
-    'diet_item_mixed_berries': {'tr': 'Karışık Çilek', 'en': 'Mixed Berries', 'es': 'Bayas Mixtas', 'fr': 'Baies Mixtes', 'de': 'Gemischte Beeren', 'ar': 'توت مختلط', 'it': 'Bacche Miste', 'pt': 'Frutas Vermelhas Misturadas', 'ru': 'Смешанные ягоды'},
-    'diet_item_nuts': {'tr': 'Kuruyemiş', 'en': 'Nuts', 'es': 'Nueces', 'fr': 'Noix', 'de': 'Nüsse', 'ar': 'مكسرات', 'it': 'Noci', 'pt': 'Nozes', 'ru': 'Орехи'},
-    'diet_item_olive_oil': {'tr': 'Zeytinyağı', 'en': 'Olive Oil', 'es': 'Aceite de Oliva', 'fr': 'Huile d\'Olive', 'de': 'Olivenöl', 'ar': 'زيت زيتون', 'it': 'Olio d\'Oliva', 'pt': 'Azeite de Oliva', 'ru': 'Оливковое масло'},
-    'diet_item_olive_olive_oil': {'tr': 'Zeytinyağı', 'en': 'Olive Oil', 'es': 'Aceite de Oliva', 'fr': 'Huile d\'Olive', 'de': 'Olivenöl', 'ar': 'زيت زيتون', 'it': 'Olio d\'Oliva', 'pt': 'Azeite de Oliva', 'ru': 'Оливковое масло'},
-    'diet_item_orange': {'tr': 'Portakal', 'en': 'Orange', 'es': 'Naranja', 'fr': 'Orange', 'de': 'Orange', 'ar': 'برتقال', 'it': 'Arancia', 'pt': 'Laranja', 'ru': 'Апельсин'},
-    'diet_item_pomegranate': {'tr': 'Nar', 'en': 'Pomegranate', 'es': 'Granada', 'fr': 'Grenade', 'de': 'Granatapfel', 'ar': 'رمان', 'it': 'Melagrana', 'pt': 'Romã', 'ru': 'Гранат'},
-    'diet_item_pumpkin_seeds': {'tr': 'Kabak Çekirdeği', 'en': 'Pumpkin Seeds', 'es': 'Semillas de Calabaza', 'fr': 'Graines de Citrouille', 'de': 'Kürbiskerne', 'ar': 'بذور اليقطين', 'it': 'Semi di Zucca', 'pt': 'Sementes de Abóbora', 'ru': 'Тыквенные семечки'},
-    'diet_item_quinoa': {'tr': 'Kinoa', 'en': 'Quinoa', 'es': 'Quinoa', 'fr': 'Quinoa', 'de': 'Quinoa', 'ar': 'كينوا', 'it': 'Quinoa', 'pt': 'Quinoa', 'ru': 'Киноа'},
-    'diet_item_quinoa_salad': {'tr': 'Kinoa Salatası', 'en': 'Quinoa Salad', 'es': 'Ensalada de Quinoa', 'fr': 'Salade de Quinoa', 'de': 'Quinoa-Salat', 'ar': 'سلطة الكينوا', 'it': 'Insalata di Quinoa', 'pt': 'Salada de Quinoa', 'ru': 'Салат из киноа'},
-    'diet_item_quinoa_tabbouleh': {'tr': 'Kinoa Tabbule', 'en': 'Quinoa Tabbouleh', 'es': 'Tabbouleh de Quinoa', 'fr': 'Tabbouleh de Quinoa', 'de': 'Quinoa-Tabbouleh', 'ar': 'تبولة الكينوا', 'it': 'Tabbouleh di Quinoa', 'pt': 'Tabbouleh de Quinoa', 'ru': 'Табуле из киноа'},
-    'diet_item_raisins': {'tr': 'Kuru Üzüm', 'en': 'Raisins', 'es': 'Pasas', 'fr': 'Raisins Secs', 'de': 'Rosinen', 'ar': 'زبيب', 'it': 'Uvetta', 'pt': 'Passas', 'ru': 'Изюм'},
-    'diet_item_roasted_beets': {'tr': 'Kavrulmuş Pancar', 'en': 'Roasted Beets', 'es': 'Remolachas Asadas', 'fr': 'Betteraves Rôties', 'de': 'Gebratene Rote Bete', 'ar': 'شمندر محمص', 'it': 'Barbabietole Arrostite', 'pt': 'Beterrabas Assadas', 'ru': 'Жареная свекла'},
-    'diet_item_roasted_sweet_potato': {'tr': 'Kavrulmuş Tatlı Patates', 'en': 'Roasted Sweet Potato', 'es': 'Batata Asada', 'fr': 'Patate Douce Rôtie', 'de': 'Gebratene Süßkartoffel', 'ar': 'بطاطا حلوة محمصة', 'it': 'Patata Dolce Arrostita', 'pt': 'Batata Doce Assada', 'ru': 'Жареный сладкий картофель'},
-    'diet_item_roasted_vegetables': {'tr': 'Kavrulmuş Sebzeler', 'en': 'Roasted Vegetables', 'es': 'Verduras Asadas', 'fr': 'Légumes Rôtis', 'de': 'Gebratenes Gemüse', 'ar': 'خضار محمصة', 'it': 'Verdure Arrostite', 'pt': 'Legumes Assados', 'ru': 'Жареные овощи'},
-    'diet_item_scrambled_eggs_spinach': {'tr': 'Ispanaklı Yumurta', 'en': 'Scrambled Eggs with Spinach', 'es': 'Huevos Revueltos con Espinacas', 'fr': 'Œufs Brouillés aux Épinards', 'de': 'Rührei mit Spinat', 'ar': 'بيض مخفوق مع السبانخ', 'it': 'Uova Stracciate con Spinaci', 'pt': 'Ovos Mexidos com Espinafre', 'ru': 'Яичница со шпинатом'},
-    'diet_item_sesame_seeds': {'tr': 'Susam Tohumu', 'en': 'Sesame Seeds', 'es': 'Semillas de Sésamo', 'fr': 'Graines de Sésame', 'de': 'Sesamsamen', 'ar': 'بذور السمسم', 'it': 'Semi di Sesamo', 'pt': 'Sementes de Gergelim', 'ru': 'Семена кунжута'},
-    'diet_item_sesame_tahini': {'tr': 'Susam Tahini', 'en': 'Sesame Tahini', 'es': 'Tahini de Sésamo', 'fr': 'Tahini de Sésame', 'de': 'Sesam-Tahini', 'ar': 'طحينة السمسم', 'it': 'Tahini di Sesamo', 'pt': 'Tahini de Gergelim', 'ru': 'Кунжутная тахини'},
-    'diet_item_side_salad': {'tr': 'Yan Salata', 'en': 'Side Salad', 'es': 'Ensalada Lateral', 'fr': 'Salade d\'Accompagnement', 'de': 'Beilagensalat', 'ar': 'سلطة جانبية', 'it': 'Insalata di Contorno', 'pt': 'Salada Acompanhante', 'ru': 'Салат на гарнир'},
-    'diet_item_steamed_asparagus': {'tr': 'Buharda Pişmiş Kuşkonmaz', 'en': 'Steamed Asparagus', 'es': 'Espárragos al Vapor', 'fr': 'Asperges à la Vapeur', 'de': 'Gedämpfter Spargel', 'ar': 'هليون مطبوخ على البخار', 'it': 'Asparagi al Vapore', 'pt': 'Aspargos ao Vapor', 'ru': 'Спаржа на пару'},
-    'diet_item_steamed_broccoli': {'tr': 'Buharda Pişmiş Brokoli', 'en': 'Steamed Broccoli', 'es': 'Brócoli al Vapor', 'fr': 'Brocoli à la Vapeur', 'de': 'Gedämpfter Brokkoli', 'ar': 'بروكلي مطبوخ على البخار', 'it': 'Broccoli al Vapore', 'pt': 'Brócolis ao Vapor', 'ru': 'Брокколи на пару'},
-    'diet_item_steamed_green_beans': {'tr': 'Buharda Pişmiş Yeşil Fasulye', 'en': 'Steamed Green Beans', 'es': 'Judías Verdes al Vapor', 'fr': 'Haricots Verts à la Vapeur', 'de': 'Gedämpfte grüne Bohnen', 'ar': 'فاصوليا خضراء مطبوخة على البخار', 'it': 'Fagiolini al Vapore', 'pt': 'Vagens ao Vapor', 'ru': 'Зеленая фасоль на пару'},
-    'diet_item_steamed_kale': {'tr': 'Buharda Pişmiş Lahana', 'en': 'Steamed Kale', 'es': 'Col Rizada al Vapor', 'fr': 'Chou Frisé à la Vapeur', 'de': 'Gedämpfter Grünkohl', 'ar': 'اللفت المطبوخ على البخار', 'it': 'Cavolo Riccio al Vapore', 'pt': 'Couve ao Vapor', 'ru': 'Капуста кале на пару'},
-    'diet_item_steamed_spinach': {'tr': 'Buharda Pişmiş Ispanak', 'en': 'Steamed Spinach', 'es': 'Espinacas al Vapor', 'fr': 'Épinards à la Vapeur', 'de': 'Gedämpfter Spinat', 'ar': 'سبانخ مطبوخة على البخار', 'it': 'Spinaci al Vapore', 'pt': 'Espinafre ao Vapor', 'ru': 'Шпинат на пару'},
-    'diet_item_sunflower_seeds': {'tr': 'Ayçiçeği Çekirdeği', 'en': 'Sunflower Seeds', 'es': 'Semillas de Girasol', 'fr': 'Graines de Tournesol', 'de': 'Sonnenblumenkerne', 'ar': 'بذور عباد الشمس', 'it': 'Semi di Girasole', 'pt': 'Sementes de Girassol', 'ru': 'Семена подсолнечника'},
-    'diet_item_tahini': {'tr': 'Tahin', 'en': 'Tahini', 'es': 'Tahini', 'fr': 'Tahini', 'de': 'Tahini', 'ar': 'طحينة', 'it': 'Tahini', 'pt': 'Tahini', 'ru': 'Тахини'},
-    'diet_item_tahini_sauce': {'tr': 'Tahin Sosu', 'en': 'Tahini Sauce', 'es': 'Salsa de Tahini', 'fr': 'Sauce Tahini', 'de': 'Tahini-Sauce', 'ar': 'صلصة الطحينة', 'it': 'Salsa Tahini', 'pt': 'Molho de Tahini', 'ru': 'Соус тахини'},
-    'diet_item_tomato_cucumber': {'tr': 'Domates Salatalık', 'en': 'Tomato Cucumber', 'es': 'Tomate Pepino', 'fr': 'Tomate Concombre', 'de': 'Tomate Gurke', 'ar': 'طماطم خيار', 'it': 'Pomodoro Cetriolo', 'pt': 'Tomate Pepino', 'ru': 'Помидор Огурец'},
-    'diet_item_tomato_salad': {'tr': 'Domates Salatası', 'en': 'Tomato Salad', 'es': 'Ensalada de Tomate', 'fr': 'Salade de Tomate', 'de': 'Tomatensalat', 'ar': 'سلطة الطماطم', 'it': 'Insalata di Pomodoro', 'pt': 'Salada de Tomate', 'ru': 'Салат из помидоров'},
-    'diet_item_unsweetened_coffee': {'tr': 'Şekersiz Kahve', 'en': 'Unsweetened Coffee', 'es': 'Café sin Azúcar', 'fr': 'Café Non Sucré', 'de': 'Ungesüßter Kaffee', 'ar': 'قهوة غير محلاة', 'it': 'Caffè Non Zuccherato', 'pt': 'Café sem Açúcar', 'ru': 'Кофе без сахара'},
-    'diet_item_unsweetened_tea': {'tr': 'Şekersiz Çay', 'en': 'Unsweetened Tea', 'es': 'Té sin Azúcar', 'fr': 'Thé Non Sucré', 'de': 'Ungesüßter Tee', 'ar': 'شاي غير محلى', 'it': 'Tè Non Zuccherato', 'pt': 'Chá sem Açúcar', 'ru': 'Чай без сахара'},
-    'diet_item_vegetable_curry': {'tr': 'Sebze Köri', 'en': 'Vegetable Curry', 'es': 'Curry de Verduras', 'fr': 'Curry de Légumes', 'de': 'Gemüse-Curry', 'ar': 'كاري الخضار', 'it': 'Curry di Verdure', 'pt': 'Caril de Legumes', 'ru': 'Овощное карри'},
-    'diet_item_vegetable_paella': {'tr': 'Sebze Paella', 'en': 'Vegetable Paella', 'es': 'Paella de Verduras', 'fr': 'Paella de Légumes', 'de': 'Gemüse-Paella', 'ar': 'باييا الخضار', 'it': 'Paella di Verdure', 'pt': 'Paella de Legumes', 'ru': 'Овощная паэлья'},
-    'diet_item_vegetable_skewers': {'tr': 'Sebze Şiş', 'en': 'Vegetable Skewers', 'es': 'Brochetas de Verduras', 'fr': 'Brochettes de Légumes', 'de': 'Gemüsespieße', 'ar': 'أسياخ الخضار', 'it': 'Spiedini di Verdure', 'pt': 'Espetos de Legumes', 'ru': 'Овощные шашлыки'},
-    'diet_item_vegetable_soup': {'tr': 'Sebze Çorbası', 'en': 'Vegetable Soup', 'es': 'Sopa de Verduras', 'fr': 'Soupe de Légumes', 'de': 'Gemüsesuppe', 'ar': 'شوربة الخضار', 'it': 'Zuppa di Verdure', 'pt': 'Sopa de Legumes', 'ru': 'Овощной суп'},
-    'diet_item_vegetable_stir_fry': {'tr': 'Sebze Sote', 'en': 'Vegetable Stir Fry', 'es': 'Sofrito de Verduras', 'fr': 'Sauté de Légumes', 'de': 'Gemüse-Pfannengericht', 'ar': 'خضار سوتيه', 'it': 'Saltato di Verdure', 'pt': 'Salteado de Legumes', 'ru': 'Жаркое из овощей'},
-    'diet_item_vegetable_sticks': {'tr': 'Sebze Çubukları', 'en': 'Vegetable Sticks', 'es': 'Palitos de Verduras', 'fr': 'Bâtonnets de Légumes', 'de': 'Gemüsesticks', 'ar': 'عصي الخضار', 'it': 'Bastoncini di Verdure', 'pt': 'Palitos de Legumes', 'ru': 'Овощные палочки'},
-    'diet_item_vegetables': {'tr': 'Sebzeler', 'en': 'Vegetables', 'es': 'Verduras', 'fr': 'Légumes', 'de': 'Gemüse', 'ar': 'خضار', 'it': 'Verdure', 'pt': 'Legumes', 'ru': 'Овощи'},
-    'diet_item_vitamin_c_fruit': {'tr': 'C Vitamini Meyvesi', 'en': 'Vitamin C Fruit', 'es': 'Fruta con Vitamina C', 'fr': 'Fruit à Vitamine C', 'de': 'Vitamin-C-Frucht', 'ar': 'فاكهة فيتامين سي', 'it': 'Frutta con Vitamina C', 'pt': 'Fruta com Vitamina C', 'ru': 'Фрукт с витамином C'},
-    'diet_item_walnuts': {'tr': 'Ceviz', 'en': 'Walnuts', 'es': 'Nueces', 'fr': 'Noix', 'de': 'Walnüsse', 'ar': 'جوز', 'it': 'Noci', 'pt': 'Nozes', 'ru': 'Грецкие орехи'},
-    'diet_item_whole_grain_bread': {'tr': 'Tam Tahıllı Ekmek', 'en': 'Whole Grain Bread', 'es': 'Pan Integral', 'fr': 'Pain Complet', 'de': 'Vollkornbrot', 'ar': 'خبز الحبة الكاملة', 'it': 'Pane Integrale', 'pt': 'Pão Integral', 'ru': 'Цельнозерновой хлеб'},
-    'diet_item_whole_grain_bread_avocado': {'tr': 'Avokadolu Tam Tahıllı Ekmek', 'en': 'Whole Grain Bread with Avocado', 'es': 'Pan Integral con Aguacate', 'fr': 'Pain Complet à l\'Avocat', 'de': 'Vollkornbrot mit Avocado', 'ar': 'خبز الحبة الكاملة مع الأفوكادو', 'it': 'Pane Integrale con Avocado', 'pt': 'Pão Integral com Abacate', 'ru': 'Цельнозерновой хлеб с авокадо'},
-    'diet_item_whole_grain_bun': {'tr': 'Tam Tahıllı Hamburger Ekmeği', 'en': 'Whole Grain Bun', 'es': 'Panecillo Integral', 'fr': 'Petit Pain Complet', 'de': 'Vollkorn-Brötchen', 'ar': 'كعكة الحبة الكاملة', 'it': 'Panino Integrale', 'pt': 'Pão Integral', 'ru': 'Цельнозерновая булочка'},
-    'diet_item_whole_grain_crackers': {'tr': 'Tam Tahıllı Kraker', 'en': 'Whole Grain Crackers', 'es': 'Galletas Integrales', 'fr': 'Biscuits Complets', 'de': 'Vollkorn-Cracker', 'ar': 'بسكويت الحبة الكاملة', 'it': 'Cracker Integrali', 'pt': 'Biscoitos Integrais', 'ru': 'Цельнозерновые крекеры'},
-    'diet_item_whole_grain_naan': {'tr': 'Tam Tahıllı Naan', 'en': 'Whole Grain Naan', 'es': 'Naan Integral', 'fr': 'Naan Complet', 'de': 'Vollkorn-Naan', 'ar': 'نان الحبة الكاملة', 'it': 'Naan Integrale', 'pt': 'Naan Integral', 'ru': 'Цельнозерновая наан'},
-    'diet_item_whole_grain_pasta': {'tr': 'Tam Tahıllı Makarna', 'en': 'Whole Grain Pasta', 'es': 'Pasta Integral', 'fr': 'Pâtes Complètes', 'de': 'Vollkornnudeln', 'ar': 'معكرونة الحبة الكاملة', 'it': 'Pasta Integrale', 'pt': 'Massa Integral', 'ru': 'Цельнозерновые макароны'},
-    'diet_item_whole_grain_toast': {'tr': 'Tam Tahıllı Tost', 'en': 'Whole Grain Toast', 'es': 'Tostada Integral', 'fr': 'Toast Complet', 'de': 'Vollkorn-Toast', 'ar': 'توست الحبة الكاملة', 'it': 'Toast Integrale', 'pt': 'Torrada Integral', 'ru': 'Цельнозерновой тост'},
-    'diet_item_whole_grain_wrap': {'tr': 'Tam Tahıllı Wrap', 'en': 'Whole Grain Wrap', 'es': 'Wrap Integral', 'fr': 'Wrap Complet', 'de': 'Vollkorn-Wrap', 'ar': 'لفافة الحبة الكاملة', 'it': 'Wrap Integrale', 'pt': 'Wrap Integral', 'ru': 'Цельнозерновая лепешка'},
-    'diet_item_yogurt': {'tr': 'Yoğurt', 'en': 'Yogurt', 'es': 'Yogur', 'fr': 'Yaourt', 'de': 'Joghurt', 'ar': 'زبادي', 'it': 'Yogurt', 'pt': 'Iogurte', 'ru': 'Йогурт'},
-    'diet_item_chickpeas': {'tr': 'Nohut', 'en': 'Chickpeas', 'es': 'Garbanzos', 'fr': 'Pois Chiches', 'de': 'Kichererbsen', 'ar': 'حمص', 'it': 'Ceci', 'pt': 'Grão-de-Bico', 'ru': 'Нут'},
-    'diet_item_black_bean_bowl': {'tr': 'Siyah Fasulye Kasesi', 'en': 'Black Bean Bowl', 'es': 'Tazón de Frijoles Negros', 'fr': 'Bol de Haricots Noirs', 'de': 'Schwarze-Bohnen-Schüssel', 'ar': 'وعاء الفاصوليا السوداء', 'it': 'Ciotola di Fagioli Neri', 'pt': 'Tigela de Feijão Preto', 'ru': 'Чаша с черной фасолью'},
-    'diet_item_chickpea_curry': {'tr': 'Nohut Köri', 'en': 'Chickpea Curry', 'es': 'Curry de Garbanzos', 'fr': 'Curry de Pois Chiches', 'de': 'Kichererbsen-Curry', 'ar': 'كاري الحمص', 'it': 'Curry di Ceci', 'pt': 'Caril de Grão-de-Bico', 'ru': 'Карри из нута'},
-    'diet_item_flax_seeds': {'tr': 'Keten Tohumu', 'en': 'Flax Seeds', 'es': 'Semillas de Lino', 'fr': 'Graines de Lin', 'de': 'Leinsamen', 'ar': 'بذور الكتان', 'it': 'Semi di Lino', 'pt': 'Sementes de Linhaça', 'ru': 'Семена льна'},
-    'diet_item_poached_egg': {'tr': 'Poşe Yumurta', 'en': 'Poached Egg', 'es': 'Huevo Escalfado', 'fr': 'Œuf Poché', 'de': 'Pochiertes Ei', 'ar': 'بيض مسلوق', 'it': 'Uovo in Camicia', 'pt': 'Ovo Escalfado', 'ru': 'Яйцо-пашот'},
+    'diet_item_almonds': {
+      'tr': 'Badem',
+      'en': 'Almonds',
+      'es': 'Almendras',
+      'fr': 'Amandes',
+      'de': 'Mandel',
+      'ar': 'لوز',
+      'it': 'Mandorle',
+      'pt': 'Amêndoas',
+      'ru': 'Миндаль'
+    },
+    'diet_item_almonds_walnuts': {
+      'tr': 'Badem ve Ceviz',
+      'en': 'Almonds and Walnuts',
+      'es': 'Almendras y Nueces',
+      'fr': 'Amandes et Noix',
+      'de': 'Mandel und Walnüsse',
+      'ar': 'لوز وجوز',
+      'it': 'Mandorle e Noci',
+      'pt': 'Amêndoas e Nozes',
+      'ru': 'Миндаль и грецкие орехи'
+    },
+    'diet_item_almond_butter': {
+      'tr': 'Badem Ezmesi',
+      'en': 'Almond Butter',
+      'es': 'Mantequilla de Almendras',
+      'fr': 'Beurre d\'Amande',
+      'de': 'Mandelbutter',
+      'ar': 'زبدة اللوز',
+      'it': 'Burro di Mandorle',
+      'pt': 'Manteiga de Amêndoas',
+      'ru': 'Миндальное масло'
+    },
+    'diet_item_almond_milk': {
+      'tr': 'Badem Sütü',
+      'en': 'Almond Milk',
+      'es': 'Leche de Almendras',
+      'fr': 'Lait d\'Amande',
+      'de': 'Mandelmilch',
+      'ar': 'حليب اللوز',
+      'it': 'Latte di Mandorle',
+      'pt': 'Leite de Amêndoas',
+      'ru': 'Миндальное молоко'
+    },
+    'diet_item_avocado': {
+      'tr': 'Avokado',
+      'en': 'Avocado',
+      'es': 'Aguacate',
+      'fr': 'Avocat',
+      'de': 'Avocado',
+      'ar': 'أفوكادو',
+      'it': 'Avocado',
+      'pt': 'Abacate',
+      'ru': 'Авокадо'
+    },
+    'diet_item_avocado_slice': {
+      'tr': 'Avokado Dilimi',
+      'en': 'Avocado Slice',
+      'es': 'Rodaja de Aguacate',
+      'fr': 'Tranche d\'Avocat',
+      'de': 'Avocado-Scheibe',
+      'ar': 'شريحة أفوكادو',
+      'it': 'Fetta di Avocado',
+      'pt': 'Fatia de Abacate',
+      'ru': 'Ломтик авокадо'
+    },
+    'diet_item_berries': {
+      'tr': 'Çilek',
+      'en': 'Berries',
+      'es': 'Bayas',
+      'fr': 'Baies',
+      'de': 'Beeren',
+      'ar': 'توت',
+      'it': 'Bacche',
+      'pt': 'Frutas Vermelhas',
+      'ru': 'Ягоды'
+    },
+    'diet_item_blueberries': {
+      'tr': 'Yaban Mersini',
+      'en': 'Blueberries',
+      'es': 'Arándanos',
+      'fr': 'Myrtilles',
+      'de': 'Heidelbeeren',
+      'ar': 'توت أزرق',
+      'it': 'Mirtilli',
+      'pt': 'Mirtilos',
+      'ru': 'Черника'
+    },
+    'diet_item_beetroot': {
+      'tr': 'Pancar',
+      'en': 'Beetroot',
+      'es': 'Remolacha',
+      'fr': 'Betterave',
+      'de': 'Rote Bete',
+      'ar': 'شمندر',
+      'it': 'Barbabietola',
+      'pt': 'Beterraba',
+      'ru': 'Свекла'
+    },
+    'diet_item_beetroot_salad': {
+      'tr': 'Pancar Salatası',
+      'en': 'Beetroot Salad',
+      'es': 'Ensalada de Remolacha',
+      'fr': 'Salade de Betterave',
+      'de': 'Rote-Bete-Salat',
+      'ar': 'سلطة الشمندر',
+      'it': 'Insalata di Barbabietola',
+      'pt': 'Salada de Beterraba',
+      'ru': 'Салат из свеклы'
+    },
+    'diet_item_brown_rice': {
+      'tr': 'Esmer Pirinç',
+      'en': 'Brown Rice',
+      'es': 'Arroz Integral',
+      'fr': 'Riz Brun',
+      'de': 'Brauner Reis',
+      'ar': 'أرز بني',
+      'it': 'Riso Integrale',
+      'pt': 'Arroz Integral',
+      'ru': 'Коричневый рис'
+    },
+    'diet_item_bulgur_pilaf': {
+      'tr': 'Bulgur Pilavı',
+      'en': 'Bulgur Pilaf',
+      'es': 'Pilaf de Bulgur',
+      'fr': 'Pilaf de Boulgour',
+      'de': 'Bulgur-Pilaf',
+      'ar': 'برغل باللبن',
+      'it': 'Pilaf di Bulgur',
+      'pt': 'Pilaf de Bulgur',
+      'ru': 'Плов из булгура'
+    },
+    'diet_item_cherry_tomatoes': {
+      'tr': 'Kiraz Domates',
+      'en': 'Cherry Tomatoes',
+      'es': 'Tomates Cherry',
+      'fr': 'Tomates Cerises',
+      'de': 'Kirschtomaten',
+      'ar': 'طماطم كرزية',
+      'it': 'Pomodorini',
+      'pt': 'Tomates Cereja',
+      'ru': 'Помидоры черри'
+    },
+    'diet_item_cinnamon': {
+      'tr': 'Tarçın',
+      'en': 'Cinnamon',
+      'es': 'Canela',
+      'fr': 'Cannelle',
+      'de': 'Zimt',
+      'ar': 'قرفة',
+      'it': 'Cannella',
+      'pt': 'Canela',
+      'ru': 'Корица'
+    },
+    'diet_item_citrus_fruit': {
+      'tr': 'Narenciye',
+      'en': 'Citrus Fruit',
+      'es': 'Fruta Cítrica',
+      'fr': 'Fruit Agrumes',
+      'de': 'Zitrusfrucht',
+      'ar': 'فاكهة حمضية',
+      'it': 'Frutto Agrumi',
+      'pt': 'Fruta Cítrica',
+      'ru': 'Цитрусовые'
+    },
+    'diet_item_citrus_salad': {
+      'tr': 'Narenciye Salatası',
+      'en': 'Citrus Salad',
+      'es': 'Ensalada de Cítricos',
+      'fr': 'Salade d\'Agrumes',
+      'de': 'Zitrusfrucht-Salat',
+      'ar': 'سلطة الحمضيات',
+      'it': 'Insalata di Agrumi',
+      'pt': 'Salada de Cítricos',
+      'ru': 'Салат из цитрусовых'
+    },
+    'diet_item_coconut_water': {
+      'tr': 'Hindistan Cevizi Suyu',
+      'en': 'Coconut Water',
+      'es': 'Agua de Coco',
+      'fr': 'Eau de Coco',
+      'de': 'Kokosnusswasser',
+      'ar': 'ماء جوز الهند',
+      'it': 'Acqua di Cocco',
+      'pt': 'Água de Coco',
+      'ru': 'Кокосовая вода'
+    },
+    'diet_item_dandelion_tea': {
+      'tr': 'Karahindiba Çayı',
+      'en': 'Dandelion Tea',
+      'es': 'Té de Diente de León',
+      'fr': 'Thé de Pissenlit',
+      'de': 'Löwenzahntee',
+      'ar': 'شاي الهندباء',
+      'it': 'Tè di Tarassaco',
+      'pt': 'Chá de Dente-de-Leão',
+      'ru': 'Чай из одуванчика'
+    },
+    'diet_item_dried_apricots': {
+      'tr': 'Kuru Kayısı',
+      'en': 'Dried Apricots',
+      'es': 'Albaricoques Secos',
+      'fr': 'Abricots Secs',
+      'de': 'Getrocknete Aprikosen',
+      'ar': 'مشمش مجفف',
+      'it': 'Albicocche Secche',
+      'pt': 'Damasco Seco',
+      'ru': 'Сушеные абрикосы'
+    },
+    'diet_item_dried_dates': {
+      'tr': 'Kuru Hurma',
+      'en': 'Dried Dates',
+      'es': 'Dátiles Secos',
+      'fr': 'Dattes Sèches',
+      'de': 'Getrocknete Datteln',
+      'ar': 'تمر مجفف',
+      'it': 'Datteri Secchi',
+      'pt': 'Tâmaras Secas',
+      'ru': 'Сушеные финики'
+    },
+    'diet_item_dried_figs': {
+      'tr': 'Kuru İncir',
+      'en': 'Dried Figs',
+      'es': 'Higos Secos',
+      'fr': 'Figues Sèches',
+      'de': 'Getrocknete Feigen',
+      'ar': 'تين مجفف',
+      'it': 'Fichi Secchi',
+      'pt': 'Figos Secos',
+      'ru': 'Сушеный инжир'
+    },
+    'diet_item_dried_fruits': {
+      'tr': 'Kuru Meyveler',
+      'en': 'Dried Fruits',
+      'es': 'Frutas Secas',
+      'fr': 'Fruits Secs',
+      'de': 'Trockenfrüchte',
+      'ar': 'فواكه مجففة',
+      'it': 'Frutta Secca',
+      'pt': 'Frutas Secas',
+      'ru': 'Сухофрукты'
+    },
+    'diet_item_feta_cheese': {
+      'tr': 'Beyaz Peynir',
+      'en': 'Feta Cheese',
+      'es': 'Queso Feta',
+      'fr': 'Fromage Feta',
+      'de': 'Fetakäse',
+      'ar': 'جبنة فيتا',
+      'it': 'Formaggio Feta',
+      'pt': 'Queijo Feta',
+      'ru': 'Сыр фета'
+    },
+    'diet_item_fresh_berries': {
+      'tr': 'Taze Çilek',
+      'en': 'Fresh Berries',
+      'es': 'Bayas Frescas',
+      'fr': 'Baies Fraîches',
+      'de': 'Frische Beeren',
+      'ar': 'توت طازج',
+      'it': 'Bacche Fresche',
+      'pt': 'Frutas Vermelhas Frescas',
+      'ru': 'Свежие ягоды'
+    },
+    'diet_item_fresh_figs': {
+      'tr': 'Taze İncir',
+      'en': 'Fresh Figs',
+      'es': 'Higos Frescos',
+      'fr': 'Figues Fraîches',
+      'de': 'Frische Feigen',
+      'ar': 'تين طازج',
+      'it': 'Fichi Freschi',
+      'pt': 'Figos Frescos',
+      'ru': 'Свежий инжир'
+    },
+    'diet_item_fresh_fruit_salad': {
+      'tr': 'Taze Meyve Salatası',
+      'en': 'Fresh Fruit Salad',
+      'es': 'Ensalada de Frutas Frescas',
+      'fr': 'Salade de Fruits Frais',
+      'de': 'Frischer Obstsalat',
+      'ar': 'سلطة الفواكه الطازجة',
+      'it': 'Macedonia Fresca',
+      'pt': 'Salada de Frutas Frescas',
+      'ru': 'Свежий фруктовый салат'
+    },
+    'diet_item_fresh_fruits': {
+      'tr': 'Taze Meyveler',
+      'en': 'Fresh Fruits',
+      'es': 'Frutas Frescas',
+      'fr': 'Fruits Frais',
+      'de': 'Frisches Obst',
+      'ar': 'فواكه طازجة',
+      'it': 'Frutta Fresca',
+      'pt': 'Frutas Frescas',
+      'ru': 'Свежие фрукты'
+    },
+    'diet_item_fresh_juice': {
+      'tr': 'Taze Meyve Suyu',
+      'en': 'Fresh Juice',
+      'es': 'Jugo Fresco',
+      'fr': 'Jus Frais',
+      'de': 'Frischer Saft',
+      'ar': 'عصير طازج',
+      'it': 'Succo Fresco',
+      'pt': 'Suco Fresco',
+      'ru': 'Свежий сок'
+    },
+    'diet_item_fresh_orange_juice': {
+      'tr': 'Taze Portakal Suyu',
+      'en': 'Fresh Orange Juice',
+      'es': 'Jugo de Naranja Fresco',
+      'fr': 'Jus d\'Orange Frais',
+      'de': 'Frischer Orangensaft',
+      'ar': 'عصير البرتقال الطازج',
+      'it': 'Succo d\'Arancia Fresco',
+      'pt': 'Suco de Laranja Fresco',
+      'ru': 'Свежий апельсиновый сок'
+    },
+    'diet_item_fresh_salsa': {
+      'tr': 'Taze Salsa',
+      'en': 'Fresh Salsa',
+      'es': 'Salsa Fresca',
+      'fr': 'Salsa Fraîche',
+      'de': 'Frische Salsa',
+      'ar': 'صلصة طازجة',
+      'it': 'Salsa Fresca',
+      'pt': 'Salsa Fresca',
+      'ru': 'Свежая сальса'
+    },
+    'diet_item_fresh_salad': {
+      'tr': 'Taze Salata',
+      'en': 'Fresh Salad',
+      'es': 'Ensalada Fresca',
+      'fr': 'Salade Fraîche',
+      'de': 'Frischer Salat',
+      'ar': 'سلطة طازجة',
+      'it': 'Insalata Fresca',
+      'pt': 'Salada Fresca',
+      'ru': 'Свежий салат'
+    },
+    'diet_item_fresh_vegetables': {
+      'tr': 'Taze Sebzeler',
+      'en': 'Fresh Vegetables',
+      'es': 'Verduras Frescas',
+      'fr': 'Légumes Frais',
+      'de': 'Frisches Gemüse',
+      'ar': 'خضار طازجة',
+      'it': 'Verdure Fresche',
+      'pt': 'Legumes Frescos',
+      'ru': 'Свежие овощи'
+    },
+    'diet_item_fruit_smoothie': {
+      'tr': 'Meyve Smoothie',
+      'en': 'Fruit Smoothie',
+      'es': 'Batido de Frutas',
+      'fr': 'Smoothie aux Fruits',
+      'de': 'Frucht-Smoothie',
+      'ar': 'سموذي الفواكه',
+      'it': 'Frullato di Frutta',
+      'pt': 'Smoothie de Frutas',
+      'ru': 'Фруктовый смузи'
+    },
+    'diet_item_ginger_tea': {
+      'tr': 'Zencefil Çayı',
+      'en': 'Ginger Tea',
+      'es': 'Té de Jengibre',
+      'fr': 'Thé au Gingembre',
+      'de': 'Ingwertee',
+      'ar': 'شاي الزنجبيل',
+      'it': 'Tè allo Zenzero',
+      'pt': 'Chá de Gengibre',
+      'ru': 'Имбирный чай'
+    },
+    'diet_item_green_tea': {
+      'tr': 'Yeşil Çay',
+      'en': 'Green Tea',
+      'es': 'Té Verde',
+      'fr': 'Thé Vert',
+      'de': 'Grüner Tee',
+      'ar': 'شاي أخضر',
+      'it': 'Tè Verde',
+      'pt': 'Chá Verde',
+      'ru': 'Зеленый чай'
+    },
+    'diet_item_greek_salad': {
+      'tr': 'Yunan Salatası',
+      'en': 'Greek Salad',
+      'es': 'Ensalada Griega',
+      'fr': 'Salade Grecque',
+      'de': 'Griechischer Salat',
+      'ar': 'سلطة يونانية',
+      'it': 'Insalata Greca',
+      'pt': 'Salada Grega',
+      'ru': 'Греческий салат'
+    },
+    'diet_item_herbal_tea': {
+      'tr': 'Bitki Çayı',
+      'en': 'Herbal Tea',
+      'es': 'Té de Hierbas',
+      'fr': 'Tisane',
+      'de': 'Kräutertee',
+      'ar': 'شاي أعشاب',
+      'it': 'Tè alle Erbe',
+      'pt': 'Chá de Ervas',
+      'ru': 'Травяной чай'
+    },
+    'diet_item_honey': {
+      'tr': 'Bal',
+      'en': 'Honey',
+      'es': 'Miel',
+      'fr': 'Miel',
+      'de': 'Honig',
+      'ar': 'عسل',
+      'it': 'Miele',
+      'pt': 'Mel',
+      'ru': 'Мед'
+    },
+    'diet_item_honey_drizzle': {
+      'tr': 'Bal Damlası',
+      'en': 'Honey Drizzle',
+      'es': 'Chorro de Miel',
+      'fr': 'Filet de Miel',
+      'de': 'Honigtröpfchen',
+      'ar': 'قطرات العسل',
+      'it': 'Gocce di Miele',
+      'pt': 'Fio de Mel',
+      'ru': 'Медовая капля'
+    },
+    'diet_item_iron_fortified_juice': {
+      'tr': 'Demir Takviyeli Meyve Suyu',
+      'en': 'Iron Fortified Juice',
+      'es': 'Jugo Fortificado con Hierro',
+      'fr': 'Jus Fortifié en Fer',
+      'de': 'Eisenergänzter Saft',
+      'ar': 'عصير مدعم بالحديد',
+      'it': 'Succo Fortificato con Ferro',
+      'pt': 'Suco Fortificado com Ferro',
+      'ru': 'Сок, обогащенный железом'
+    },
+    'diet_item_iron_fortified_milk': {
+      'tr': 'Demir Takviyeli Süt',
+      'en': 'Iron Fortified Milk',
+      'es': 'Leche Fortificada con Hierro',
+      'fr': 'Lait Fortifié en Fer',
+      'de': 'Eisenergänzte Milch',
+      'ar': 'حليب مدعم بالحديد',
+      'it': 'Latte Fortificato con Ferro',
+      'pt': 'Leite Fortificado com Ferro',
+      'ru': 'Молоко, обогащенное железом'
+    },
+    'diet_item_kiwi': {
+      'tr': 'Kivi',
+      'en': 'Kiwi',
+      'es': 'Kiwi',
+      'fr': 'Kiwi',
+      'de': 'Kiwi',
+      'ar': 'كيوي',
+      'it': 'Kiwi',
+      'pt': 'Kiwi',
+      'ru': 'Киви'
+    },
+    'diet_item_lean_ground_beef': {
+      'tr': 'Yağsız Kıyma',
+      'en': 'Lean Ground Beef',
+      'es': 'Carne Molida Magra',
+      'fr': 'Bœuf Haché Maigre',
+      'de': 'Mageres Rinderhackfleisch',
+      'ar': 'لحم مفروم قليل الدهون',
+      'it': 'Manzo Macinato Magro',
+      'pt': 'Carne Moída Magra',
+      'ru': 'Постный говяжий фарш'
+    },
+    'diet_item_lean_beef_stew': {
+      'tr': 'Yağsız Sığır Eti Yahnisi',
+      'en': 'Lean Beef Stew',
+      'es': 'Estofado de Carne Magra',
+      'fr': 'Ragoût de Bœuf Maigre',
+      'de': 'Mageres Rindfleisch-Eintopf',
+      'ar': 'يخنة لحم بقري قليل الدهون',
+      'it': 'Stufato di Manzo Magro',
+      'pt': 'Ensopado de Carne Magra',
+      'ru': 'Рагу из постной говядины'
+    },
+    'diet_item_grilled_lamb_kofta': {
+      'tr': 'Izgara Kuzu Köfte',
+      'en': 'Grilled Lamb Kofta',
+      'es': 'Köfte de Cordero a la Parrilla',
+      'fr': 'Köfte d\'Agneau Grillé',
+      'de': 'Gegrilltes Lamm-Köfte',
+      'ar': 'كفتة لحم ضأن مشوية',
+      'it': 'Köfte di Agnello alla Griglia',
+      'pt': 'Köfte de Cordeiro Grelhado',
+      'ru': 'Жареные котлеты из баранины'
+    },
+    'diet_item_maple_syrup': {
+      'tr': 'Akçaağaç Şurubu',
+      'en': 'Maple Syrup',
+      'es': 'Jarabe de Arce',
+      'fr': 'Sirop d\'Érable',
+      'de': 'Ahornsirup',
+      'ar': 'شراب القيقب',
+      'it': 'Sciroppo d\'Acero',
+      'pt': 'Xarope de Bordo',
+      'ru': 'Кленовый сироп'
+    },
+    'diet_item_mashed_sweet_potato': {
+      'tr': 'Püre Tatlı Patates',
+      'en': 'Mashed Sweet Potato',
+      'es': 'Puré de Batata',
+      'fr': 'Purée de Patate Douce',
+      'de': 'Süßkartoffel-Püree',
+      'ar': 'بطاطا حلوة مهروسة',
+      'it': 'Purè di Patata Dolce',
+      'pt': 'Purê de Batata Doce',
+      'ru': 'Пюре из сладкого картофеля'
+    },
+    'diet_item_mixed_berries': {
+      'tr': 'Karışık Çilek',
+      'en': 'Mixed Berries',
+      'es': 'Bayas Mixtas',
+      'fr': 'Baies Mixtes',
+      'de': 'Gemischte Beeren',
+      'ar': 'توت مختلط',
+      'it': 'Bacche Miste',
+      'pt': 'Frutas Vermelhas Misturadas',
+      'ru': 'Смешанные ягоды'
+    },
+    'diet_item_nuts': {
+      'tr': 'Kuruyemiş',
+      'en': 'Nuts',
+      'es': 'Nueces',
+      'fr': 'Noix',
+      'de': 'Nüsse',
+      'ar': 'مكسرات',
+      'it': 'Noci',
+      'pt': 'Nozes',
+      'ru': 'Орехи'
+    },
+    'diet_item_olive_oil': {
+      'tr': 'Zeytinyağı',
+      'en': 'Olive Oil',
+      'es': 'Aceite de Oliva',
+      'fr': 'Huile d\'Olive',
+      'de': 'Olivenöl',
+      'ar': 'زيت زيتون',
+      'it': 'Olio d\'Oliva',
+      'pt': 'Azeite de Oliva',
+      'ru': 'Оливковое масло'
+    },
+    'diet_item_olive_olive_oil': {
+      'tr': 'Zeytinyağı',
+      'en': 'Olive Oil',
+      'es': 'Aceite de Oliva',
+      'fr': 'Huile d\'Olive',
+      'de': 'Olivenöl',
+      'ar': 'زيت زيتون',
+      'it': 'Olio d\'Oliva',
+      'pt': 'Azeite de Oliva',
+      'ru': 'Оливковое масло'
+    },
+    'diet_item_orange': {
+      'tr': 'Portakal',
+      'en': 'Orange',
+      'es': 'Naranja',
+      'fr': 'Orange',
+      'de': 'Orange',
+      'ar': 'برتقال',
+      'it': 'Arancia',
+      'pt': 'Laranja',
+      'ru': 'Апельсин'
+    },
+    'diet_item_pomegranate': {
+      'tr': 'Nar',
+      'en': 'Pomegranate',
+      'es': 'Granada',
+      'fr': 'Grenade',
+      'de': 'Granatapfel',
+      'ar': 'رمان',
+      'it': 'Melagrana',
+      'pt': 'Romã',
+      'ru': 'Гранат'
+    },
+    'diet_item_pumpkin_seeds': {
+      'tr': 'Kabak Çekirdeği',
+      'en': 'Pumpkin Seeds',
+      'es': 'Semillas de Calabaza',
+      'fr': 'Graines de Citrouille',
+      'de': 'Kürbiskerne',
+      'ar': 'بذور اليقطين',
+      'it': 'Semi di Zucca',
+      'pt': 'Sementes de Abóbora',
+      'ru': 'Тыквенные семечки'
+    },
+    'diet_item_quinoa': {
+      'tr': 'Kinoa',
+      'en': 'Quinoa',
+      'es': 'Quinoa',
+      'fr': 'Quinoa',
+      'de': 'Quinoa',
+      'ar': 'كينوا',
+      'it': 'Quinoa',
+      'pt': 'Quinoa',
+      'ru': 'Киноа'
+    },
+    'diet_item_quinoa_salad': {
+      'tr': 'Kinoa Salatası',
+      'en': 'Quinoa Salad',
+      'es': 'Ensalada de Quinoa',
+      'fr': 'Salade de Quinoa',
+      'de': 'Quinoa-Salat',
+      'ar': 'سلطة الكينوا',
+      'it': 'Insalata di Quinoa',
+      'pt': 'Salada de Quinoa',
+      'ru': 'Салат из киноа'
+    },
+    'diet_item_quinoa_tabbouleh': {
+      'tr': 'Kinoa Tabbule',
+      'en': 'Quinoa Tabbouleh',
+      'es': 'Tabbouleh de Quinoa',
+      'fr': 'Tabbouleh de Quinoa',
+      'de': 'Quinoa-Tabbouleh',
+      'ar': 'تبولة الكينوا',
+      'it': 'Tabbouleh di Quinoa',
+      'pt': 'Tabbouleh de Quinoa',
+      'ru': 'Табуле из киноа'
+    },
+    'diet_item_raisins': {
+      'tr': 'Kuru Üzüm',
+      'en': 'Raisins',
+      'es': 'Pasas',
+      'fr': 'Raisins Secs',
+      'de': 'Rosinen',
+      'ar': 'زبيب',
+      'it': 'Uvetta',
+      'pt': 'Passas',
+      'ru': 'Изюм'
+    },
+    'diet_item_roasted_beets': {
+      'tr': 'Kavrulmuş Pancar',
+      'en': 'Roasted Beets',
+      'es': 'Remolachas Asadas',
+      'fr': 'Betteraves Rôties',
+      'de': 'Gebratene Rote Bete',
+      'ar': 'شمندر محمص',
+      'it': 'Barbabietole Arrostite',
+      'pt': 'Beterrabas Assadas',
+      'ru': 'Жареная свекла'
+    },
+    'diet_item_roasted_sweet_potato': {
+      'tr': 'Kavrulmuş Tatlı Patates',
+      'en': 'Roasted Sweet Potato',
+      'es': 'Batata Asada',
+      'fr': 'Patate Douce Rôtie',
+      'de': 'Gebratene Süßkartoffel',
+      'ar': 'بطاطا حلوة محمصة',
+      'it': 'Patata Dolce Arrostita',
+      'pt': 'Batata Doce Assada',
+      'ru': 'Жареный сладкий картофель'
+    },
+    'diet_item_roasted_vegetables': {
+      'tr': 'Kavrulmuş Sebzeler',
+      'en': 'Roasted Vegetables',
+      'es': 'Verduras Asadas',
+      'fr': 'Légumes Rôtis',
+      'de': 'Gebratenes Gemüse',
+      'ar': 'خضار محمصة',
+      'it': 'Verdure Arrostite',
+      'pt': 'Legumes Assados',
+      'ru': 'Жареные овощи'
+    },
+    'diet_item_scrambled_eggs_spinach': {
+      'tr': 'Ispanaklı Yumurta',
+      'en': 'Scrambled Eggs with Spinach',
+      'es': 'Huevos Revueltos con Espinacas',
+      'fr': 'Œufs Brouillés aux Épinards',
+      'de': 'Rührei mit Spinat',
+      'ar': 'بيض مخفوق مع السبانخ',
+      'it': 'Uova Stracciate con Spinaci',
+      'pt': 'Ovos Mexidos com Espinafre',
+      'ru': 'Яичница со шпинатом'
+    },
+    'diet_item_sesame_seeds': {
+      'tr': 'Susam Tohumu',
+      'en': 'Sesame Seeds',
+      'es': 'Semillas de Sésamo',
+      'fr': 'Graines de Sésame',
+      'de': 'Sesamsamen',
+      'ar': 'بذور السمسم',
+      'it': 'Semi di Sesamo',
+      'pt': 'Sementes de Gergelim',
+      'ru': 'Семена кунжута'
+    },
+    'diet_item_sesame_tahini': {
+      'tr': 'Susam Tahini',
+      'en': 'Sesame Tahini',
+      'es': 'Tahini de Sésamo',
+      'fr': 'Tahini de Sésame',
+      'de': 'Sesam-Tahini',
+      'ar': 'طحينة السمسم',
+      'it': 'Tahini di Sesamo',
+      'pt': 'Tahini de Gergelim',
+      'ru': 'Кунжутная тахини'
+    },
+    'diet_item_side_salad': {
+      'tr': 'Yan Salata',
+      'en': 'Side Salad',
+      'es': 'Ensalada Lateral',
+      'fr': 'Salade d\'Accompagnement',
+      'de': 'Beilagensalat',
+      'ar': 'سلطة جانبية',
+      'it': 'Insalata di Contorno',
+      'pt': 'Salada Acompanhante',
+      'ru': 'Салат на гарнир'
+    },
+    'diet_item_steamed_asparagus': {
+      'tr': 'Buharda Pişmiş Kuşkonmaz',
+      'en': 'Steamed Asparagus',
+      'es': 'Espárragos al Vapor',
+      'fr': 'Asperges à la Vapeur',
+      'de': 'Gedämpfter Spargel',
+      'ar': 'هليون مطبوخ على البخار',
+      'it': 'Asparagi al Vapore',
+      'pt': 'Aspargos ao Vapor',
+      'ru': 'Спаржа на пару'
+    },
+    'diet_item_steamed_broccoli': {
+      'tr': 'Buharda Pişmiş Brokoli',
+      'en': 'Steamed Broccoli',
+      'es': 'Brócoli al Vapor',
+      'fr': 'Brocoli à la Vapeur',
+      'de': 'Gedämpfter Brokkoli',
+      'ar': 'بروكلي مطبوخ على البخار',
+      'it': 'Broccoli al Vapore',
+      'pt': 'Brócolis ao Vapor',
+      'ru': 'Брокколи на пару'
+    },
+    'diet_item_steamed_green_beans': {
+      'tr': 'Buharda Pişmiş Yeşil Fasulye',
+      'en': 'Steamed Green Beans',
+      'es': 'Judías Verdes al Vapor',
+      'fr': 'Haricots Verts à la Vapeur',
+      'de': 'Gedämpfte grüne Bohnen',
+      'ar': 'فاصوليا خضراء مطبوخة على البخار',
+      'it': 'Fagiolini al Vapore',
+      'pt': 'Vagens ao Vapor',
+      'ru': 'Зеленая фасоль на пару'
+    },
+    'diet_item_steamed_kale': {
+      'tr': 'Buharda Pişmiş Lahana',
+      'en': 'Steamed Kale',
+      'es': 'Col Rizada al Vapor',
+      'fr': 'Chou Frisé à la Vapeur',
+      'de': 'Gedämpfter Grünkohl',
+      'ar': 'اللفت المطبوخ على البخار',
+      'it': 'Cavolo Riccio al Vapore',
+      'pt': 'Couve ao Vapor',
+      'ru': 'Капуста кале на пару'
+    },
+    'diet_item_steamed_spinach': {
+      'tr': 'Buharda Pişmiş Ispanak',
+      'en': 'Steamed Spinach',
+      'es': 'Espinacas al Vapor',
+      'fr': 'Épinards à la Vapeur',
+      'de': 'Gedämpfter Spinat',
+      'ar': 'سبانخ مطبوخة على البخار',
+      'it': 'Spinaci al Vapore',
+      'pt': 'Espinafre ao Vapor',
+      'ru': 'Шпинат на пару'
+    },
+    'diet_item_sunflower_seeds': {
+      'tr': 'Ayçiçeği Çekirdeği',
+      'en': 'Sunflower Seeds',
+      'es': 'Semillas de Girasol',
+      'fr': 'Graines de Tournesol',
+      'de': 'Sonnenblumenkerne',
+      'ar': 'بذور عباد الشمس',
+      'it': 'Semi di Girasole',
+      'pt': 'Sementes de Girassol',
+      'ru': 'Семена подсолнечника'
+    },
+    'diet_item_tahini': {
+      'tr': 'Tahin',
+      'en': 'Tahini',
+      'es': 'Tahini',
+      'fr': 'Tahini',
+      'de': 'Tahini',
+      'ar': 'طحينة',
+      'it': 'Tahini',
+      'pt': 'Tahini',
+      'ru': 'Тахини'
+    },
+    'diet_item_tahini_sauce': {
+      'tr': 'Tahin Sosu',
+      'en': 'Tahini Sauce',
+      'es': 'Salsa de Tahini',
+      'fr': 'Sauce Tahini',
+      'de': 'Tahini-Sauce',
+      'ar': 'صلصة الطحينة',
+      'it': 'Salsa Tahini',
+      'pt': 'Molho de Tahini',
+      'ru': 'Соус тахини'
+    },
+    'diet_item_tomato_cucumber': {
+      'tr': 'Domates Salatalık',
+      'en': 'Tomato Cucumber',
+      'es': 'Tomate Pepino',
+      'fr': 'Tomate Concombre',
+      'de': 'Tomate Gurke',
+      'ar': 'طماطم خيار',
+      'it': 'Pomodoro Cetriolo',
+      'pt': 'Tomate Pepino',
+      'ru': 'Помидор Огурец'
+    },
+    'diet_item_tomato_salad': {
+      'tr': 'Domates Salatası',
+      'en': 'Tomato Salad',
+      'es': 'Ensalada de Tomate',
+      'fr': 'Salade de Tomate',
+      'de': 'Tomatensalat',
+      'ar': 'سلطة الطماطم',
+      'it': 'Insalata di Pomodoro',
+      'pt': 'Salada de Tomate',
+      'ru': 'Салат из помидоров'
+    },
+    'diet_item_unsweetened_coffee': {
+      'tr': 'Şekersiz Kahve',
+      'en': 'Unsweetened Coffee',
+      'es': 'Café sin Azúcar',
+      'fr': 'Café Non Sucré',
+      'de': 'Ungesüßter Kaffee',
+      'ar': 'قهوة غير محلاة',
+      'it': 'Caffè Non Zuccherato',
+      'pt': 'Café sem Açúcar',
+      'ru': 'Кофе без сахара'
+    },
+    'diet_item_unsweetened_tea': {
+      'tr': 'Şekersiz Çay',
+      'en': 'Unsweetened Tea',
+      'es': 'Té sin Azúcar',
+      'fr': 'Thé Non Sucré',
+      'de': 'Ungesüßter Tee',
+      'ar': 'شاي غير محلى',
+      'it': 'Tè Non Zuccherato',
+      'pt': 'Chá sem Açúcar',
+      'ru': 'Чай без сахара'
+    },
+    'diet_item_vegetable_curry': {
+      'tr': 'Sebze Köri',
+      'en': 'Vegetable Curry',
+      'es': 'Curry de Verduras',
+      'fr': 'Curry de Légumes',
+      'de': 'Gemüse-Curry',
+      'ar': 'كاري الخضار',
+      'it': 'Curry di Verdure',
+      'pt': 'Caril de Legumes',
+      'ru': 'Овощное карри'
+    },
+    'diet_item_vegetable_paella': {
+      'tr': 'Sebze Paella',
+      'en': 'Vegetable Paella',
+      'es': 'Paella de Verduras',
+      'fr': 'Paella de Légumes',
+      'de': 'Gemüse-Paella',
+      'ar': 'باييا الخضار',
+      'it': 'Paella di Verdure',
+      'pt': 'Paella de Legumes',
+      'ru': 'Овощная паэлья'
+    },
+    'diet_item_vegetable_skewers': {
+      'tr': 'Sebze Şiş',
+      'en': 'Vegetable Skewers',
+      'es': 'Brochetas de Verduras',
+      'fr': 'Brochettes de Légumes',
+      'de': 'Gemüsespieße',
+      'ar': 'أسياخ الخضار',
+      'it': 'Spiedini di Verdure',
+      'pt': 'Espetos de Legumes',
+      'ru': 'Овощные шашлыки'
+    },
+    'diet_item_vegetable_soup': {
+      'tr': 'Sebze Çorbası',
+      'en': 'Vegetable Soup',
+      'es': 'Sopa de Verduras',
+      'fr': 'Soupe de Légumes',
+      'de': 'Gemüsesuppe',
+      'ar': 'شوربة الخضار',
+      'it': 'Zuppa di Verdure',
+      'pt': 'Sopa de Legumes',
+      'ru': 'Овощной суп'
+    },
+    'diet_item_vegetable_stir_fry': {
+      'tr': 'Sebze Sote',
+      'en': 'Vegetable Stir Fry',
+      'es': 'Sofrito de Verduras',
+      'fr': 'Sauté de Légumes',
+      'de': 'Gemüse-Pfannengericht',
+      'ar': 'خضار سوتيه',
+      'it': 'Saltato di Verdure',
+      'pt': 'Salteado de Legumes',
+      'ru': 'Жаркое из овощей'
+    },
+    'diet_item_vegetable_sticks': {
+      'tr': 'Sebze Çubukları',
+      'en': 'Vegetable Sticks',
+      'es': 'Palitos de Verduras',
+      'fr': 'Bâtonnets de Légumes',
+      'de': 'Gemüsesticks',
+      'ar': 'عصي الخضار',
+      'it': 'Bastoncini di Verdure',
+      'pt': 'Palitos de Legumes',
+      'ru': 'Овощные палочки'
+    },
+    'diet_item_vegetables': {
+      'tr': 'Sebzeler',
+      'en': 'Vegetables',
+      'es': 'Verduras',
+      'fr': 'Légumes',
+      'de': 'Gemüse',
+      'ar': 'خضار',
+      'it': 'Verdure',
+      'pt': 'Legumes',
+      'ru': 'Овощи'
+    },
+    'diet_item_vitamin_c_fruit': {
+      'tr': 'C Vitamini Meyvesi',
+      'en': 'Vitamin C Fruit',
+      'es': 'Fruta con Vitamina C',
+      'fr': 'Fruit à Vitamine C',
+      'de': 'Vitamin-C-Frucht',
+      'ar': 'فاكهة فيتامين سي',
+      'it': 'Frutta con Vitamina C',
+      'pt': 'Fruta com Vitamina C',
+      'ru': 'Фрукт с витамином C'
+    },
+    'diet_item_walnuts': {
+      'tr': 'Ceviz',
+      'en': 'Walnuts',
+      'es': 'Nueces',
+      'fr': 'Noix',
+      'de': 'Walnüsse',
+      'ar': 'جوز',
+      'it': 'Noci',
+      'pt': 'Nozes',
+      'ru': 'Грецкие орехи'
+    },
+    'diet_item_whole_grain_bread': {
+      'tr': 'Tam Tahıllı Ekmek',
+      'en': 'Whole Grain Bread',
+      'es': 'Pan Integral',
+      'fr': 'Pain Complet',
+      'de': 'Vollkornbrot',
+      'ar': 'خبز الحبة الكاملة',
+      'it': 'Pane Integrale',
+      'pt': 'Pão Integral',
+      'ru': 'Цельнозерновой хлеб'
+    },
+    'diet_item_whole_grain_bread_avocado': {
+      'tr': 'Avokadolu Tam Tahıllı Ekmek',
+      'en': 'Whole Grain Bread with Avocado',
+      'es': 'Pan Integral con Aguacate',
+      'fr': 'Pain Complet à l\'Avocat',
+      'de': 'Vollkornbrot mit Avocado',
+      'ar': 'خبز الحبة الكاملة مع الأفوكادو',
+      'it': 'Pane Integrale con Avocado',
+      'pt': 'Pão Integral com Abacate',
+      'ru': 'Цельнозерновой хлеб с авокадо'
+    },
+    'diet_item_whole_grain_bun': {
+      'tr': 'Tam Tahıllı Hamburger Ekmeği',
+      'en': 'Whole Grain Bun',
+      'es': 'Panecillo Integral',
+      'fr': 'Petit Pain Complet',
+      'de': 'Vollkorn-Brötchen',
+      'ar': 'كعكة الحبة الكاملة',
+      'it': 'Panino Integrale',
+      'pt': 'Pão Integral',
+      'ru': 'Цельнозерновая булочка'
+    },
+    'diet_item_whole_grain_crackers': {
+      'tr': 'Tam Tahıllı Kraker',
+      'en': 'Whole Grain Crackers',
+      'es': 'Galletas Integrales',
+      'fr': 'Biscuits Complets',
+      'de': 'Vollkorn-Cracker',
+      'ar': 'بسكويت الحبة الكاملة',
+      'it': 'Cracker Integrali',
+      'pt': 'Biscoitos Integrais',
+      'ru': 'Цельнозерновые крекеры'
+    },
+    'diet_item_whole_grain_naan': {
+      'tr': 'Tam Tahıllı Naan',
+      'en': 'Whole Grain Naan',
+      'es': 'Naan Integral',
+      'fr': 'Naan Complet',
+      'de': 'Vollkorn-Naan',
+      'ar': 'نان الحبة الكاملة',
+      'it': 'Naan Integrale',
+      'pt': 'Naan Integral',
+      'ru': 'Цельнозерновая наан'
+    },
+    'diet_item_whole_grain_pasta': {
+      'tr': 'Tam Tahıllı Makarna',
+      'en': 'Whole Grain Pasta',
+      'es': 'Pasta Integral',
+      'fr': 'Pâtes Complètes',
+      'de': 'Vollkornnudeln',
+      'ar': 'معكرونة الحبة الكاملة',
+      'it': 'Pasta Integrale',
+      'pt': 'Massa Integral',
+      'ru': 'Цельнозерновые макароны'
+    },
+    'diet_item_whole_grain_toast': {
+      'tr': 'Tam Tahıllı Tost',
+      'en': 'Whole Grain Toast',
+      'es': 'Tostada Integral',
+      'fr': 'Toast Complet',
+      'de': 'Vollkorn-Toast',
+      'ar': 'توست الحبة الكاملة',
+      'it': 'Toast Integrale',
+      'pt': 'Torrada Integral',
+      'ru': 'Цельнозерновой тост'
+    },
+    'diet_item_whole_grain_wrap': {
+      'tr': 'Tam Tahıllı Wrap',
+      'en': 'Whole Grain Wrap',
+      'es': 'Wrap Integral',
+      'fr': 'Wrap Complet',
+      'de': 'Vollkorn-Wrap',
+      'ar': 'لفافة الحبة الكاملة',
+      'it': 'Wrap Integrale',
+      'pt': 'Wrap Integral',
+      'ru': 'Цельнозерновая лепешка'
+    },
+    'diet_item_yogurt': {
+      'tr': 'Yoğurt',
+      'en': 'Yogurt',
+      'es': 'Yogur',
+      'fr': 'Yaourt',
+      'de': 'Joghurt',
+      'ar': 'زبادي',
+      'it': 'Yogurt',
+      'pt': 'Iogurte',
+      'ru': 'Йогурт'
+    },
+    'diet_item_chickpeas': {
+      'tr': 'Nohut',
+      'en': 'Chickpeas',
+      'es': 'Garbanzos',
+      'fr': 'Pois Chiches',
+      'de': 'Kichererbsen',
+      'ar': 'حمص',
+      'it': 'Ceci',
+      'pt': 'Grão-de-Bico',
+      'ru': 'Нут'
+    },
+    'diet_item_black_bean_bowl': {
+      'tr': 'Siyah Fasulye Kasesi',
+      'en': 'Black Bean Bowl',
+      'es': 'Tazón de Frijoles Negros',
+      'fr': 'Bol de Haricots Noirs',
+      'de': 'Schwarze-Bohnen-Schüssel',
+      'ar': 'وعاء الفاصوليا السوداء',
+      'it': 'Ciotola di Fagioli Neri',
+      'pt': 'Tigela de Feijão Preto',
+      'ru': 'Чаша с черной фасолью'
+    },
+    'diet_item_chickpea_curry': {
+      'tr': 'Nohut Köri',
+      'en': 'Chickpea Curry',
+      'es': 'Curry de Garbanzos',
+      'fr': 'Curry de Pois Chiches',
+      'de': 'Kichererbsen-Curry',
+      'ar': 'كاري الحمص',
+      'it': 'Curry di Ceci',
+      'pt': 'Caril de Grão-de-Bico',
+      'ru': 'Карри из нута'
+    },
+    'diet_item_flax_seeds': {
+      'tr': 'Keten Tohumu',
+      'en': 'Flax Seeds',
+      'es': 'Semillas de Lino',
+      'fr': 'Graines de Lin',
+      'de': 'Leinsamen',
+      'ar': 'بذور الكتان',
+      'it': 'Semi di Lino',
+      'pt': 'Sementes de Linhaça',
+      'ru': 'Семена льна'
+    },
+    'diet_item_poached_egg': {
+      'tr': 'Poşe Yumurta',
+      'en': 'Poached Egg',
+      'es': 'Huevo Escalfado',
+      'fr': 'Œuf Poché',
+      'de': 'Pochiertes Ei',
+      'ar': 'بيض مسلوق',
+      'it': 'Uovo in Camicia',
+      'pt': 'Ovo Escalfado',
+      'ru': 'Яйцо-пашот'
+    },
   };
 
   // Hemogram specific translations
@@ -8326,8 +10375,10 @@ class LocalizationService extends ChangeNotifier {
     },
     // Diet program i18n
     'diet_program_description': {
-      'tr': 'Hemogram sonuçlarınıza göre seçilen planlar. Aşağıda günlük makro hedefleri ve örnek menüyü görebilirsiniz.',
-      'en': 'Plans tailored to your hemogram results. See daily macro targets and a sample menu below.',
+      'tr':
+          'Hemogram sonuçlarınıza göre seçilen planlar. Aşağıda günlük makro hedefleri ve örnek menüyü görebilirsiniz.',
+      'en':
+          'Plans tailored to your hemogram results. See daily macro targets and a sample menu below.',
     },
     // Premium Diet UI header & KPIs
     'diet_premium_title': {
@@ -8454,19 +10505,29 @@ class LocalizationService extends ChangeNotifier {
       'ar': 'التوصيات الغذائية لدعم الهيموجلوبين',
     },
     'hemoglobin_diet_description': {
-      'tr': 'Hemoglobin değerlerinizi desteklemek için demir ve B12 açısından zengin beslenme planı.',
-      'en': 'A nutrition plan rich in iron and B12 to support your hemoglobin values.',
-      'es': 'Un plan nutricional rico en hierro y B12 para apoyar sus valores de hemoglobina.',
-      'fr': 'Un plan nutritionnel riche en fer et B12 pour soutenir vos valeurs d\'hémoglobine.',
-      'de': 'Ein Ernährungsplan reich an Eisen und B12 zur Unterstützung Ihrer Hämoglobinwerte.',
+      'tr':
+          'Hemoglobin değerlerinizi desteklemek için demir ve B12 açısından zengin beslenme planı.',
+      'en':
+          'A nutrition plan rich in iron and B12 to support your hemoglobin values.',
+      'es':
+          'Un plan nutricional rico en hierro y B12 para apoyar sus valores de hemoglobina.',
+      'fr':
+          'Un plan nutritionnel riche en fer et B12 pour soutenir vos valeurs d\'hémoglobine.',
+      'de':
+          'Ein Ernährungsplan reich an Eisen und B12 zur Unterstützung Ihrer Hämoglobinwerte.',
       'ar': 'خطة تغذية غنية بالحديد وفيتامين ب12 لدعم قيم الهيموجلوبين.',
     },
     'hemogram_based_nutrition_plan': {
-      'tr': 'Hemogram değerlerinize ve yaş grubunuza göre önerilen beslenme planı.',
-      'en': 'Recommended nutrition plan based on your hemogram values and age group.',
-      'es': 'Plan nutricional recomendado basado en sus valores de hemograma y grupo de edad.',
-      'fr': 'Plan nutritionnel recommandé basé sur vos valeurs d\'hémogramme et votre groupe d\'âge.',
-      'de': 'Empfohlener Ernährungsplan basierend auf Ihren Hämogrammwerten und Altersgruppe.',
+      'tr':
+          'Hemogram değerlerinize ve yaş grubunuza göre önerilen beslenme planı.',
+      'en':
+          'Recommended nutrition plan based on your hemogram values and age group.',
+      'es':
+          'Plan nutricional recomendado basado en sus valores de hemograma y grupo de edad.',
+      'fr':
+          'Plan nutritionnel recommandé basé sur vos valeurs d\'hémogramme et votre groupe d\'âge.',
+      'de':
+          'Empfohlener Ernährungsplan basierend auf Ihren Hämogrammwerten und Altersgruppe.',
       'ar': 'خطة التغذية الموصى بها بناءً على قيم تعداد الدم وفئتك العمرية.',
     },
     // Smart suggestions panel (replaces hemoglobin box)
@@ -8500,52 +10561,76 @@ class LocalizationService extends ChangeNotifier {
     },
     // Per-category expert tips (newline separated)
     'expert_tips_glucose': {
-      'tr': 'Karbonhidratları gün içine eşit bölün\nLif > 25g/gün hedefleyin\nBasit şekerleri sınırlayın\nHer öğünde protein ekleyin\nAkşam geç saat yemeklerinden kaçının',
-      'en': 'Distribute carbs evenly through the day\nAim fiber > 25g/day\nLimit simple sugars\nAdd protein to every meal\nAvoid late-night meals',
+      'tr':
+          'Karbonhidratları gün içine eşit bölün\nLif > 25g/gün hedefleyin\nBasit şekerleri sınırlayın\nHer öğünde protein ekleyin\nAkşam geç saat yemeklerinden kaçının',
+      'en':
+          'Distribute carbs evenly through the day\nAim fiber > 25g/day\nLimit simple sugars\nAdd protein to every meal\nAvoid late-night meals',
     },
     'expert_tips_liver': {
-      'tr': 'Kızartma ve işlenmiş gıdaları azaltın\nTrans yağ ve fruktozdan uzak durun\nKafeini ölçülü tüketin\nHaftalık 150 dk orta yoğunluk egzersiz',
-      'en': 'Reduce fried and processed foods\nAvoid trans-fats and excess fructose\nModerate caffeine\n150 min/week moderate exercise',
+      'tr':
+          'Kızartma ve işlenmiş gıdaları azaltın\nTrans yağ ve fruktozdan uzak durun\nKafeini ölçülü tüketin\nHaftalık 150 dk orta yoğunluk egzersiz',
+      'en':
+          'Reduce fried and processed foods\nAvoid trans-fats and excess fructose\nModerate caffeine\n150 min/week moderate exercise',
     },
     'expert_tips_bilirubin': {
-      'tr': 'Bol su tüketin (2–3L/gün)\nAlkolü sınırlayın\nİlaç etkileşimlerini doktorla gözden geçirin\nDüşük yağlı, dengeli öğünler tercih edin',
-      'en': 'Hydrate well (2–3L/day)\nLimit alcohol\nReview drug interactions with your physician\nPrefer balanced, lower-fat meals',
+      'tr':
+          'Bol su tüketin (2–3L/gün)\nAlkolü sınırlayın\nİlaç etkileşimlerini doktorla gözden geçirin\nDüşük yağlı, dengeli öğünler tercih edin',
+      'en':
+          'Hydrate well (2–3L/day)\nLimit alcohol\nReview drug interactions with your physician\nPrefer balanced, lower-fat meals',
     },
     'expert_tips_crp': {
-      'tr': 'Anti-inflamatuar beslenme (zeytinyağı, yağlı tohumlar)\nRafine şeker ve un ürünlerini azaltın\nUyku ve stres yönetimine dikkat edin',
-      'en': 'Anti-inflammatory pattern (olive oil, nuts)\nReduce refined sugar/flour\nPrioritize sleep and stress control',
+      'tr':
+          'Anti-inflamatuar beslenme (zeytinyağı, yağlı tohumlar)\nRafine şeker ve un ürünlerini azaltın\nUyku ve stres yönetimine dikkat edin',
+      'en':
+          'Anti-inflammatory pattern (olive oil, nuts)\nReduce refined sugar/flour\nPrioritize sleep and stress control',
     },
     'expert_tips_thyroid': {
-      'tr': 'Düzenli iyot ve selenyum alımı\nAşırı soya ve turpgilleri abartmayın\nİlaç kullanıyorsanız kahvaltıdan ayrı alın',
-      'en': 'Ensure iodine and selenium intake\nDo not overconsume soy and goitrogens\nIf on meds, take separate from breakfast',
+      'tr':
+          'Düzenli iyot ve selenyum alımı\nAşırı soya ve turpgilleri abartmayın\nİlaç kullanıyorsanız kahvaltıdan ayrı alın',
+      'en':
+          'Ensure iodine and selenium intake\nDo not overconsume soy and goitrogens\nIf on meds, take separate from breakfast',
     },
     'expert_tips_vitamin_d3': {
-      'tr': 'D vitamini takviyesi için doktor önerisini izleyin\nYağlı balık ve yumurtayı artırın\nGün içinde kısa güneş maruziyeti',
-      'en': 'Follow physician guidance for supplementation\nIncrease oily fish and eggs\nBrief daytime sun exposure',
+      'tr':
+          'D vitamini takviyesi için doktor önerisini izleyin\nYağlı balık ve yumurtayı artırın\nGün içinde kısa güneş maruziyeti',
+      'en':
+          'Follow physician guidance for supplementation\nIncrease oily fish and eggs\nBrief daytime sun exposure',
     },
     'expert_tips_vitamin_b12': {
-      'tr': 'Hayvansal kaynakları artırın veya takviye değerlendirin\nB12 emilimini etkileyen ilaçları doktorla görüşün\nFolata da dikkat edin',
-      'en': 'Increase animal sources or consider supplements\nDiscuss meds affecting absorption\nMind folate status too',
+      'tr':
+          'Hayvansal kaynakları artırın veya takviye değerlendirin\nB12 emilimini etkileyen ilaçları doktorla görüşün\nFolata da dikkat edin',
+      'en':
+          'Increase animal sources or consider supplements\nDiscuss meds affecting absorption\nMind folate status too',
     },
     'expert_tips_electrolytes': {
-      'tr': 'Dengeli sıvı ve elektrolit alımı\nAşırı tuz ve ultra işlenmiş ürünleri azaltın\nBöbrek fonksiyonunuzu takip edin',
-      'en': 'Balanced fluids and electrolytes\nReduce excess salt and ultra-processed foods\nMonitor renal function',
+      'tr':
+          'Dengeli sıvı ve elektrolit alımı\nAşırı tuz ve ultra işlenmiş ürünleri azaltın\nBöbrek fonksiyonunuzu takip edin',
+      'en':
+          'Balanced fluids and electrolytes\nReduce excess salt and ultra-processed foods\nMonitor renal function',
     },
     'expert_tips_calcium': {
-      'tr': 'Kalsiyum + D vitamini birlikte düşünün\nSüt ürünleri tolere edilmiyorsa yeşil yapraklılar ve badem\nFazla kafeini sınırlayın',
-      'en': 'Consider calcium with vitamin D\nIf dairy intolerant: greens and almonds\nLimit excessive caffeine',
+      'tr':
+          'Kalsiyum + D vitamini birlikte düşünün\nSüt ürünleri tolere edilmiyorsa yeşil yapraklılar ve badem\nFazla kafeini sınırlayın',
+      'en':
+          'Consider calcium with vitamin D\nIf dairy intolerant: greens and almonds\nLimit excessive caffeine',
     },
     'expert_tips_hemoglobin': {
-      'tr': 'Heme demir kaynaklarını artırın (kırmızı et, sakatat)\nC vitamini ile birlikte tüketin\nÇay/kahveyi öğünden 1–2 saat ayrı için',
-      'en': 'Increase heme iron (red meat, offal)\nPair with vitamin C\nTake tea/coffee 1–2h away from meals',
+      'tr':
+          'Heme demir kaynaklarını artırın (kırmızı et, sakatat)\nC vitamini ile birlikte tüketin\nÇay/kahveyi öğünden 1–2 saat ayrı için',
+      'en':
+          'Increase heme iron (red meat, offal)\nPair with vitamin C\nTake tea/coffee 1–2h away from meals',
     },
     'expert_tips_iron': {
-      'tr': 'Demir içeren baklagiller ve tahılları düzenli tüketin\nFitik asidi düşürmek için ıslatma/fermantasyon\nKalsiyumu demirle aynı öğünde abartmayın',
-      'en': 'Regular legumes and iron-fortified grains\nSoak/ferment to lower phytates\nAvoid excessive calcium with iron meals',
+      'tr':
+          'Demir içeren baklagiller ve tahılları düzenli tüketin\nFitik asidi düşürmek için ıslatma/fermantasyon\nKalsiyumu demirle aynı öğünde abartmayın',
+      'en':
+          'Regular legumes and iron-fortified grains\nSoak/ferment to lower phytates\nAvoid excessive calcium with iron meals',
     },
     'expert_tips_white_blood_cells': {
-      'tr': 'Protein ve mikro besinleri yeterli alın\nHijyen-ve gıda güvenliğine dikkat\nGerektiğinde hekimle değerlendirme',
-      'en': 'Ensure adequate protein and micronutrients\nMind hygiene and food safety\nMedical review when appropriate',
+      'tr':
+          'Protein ve mikro besinleri yeterli alın\nHijyen-ve gıda güvenliğine dikkat\nGerektiğinde hekimle değerlendirme',
+      'en':
+          'Ensure adequate protein and micronutrients\nMind hygiene and food safety\nMedical review when appropriate',
     },
     'grid_view': {
       'tr': 'Izgara Görünümü',
@@ -8586,11 +10671,16 @@ class LocalizationService extends ChangeNotifier {
       'ar': 'اللحوم الحمراء، الكبد',
     },
     'iron_rich_foods_list': {
-      'tr': '• Ispanak, pazı, brokoli\n• Mercimek, nohut\n• C vitamini ile birlikte tüketin',
-      'en': '• Spinach, chard, broccoli\n• Lentils, chickpeas\n• Consume with vitamin C',
-      'es': '• Espinacas, acelgas, brócoli\n• Lentejas, garbanzos\n• Consumir con vitamina C',
-      'fr': '• Épinards, blettes, brocoli\n• Lentilles, pois chiches\n• Consommer avec vitamine C',
-      'de': '• Spinat, Mangold, Brokkoli\n• Linsen, Kichererbsen\n• Mit Vitamin C konsumieren',
+      'tr':
+          '• Ispanak, pazı, brokoli\n• Mercimek, nohut\n• C vitamini ile birlikte tüketin',
+      'en':
+          '• Spinach, chard, broccoli\n• Lentils, chickpeas\n• Consume with vitamin C',
+      'es':
+          '• Espinacas, acelgas, brócoli\n• Lentejas, garbanzos\n• Consumir con vitamina C',
+      'fr':
+          '• Épinards, blettes, brocoli\n• Lentilles, pois chiches\n• Consommer avec vitamine C',
+      'de':
+          '• Spinat, Mangold, Brokkoli\n• Linsen, Kichererbsen\n• Mit Vitamin C konsumieren',
       'ar': '• السبانخ، السلق، البروكلي\n• العدس، الحمص\n• تناول مع فيتامين ج',
     },
     'limit_consumption': {
@@ -8675,142 +10765,207 @@ class LocalizationService extends ChangeNotifier {
     },
     // Sunday menus
     'breakfast_menu_sunday': {
-      'tr': '• Pekmez yulaf (1 yemek kaşığı)\n• Haşlanmış yumurta\n• Taze portakal veya kivi\n• Bir avuç ceviz',
-      'en': '• Molasses oat (1 tablespoon)\n• Boiled egg\n• Fresh orange or kiwi\n• A handful of walnuts',
+      'tr':
+          '• Pekmez yulaf (1 yemek kaşığı)\n• Haşlanmış yumurta\n• Taze portakal veya kivi\n• Bir avuç ceviz',
+      'en':
+          '• Molasses oat (1 tablespoon)\n• Boiled egg\n• Fresh orange or kiwi\n• A handful of walnuts',
     },
     'lunch_menu_sunday': {
-      'tr': '• Ispanak yoğurt kırmızı et veya tavuk ciğeri (haftada 2x)\n• Yeşil salata + limon\n• Kinoa veya bulgur',
-      'en': '• Spinach yogurt with red meat or chicken liver (2x per week)\n• Green salad + lemon\n• Quinoa or bulgur',
+      'tr':
+          '• Ispanak yoğurt kırmızı et veya tavuk ciğeri (haftada 2x)\n• Yeşil salata + limon\n• Kinoa veya bulgur',
+      'en':
+          '• Spinach yogurt with red meat or chicken liver (2x per week)\n• Green salad + lemon\n• Quinoa or bulgur',
     },
     'snack_menu_sunday': {
-      'tr': '• Kuru kayısı + kabak çekirdeği\n• Pekmez süt (küçük bardak) haftada 2-3x',
-      'en': '• Dried apricots + pumpkin seeds\n• Molasses milk (small glass) 2-3x per week',
+      'tr':
+          '• Kuru kayısı + kabak çekirdeği\n• Pekmez süt (küçük bardak) haftada 2-3x',
+      'en':
+          '• Dried apricots + pumpkin seeds\n• Molasses milk (small glass) 2-3x per week',
     },
     'dinner_menu_sunday': {
-      'tr': '• Baklagil yemeği (mercimek/kuru fasulye)\n• Pancar veya ıspanak salatası\n• Tam tahıllı ekmek (1 dilim)',
-      'en': '• Legume dish (lentils/dried beans)\n• Beet or spinach salad\n• Whole grain bread (1 slice)',
+      'tr':
+          '• Baklagil yemeği (mercimek/kuru fasulye)\n• Pancar veya ıspanak salatası\n• Tam tahıllı ekmek (1 dilim)',
+      'en':
+          '• Legume dish (lentils/dried beans)\n• Beet or spinach salad\n• Whole grain bread (1 slice)',
     },
-    // Monday menus  
+    // Monday menus
     'breakfast_menu_monday': {
-      'tr': '• Çilek Muesli\n• Organik süt + kuru üzüm + ceviz\n• Taze meyve sürekli verir + yoğurt',
-      'en': '• Strawberry Muesli\n• Organic milk + raisins + walnuts\n• Fresh fruit continuously provides + yogurt',
+      'tr':
+          '• Çilek Muesli\n• Organik süt + kuru üzüm + ceviz\n• Taze meyve sürekli verir + yoğurt',
+      'en':
+          '• Strawberry Muesli\n• Organic milk + raisins + walnuts\n• Fresh fruit continuously provides + yogurt',
     },
     'lunch_menu_monday': {
-      'tr': '• Pekmez yulaf (1 yemek kaşığı)\n• Haşlanmış yumurta\n• Taze portakal veya kivi',
-      'en': '• Molasses oat (1 tablespoon)\n• Boiled egg\n• Fresh orange or kiwi',
+      'tr':
+          '• Pekmez yulaf (1 yemek kaşığı)\n• Haşlanmış yumurta\n• Taze portakal veya kivi',
+      'en':
+          '• Molasses oat (1 tablespoon)\n• Boiled egg\n• Fresh orange or kiwi',
     },
     'snack_menu_monday': {
       'tr': '• Ispanak yoğurt kırmızı et veya tavuk ciğeri (haftada 2x)',
       'en': '• Spinach yogurt with red meat or chicken liver (2x per week)',
     },
     'dinner_menu_monday': {
-      'tr': '• Kuru kayısı + kabak çekirdeği\n• Pekmez süt (küçük bardak) haftada 2-3x',
-      'en': '• Dried apricots + pumpkin seeds\n• Molasses milk (small glass) 2-3x per week',
+      'tr':
+          '• Kuru kayısı + kabak çekirdeği\n• Pekmez süt (küçük bardak) haftada 2-3x',
+      'en':
+          '• Dried apricots + pumpkin seeds\n• Molasses milk (small glass) 2-3x per week',
     },
     // Tuesday menus
     'breakfast_menu_tuesday': {
-      'tr': '• Pekmez yulaf (1 yemek kaşığı)\n• Haşlanmış yumurta\n• Taze portakal veya kivi\n• Bir avuç ceviz',
-      'en': '• Molasses oat (1 tablespoon)\n• Boiled egg\n• Fresh orange or kiwi\n• A handful of walnuts',
+      'tr':
+          '• Pekmez yulaf (1 yemek kaşığı)\n• Haşlanmış yumurta\n• Taze portakal veya kivi\n• Bir avuç ceviz',
+      'en':
+          '• Molasses oat (1 tablespoon)\n• Boiled egg\n• Fresh orange or kiwi\n• A handful of walnuts',
     },
     'lunch_menu_tuesday': {
-      'tr': '• Ispanak yoğurt kırmızı et veya tavuk ciğeri (haftada 2x)\n• Yeşil salata + limon\n• Kinoa veya bulgur',
-      'en': '• Spinach yogurt with red meat or chicken liver (2x per week)\n• Green salad + lemon\n• Quinoa or bulgur',
+      'tr':
+          '• Ispanak yoğurt kırmızı et veya tavuk ciğeri (haftada 2x)\n• Yeşil salata + limon\n• Kinoa veya bulgur',
+      'en':
+          '• Spinach yogurt with red meat or chicken liver (2x per week)\n• Green salad + lemon\n• Quinoa or bulgur',
     },
     'snack_menu_tuesday': {
-      'tr': '• Kuru kayısı + kabak çekirdeği\n• Pekmez süt (küçük bardak) haftada 2-3x',
-      'en': '• Dried apricots + pumpkin seeds\n• Molasses milk (small glass) 2-3x per week',
+      'tr':
+          '• Kuru kayısı + kabak çekirdeği\n• Pekmez süt (küçük bardak) haftada 2-3x',
+      'en':
+          '• Dried apricots + pumpkin seeds\n• Molasses milk (small glass) 2-3x per week',
     },
     'dinner_menu_tuesday': {
-      'tr': '• Baklagil yemeği (mercimek/kuru fasulye)\n• Pancar veya ıspanak salatası\n• Tam tahıllı ekmek (1 dilim)',
-      'en': '• Legume dish (lentils/dried beans)\n• Beet or spinach salad\n• Whole grain bread (1 slice)',
+      'tr':
+          '• Baklagil yemeği (mercimek/kuru fasulye)\n• Pancar veya ıspanak salatası\n• Tam tahıllı ekmek (1 dilim)',
+      'en':
+          '• Legume dish (lentils/dried beans)\n• Beet or spinach salad\n• Whole grain bread (1 slice)',
     },
     // Wednesday menus
     'breakfast_menu_wednesday': {
-      'tr': '• Pekmez yulaf (1 yemek kaşığı)\n• Haşlanmış yumurta\n• Taze portakal veya kivi\n• Bir avuç ceviz',
-      'en': '• Molasses oat (1 tablespoon)\n• Boiled egg\n• Fresh orange or kiwi\n• A handful of walnuts',
+      'tr':
+          '• Pekmez yulaf (1 yemek kaşığı)\n• Haşlanmış yumurta\n• Taze portakal veya kivi\n• Bir avuç ceviz',
+      'en':
+          '• Molasses oat (1 tablespoon)\n• Boiled egg\n• Fresh orange or kiwi\n• A handful of walnuts',
     },
     'lunch_menu_wednesday': {
-      'tr': '• Ispanak yoğurt kırmızı et veya tavuk ciğeri (haftada 2x)\n• Yeşil salata + limon\n• Kinoa veya bulgur',
-      'en': '• Spinach yogurt with red meat or chicken liver (2x per week)\n• Green salad + lemon\n• Quinoa or bulgur',
+      'tr':
+          '• Ispanak yoğurt kırmızı et veya tavuk ciğeri (haftada 2x)\n• Yeşil salata + limon\n• Kinoa veya bulgur',
+      'en':
+          '• Spinach yogurt with red meat or chicken liver (2x per week)\n• Green salad + lemon\n• Quinoa or bulgur',
     },
     'snack_menu_wednesday': {
-      'tr': '• Kuru kayısı + kabak çekirdeği\n• Pekmez süt (küçük bardak) haftada 2-3x',
-      'en': '• Dried apricots + pumpkin seeds\n• Molasses milk (small glass) 2-3x per week',
+      'tr':
+          '• Kuru kayısı + kabak çekirdeği\n• Pekmez süt (küçük bardak) haftada 2-3x',
+      'en':
+          '• Dried apricots + pumpkin seeds\n• Molasses milk (small glass) 2-3x per week',
     },
     'dinner_menu_wednesday': {
-      'tr': '• Baklagil yemeği (mercimek/kuru fasulye)\n• Pancar veya ıspanak salatası\n• Tam tahıllı ekmek (1 dilim)',
-      'en': '• Legume dish (lentils/dried beans)\n• Beet or spinach salad\n• Whole grain bread (1 slice)',
+      'tr':
+          '• Baklagil yemeği (mercimek/kuru fasulye)\n• Pancar veya ıspanak salatası\n• Tam tahıllı ekmek (1 dilim)',
+      'en':
+          '• Legume dish (lentils/dried beans)\n• Beet or spinach salad\n• Whole grain bread (1 slice)',
     },
     // Thursday menus
     'breakfast_menu_thursday': {
-      'tr': '• Pekmez yulaf (1 yemek kaşığı)\n• Haşlanmış yumurta\n• Taze portakal veya kivi\n• Bir avuç ceviz',
-      'en': '• Molasses oat (1 tablespoon)\n• Boiled egg\n• Fresh orange or kiwi\n• A handful of walnuts',
+      'tr':
+          '• Pekmez yulaf (1 yemek kaşığı)\n• Haşlanmış yumurta\n• Taze portakal veya kivi\n• Bir avuç ceviz',
+      'en':
+          '• Molasses oat (1 tablespoon)\n• Boiled egg\n• Fresh orange or kiwi\n• A handful of walnuts',
     },
     'lunch_menu_thursday': {
-      'tr': '• Ispanak yoğurt kırmızı et veya tavuk ciğeri (haftada 2x)\n• Yeşil salata + limon\n• Kinoa veya bulgur',
-      'en': '• Spinach yogurt with red meat or chicken liver (2x per week)\n• Green salada + lemon\n• Quinoa or bulgur',
+      'tr':
+          '• Ispanak yoğurt kırmızı et veya tavuk ciğeri (haftada 2x)\n• Yeşil salata + limon\n• Kinoa veya bulgur',
+      'en':
+          '• Spinach yogurt with red meat or chicken liver (2x per week)\n• Green salada + lemon\n• Quinoa or bulgur',
     },
     'snack_menu_thursday': {
-      'tr': '• Kuru kayısı + kabak çekirdeği\n• Pekmez süt (küçük bardak) haftada 2-3x',
-      'en': '• Dried apricots + pumpkin seeds\n• Molasses milk (small glass) 2-3x per week',
+      'tr':
+          '• Kuru kayısı + kabak çekirdeği\n• Pekmez süt (küçük bardak) haftada 2-3x',
+      'en':
+          '• Dried apricots + pumpkin seeds\n• Molasses milk (small glass) 2-3x per week',
     },
     'dinner_menu_thursday': {
-      'tr': '• Baklagil yemeği (mercimek/kuru fasulye)\n• Pancar veya ıspanak salatası\n• Tam tahıllı ekmek (1 dilim)',
-      'en': '• Legume dish (lentils/dried beans)\n• Beet or spinach salad\n• Whole grain bread (1 slice)',
+      'tr':
+          '• Baklagil yemeği (mercimek/kuru fasulye)\n• Pancar veya ıspanak salatası\n• Tam tahıllı ekmek (1 dilim)',
+      'en':
+          '• Legume dish (lentils/dried beans)\n• Beet or spinach salad\n• Whole grain bread (1 slice)',
     },
     // Friday menus
     'breakfast_menu_friday': {
-      'tr': '• Pekmez yulaf (1 yemek kaşığı)\n• Haşlanmış yumurta\n• Taze portakal veya kivi\n• Bir avuç ceviz',
-      'en': '• Molasses oat (1 tablespoon)\n• Boiled egg\n• Fresh orange or kiwi\n• A handful of walnuts',
+      'tr':
+          '• Pekmez yulaf (1 yemek kaşığı)\n• Haşlanmış yumurta\n• Taze portakal veya kivi\n• Bir avuç ceviz',
+      'en':
+          '• Molasses oat (1 tablespoon)\n• Boiled egg\n• Fresh orange or kiwi\n• A handful of walnuts',
     },
     'lunch_menu_friday': {
-      'tr': '• Ispanak yoğurt kırmızı et veya tavuk ciğeri (haftada 2x)\n• Yeşil salata + limon\n• Kinoa veya bulgur',
-      'en': '• Spinach yogurt with red meat or chicken liver (2x per week)\n• Green salad + lemon\n• Quinoa or bulgur',
+      'tr':
+          '• Ispanak yoğurt kırmızı et veya tavuk ciğeri (haftada 2x)\n• Yeşil salata + limon\n• Kinoa veya bulgur',
+      'en':
+          '• Spinach yogurt with red meat or chicken liver (2x per week)\n• Green salad + lemon\n• Quinoa or bulgur',
     },
     'snack_menu_friday': {
-      'tr': '• Kuru kayısı + kabak çekirdeği\n• Pekmez süt (küçük bardak) haftada 2-3x',
-      'en': '• Dried apricots + pumpkin seeds\n• Molasses milk (small glass) 2-3x per week',
+      'tr':
+          '• Kuru kayısı + kabak çekirdeği\n• Pekmez süt (küçük bardak) haftada 2-3x',
+      'en':
+          '• Dried apricots + pumpkin seeds\n• Molasses milk (small glass) 2-3x per week',
     },
     'dinner_menu_friday': {
-      'tr': '• Baklagil yemeği (mercimek/kuru fasulye)\n• Pancar veya ıspanak salatası\n• Tam tahıllı ekmek (1 dilim)',
-      'en': '• Legume dish (lentils/dried beans)\n• Beet or spinach salad\n• Whole grain bread (1 slice)',
+      'tr':
+          '• Baklagil yemeği (mercimek/kuru fasulye)\n• Pancar veya ıspanak salatası\n• Tam tahıllı ekmek (1 dilim)',
+      'en':
+          '• Legume dish (lentils/dried beans)\n• Beet or spinach salad\n• Whole grain bread (1 slice)',
     },
     // Saturday menus
     'breakfast_menu_saturday': {
-      'tr': '• Pekmez yulaf (1 yemek kaşığı)\n• Haşlanmış yumurta\n• Taze portakal veya kivi\n• Bir avuç ceviz',
-      'en': '• Molasses oat (1 tablespoon)\n• Boiled egg\n• Fresh orange or kiwi\n• A handful of walnuts',
+      'tr':
+          '• Pekmez yulaf (1 yemek kaşığı)\n• Haşlanmış yumurta\n• Taze portakal veya kivi\n• Bir avuç ceviz',
+      'en':
+          '• Molasses oat (1 tablespoon)\n• Boiled egg\n• Fresh orange or kiwi\n• A handful of walnuts',
     },
     'lunch_menu_saturday': {
-      'tr': '• Ispanak yoğurt kırmızı et veya tavuk ciğeri (haftada 2x)\n• Yeşil salata + limon\n• Kinoa veya bulgur',
-      'en': '• Spinach yogurt with red meat or chicken liver (2x per week)\n• Green salad + lemon\n• Quinoa or bulgur',
+      'tr':
+          '• Ispanak yoğurt kırmızı et veya tavuk ciğeri (haftada 2x)\n• Yeşil salata + limon\n• Kinoa veya bulgur',
+      'en':
+          '• Spinach yogurt with red meat or chicken liver (2x per week)\n• Green salad + lemon\n• Quinoa or bulgur',
     },
     'snack_menu_saturday': {
-      'tr': '• Kuru kayısı + kabak çekirdeği\n• Pekmez süt (küçük bardak) haftada 2-3x',
-      'en': '• Dried apricots + pumpkin seeds\n• Molasses milk (small glass) 2-3x per week',
+      'tr':
+          '• Kuru kayısı + kabak çekirdeği\n• Pekmez süt (küçük bardak) haftada 2-3x',
+      'en':
+          '• Dried apricots + pumpkin seeds\n• Molasses milk (small glass) 2-3x per week',
     },
     'dinner_menu_saturday': {
-      'tr': '• Baklagil yemeği (mercimek/kuru fasulye)\n• Pancar veya ıspanak salatası\n• Tam tahıllı ekmek (1 dilim)',
-      'en': '• Legume dish (lentils/dried beans)\n• Beet or spinach salad\n• Whole grain bread (1 slice)',
+      'tr':
+          '• Baklagil yemeği (mercimek/kuru fasulye)\n• Pancar veya ıspanak salatası\n• Tam tahıllı ekmek (1 dilim)',
+      'en':
+          '• Legume dish (lentils/dried beans)\n• Beet or spinach salad\n• Whole grain bread (1 slice)',
     },
     // Default fallback menus
     'default_breakfast_menu': {
-      'tr': '• Pekmez yulaf\n• Haşlanmış yumurta\n• Taze meyve\n• Bir avuç kuruyemiş',
+      'tr':
+          '• Pekmez yulaf\n• Haşlanmış yumurta\n• Taze meyve\n• Bir avuç kuruyemiş',
       'en': '• Molasses oat\n• Boiled egg\n• Fresh fruit\n• A handful of nuts',
-      'es': '• Avena con melaza\n• Huevo hervido\n• Fruta fresca\n• Un puñado de frutos secos',
-      'fr': '• Avoine à la mélasse\n• Œuf bouilli\n• Fruit frais\n• Une poignée de noix',
-      'de': '• Melasse Hafer\n• Gekochtes Ei\n• Frisches Obst\n• Eine Handvoll Nüsse',
-      'ar': '• الشوفان بالدبس\n• بيضة مسلوقة\n• فاكهة طازجة\n• حفنة من المكسرات',
+      'es':
+          '• Avena con melaza\n• Huevo hervido\n• Fruta fresca\n• Un puñado de frutos secos',
+      'fr':
+          '• Avoine à la mélasse\n• Œuf bouilli\n• Fruit frais\n• Une poignée de noix',
+      'de':
+          '• Melasse Hafer\n• Gekochtes Ei\n• Frisches Obst\n• Eine Handvoll Nüsse',
+      'ar':
+          '• الشوفان بالدبس\n• بيضة مسلوقة\n• فاكهة طازجة\n• حفنة من المكسرات',
     },
     'default_lunch_menu': {
-      'tr': '• Demir açısından zengin et/tavuk\n• Yeşil salata\n• Tam tahıllı pirinç/bulgur',
-      'en': '• Iron-rich meat/chicken\n• Green salad\n• Whole grain rice/bulgur',
-      'es': '• Carne/pollo rico en hierro\n• Ensalada verde\n• Arroz/bulgur integral',
-      'fr': '• Viande/poulet riche en fer\n• Salade verte\n• Riz/boulgour complet',
-      'de': '• Eisenreiches Fleisch/Hähnchen\n• Grüner Salat\n• Vollkorn Reis/Bulgur',
+      'tr':
+          '• Demir açısından zengin et/tavuk\n• Yeşil salata\n• Tam tahıllı pirinç/bulgur',
+      'en':
+          '• Iron-rich meat/chicken\n• Green salad\n• Whole grain rice/bulgur',
+      'es':
+          '• Carne/pollo rico en hierro\n• Ensalada verde\n• Arroz/bulgur integral',
+      'fr':
+          '• Viande/poulet riche en fer\n• Salade verte\n• Riz/boulgour complet',
+      'de':
+          '• Eisenreiches Fleisch/Hähnchen\n• Grüner Salat\n• Vollkorn Reis/Bulgur',
       'ar': '• لحم/دجاج غني بالحديد\n• سلطة خضراء\n• أرز/برغل كامل الحبة',
     },
     'default_snack_menu': {
-      'tr': '• Kuru meyve ve kuruyemiş karışımı\n• C vitamini açısından zengin meyve',
+      'tr':
+          '• Kuru meyve ve kuruyemiş karışımı\n• C vitamini açısından zengin meyve',
       'en': '• Dried fruit and nut mix\n• Vitamin C rich fruit',
       'es': '• Mezcla de frutos secos y fruta seca\n• Fruta rica en vitamina C',
       'fr': '• Mélange de fruits secs et noix\n• Fruit riche en vitamine C',
@@ -8818,11 +10973,16 @@ class LocalizationService extends ChangeNotifier {
       'ar': '• خليط الفواكه المجففة والمكسرات\n• فاكهة غنية بفيتامين ج',
     },
     'default_dinner_menu': {
-      'tr': '• Baklagil yemeği\n• Demir emilimini artıran salata\n• Tam tahıllı ekmek',
-      'en': '• Legume dish\n• Iron absorption enhancing salad\n• Whole grain bread',
-      'es': '• Plato de legumbres\n• Ensalada que mejora la absorción de hierro\n• Pan integral',
-      'fr': '• Plat de légumineuses\n• Salade améliorant l\'absorption du fer\n• Pain complet',
-      'de': '• Hülsenfrucht Gericht\n• Eisenaufnahme fördernder Salat\n• Vollkornbrot',
+      'tr':
+          '• Baklagil yemeği\n• Demir emilimini artıran salata\n• Tam tahıllı ekmek',
+      'en':
+          '• Legume dish\n• Iron absorption enhancing salad\n• Whole grain bread',
+      'es':
+          '• Plato de legumbres\n• Ensalada que mejora la absorción de hierro\n• Pan integral',
+      'fr':
+          '• Plat de légumineuses\n• Salade améliorant l\'absorption du fer\n• Pain complet',
+      'de':
+          '• Hülsenfrucht Gericht\n• Eisenaufnahme fördernder Salat\n• Vollkornbrot',
       'ar': '• طبق البقوليات\n• سلطة تعزز امتصاص الحديد\n• خبز الحبة الكاملة',
     },
     'meal_breakfast': {
@@ -8912,12 +11072,15 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Hemoglobin Support Diet',
     },
     'diet_low_hemoglobin_desc': {
-      'tr': 'Hemoglobin değerlerini desteklemek için demir ve B12 açısından zengin beslenme.',
+      'tr':
+          'Hemoglobin değerlerini desteklemek için demir ve B12 açısından zengin beslenme.',
       'en': 'Rich in iron and B12 to support hemoglobin levels.',
     },
     'diet_low_hemoglobin_include': {
-      'tr': '• Kırmızı et, karaciğer\n• Ispanak, pazı, brokoli\n• Mercimek, nohut\n• C vitamini ile birlikte tüketim',
-      'en': '• Red meat, liver\n• Spinach, chard, broccoli\n• Lentils, chickpeas\n• Pair with vitamin C',
+      'tr':
+          '• Kırmızı et, karaciğer\n• Ispanak, pazı, brokoli\n• Mercimek, nohut\n• C vitamini ile birlikte tüketim',
+      'en':
+          '• Red meat, liver\n• Spinach, chard, broccoli\n• Lentils, chickpeas\n• Pair with vitamin C',
     },
     'diet_low_hemoglobin_limit': {
       'tr': '• Aşırı çay/kahve (demir emilimini azaltır)\n• Aşırı süt ürünleri',
@@ -8928,8 +11091,10 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Macros: Protein 25% • Fat 30% • Carbs 45%',
     },
     'diet_low_hemoglobin_menu': {
-      'tr': 'Örnek Menü:\nKahvaltı: Yulaf + kuru üzüm + ceviz\nÖğle: Izgara kırmızı et + roka\nAkşam: Mercimek çorbası + yoğurt',
-      'en': 'Sample Menu:\nBreakfast: Oats + raisins + walnuts\nLunch: Grilled red meat + arugula\nDinner: Lentil soup + yogurt',
+      'tr':
+          'Örnek Menü:\nKahvaltı: Yulaf + kuru üzüm + ceviz\nÖğle: Izgara kırmızı et + roka\nAkşam: Mercimek çorbası + yoğurt',
+      'en':
+          'Sample Menu:\nBreakfast: Oats + raisins + walnuts\nLunch: Grilled red meat + arugula\nDinner: Lentil soup + yogurt',
     },
     'diet_low_iron_title': {
       'tr': 'Demir Takviye Diyeti',
@@ -8940,8 +11105,10 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Combinations that enhance iron absorption to address deficiency.',
     },
     'diet_low_iron_include': {
-      'tr': '• Yağsız kırmızı et\n• Pekmez, kuru üzüm\n• Tahin, kuruyemiş\n• Portakal, kivi (C vitamini)',
-      'en': '• Lean red meat\n• Molasses, raisins\n• Tahini, nuts\n• Oranges, kiwi (vitamin C)',
+      'tr':
+          '• Yağsız kırmızı et\n• Pekmez, kuru üzüm\n• Tahin, kuruyemiş\n• Portakal, kivi (C vitamini)',
+      'en':
+          '• Lean red meat\n• Molasses, raisins\n• Tahini, nuts\n• Oranges, kiwi (vitamin C)',
     },
     'diet_low_iron_limit': {
       'tr': '• Yemekle birlikte çay/kahve\n• Aşırı lif takviyeleri',
@@ -8952,8 +11119,10 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Macros: Protein 25% • Fat 30% • Carbs 45%',
     },
     'diet_low_iron_menu': {
-      'tr': 'Örnek Menü:\nKahvaltı: Pekmezli tahin + tam buğday ekmeği\nÖğle: Izgara et + C vitamini kaynağı salata\nAkşam: Nohut yemeği + limon',
-      'en': 'Sample Menu:\nBreakfast: Molasses with tahini + whole wheat bread\nLunch: Grilled meat + vitamin C rich salad\nDinner: Chickpea stew + lemon',
+      'tr':
+          'Örnek Menü:\nKahvaltı: Pekmezli tahin + tam buğday ekmeği\nÖğle: Izgara et + C vitamini kaynağı salata\nAkşam: Nohut yemeği + limon',
+      'en':
+          'Sample Menu:\nBreakfast: Molasses with tahini + whole wheat bread\nLunch: Grilled meat + vitamin C rich salad\nDinner: Chickpea stew + lemon',
     },
     'diet_high_wbc_title': {
       'tr': 'Anti-Enflamatuar Diyet',
@@ -8964,8 +11133,10 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Antioxidant and omega-3 focused menus for possible inflammation.',
     },
     'diet_high_wbc_include': {
-      'tr': '• Zeytinyağı, avokado\n• Somon, uskumru (omega-3)\n• Yaban mersini, nar\n• Yeşil yapraklı sebzeler',
-      'en': '• Olive oil, avocado\n• Salmon, mackerel (omega-3)\n• Blueberries, pomegranate\n• Leafy greens',
+      'tr':
+          '• Zeytinyağı, avokado\n• Somon, uskumru (omega-3)\n• Yaban mersini, nar\n• Yeşil yapraklı sebzeler',
+      'en':
+          '• Olive oil, avocado\n• Salmon, mackerel (omega-3)\n• Blueberries, pomegranate\n• Leafy greens',
     },
     'diet_high_wbc_limit': {
       'tr': '• Rafine şeker\n• Aşırı işlenmiş gıdalar',
@@ -8976,8 +11147,10 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Macros: Protein 20% • Fat 35% • Carbs 45%',
     },
     'diet_high_wbc_menu': {
-      'tr': 'Örnek Menü:\nKahvaltı: Avokadolu tam tahıllı tost\nÖğle: Izgara somon + roka salata\nAkşam: Zeytinyağlı sebze yemeği + yoğurt',
-      'en': 'Sample Menu:\nBreakfast: Wholegrain toast with avocado\nLunch: Grilled salmon + arugula salad\nDinner: Veggies in olive oil + yogurt',
+      'tr':
+          'Örnek Menü:\nKahvaltı: Avokadolu tam tahıllı tost\nÖğle: Izgara somon + roka salata\nAkşam: Zeytinyağlı sebze yemeği + yoğurt',
+      'en':
+          'Sample Menu:\nBreakfast: Wholegrain toast with avocado\nLunch: Grilled salmon + arugula salad\nDinner: Veggies in olive oil + yogurt',
     },
     'diet_balanced_title': {
       'tr': 'Dengeli Beslenme Programı',
@@ -8988,8 +11161,10 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Balanced, sustainable meals that support overall health.',
     },
     'diet_balanced_include': {
-      'tr': '• Tam tahıllar\n• Yağsız proteinler\n• Renkli sebze ve meyveler\n• Sağlıklı yağlar (zeytinyağı, fındık)',
-      'en': '• Whole grains\n• Lean proteins\n• Colorful fruits and vegetables\n• Healthy fats (olive oil, nuts)',
+      'tr':
+          '• Tam tahıllar\n• Yağsız proteinler\n• Renkli sebze ve meyveler\n• Sağlıklı yağlar (zeytinyağı, fındık)',
+      'en':
+          '• Whole grains\n• Lean proteins\n• Colorful fruits and vegetables\n• Healthy fats (olive oil, nuts)',
     },
     'diet_balanced_limit': {
       'tr': '• Şekerli içecekler\n• Aşırı tuz ve işlenmiş gıdalar',
@@ -9000,8 +11175,10 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Macros: Protein 20% • Fat 30% • Carbs 50%',
     },
     'diet_balanced_menu': {
-      'tr': 'Örnek Menü:\nKahvaltı: Peynirli omlet + domates\nÖğle: Tavuklu bulgur pilavı + salata\nAkşam: Izgara sebzeler + yoğurt',
-      'en': 'Sample Menu:\nBreakfast: Cheese omelet + tomatoes\nLunch: Chicken with bulgur + salad\nDinner: Grilled veggies + yogurt',
+      'tr':
+          'Örnek Menü:\nKahvaltı: Peynirli omlet + domates\nÖğle: Tavuklu bulgur pilavı + salata\nAkşam: Izgara sebzeler + yoğurt',
+      'en':
+          'Sample Menu:\nBreakfast: Cheese omelet + tomatoes\nLunch: Chicken with bulgur + salad\nDinner: Grilled veggies + yogurt',
     },
     'family_health_panel': {
       'tr': 'Aile Sağlık Paneli',
@@ -9021,11 +11198,13 @@ class LocalizationService extends ChangeNotifier {
       'ar': 'لم تتم إضافة أي أفراد للعائلة بعد',
     },
     'family_empty_subtitle': {
-      'tr': 'Aile üyelerinizi ekleyerek sağlık durumlarını\ntakip edebilirsiniz',
+      'tr':
+          'Aile üyelerinizi ekleyerek sağlık durumlarını\ntakip edebilirsiniz',
       'en': 'Add your family members to track their health status',
       'es': 'Agrega a tus familiares para seguir su estado de salud',
       'fr': 'Ajoutez vos membres de famille pour suivre leur santé',
-      'de': 'Fügen Sie Familienmitglieder hinzu, um ihre Gesundheit zu verfolgen',
+      'de':
+          'Fügen Sie Familienmitglieder hinzu, um ihre Gesundheit zu verfolgen',
       'ar': 'أضف أفراد عائلتك لتتبع حالتهم الصحية',
     },
     'family_add_first_member': {
@@ -9178,7 +11357,8 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Sign in to view and manage your family members.',
       'es': 'Inicia sesión para ver y gestionar a tus familiares.',
       'fr': 'Connectez-vous pour voir et gérer vos membres de famille.',
-      'de': 'Melden Sie sich an, um Familienmitglieder zu sehen und zu verwalten.',
+      'de':
+          'Melden Sie sich an, um Familienmitglieder zu sehen und zu verwalten.',
       'ar': 'سجّل الدخول لعرض أفراد عائلتك وإدارتهم.',
     },
     'go_to_login': {
@@ -9246,12 +11426,17 @@ class LocalizationService extends ChangeNotifier {
       'ar': 'حذف',
     },
     'family_hemogram_info': {
-      'tr': 'Hemogram testleri henüz eklenmemiş. Test sonuçları eklemek için üyeye tıklayın.',
+      'tr':
+          'Hemogram testleri henüz eklenmemiş. Test sonuçları eklemek için üyeye tıklayın.',
       'en': 'No hemogram tests added yet. Tap the member to add test results.',
-      'es': 'Aún no se han añadido pruebas de hemograma. Toca el miembro para añadir resultados.',
-      'fr': 'Aucun test d\'hémogramme ajouté. Touchez le membre pour ajouter des résultats.',
-      'de': 'Noch keine Hämogrammtests hinzugefügt. Tippen Sie auf das Mitglied, um Ergebnisse hinzuzufügen.',
-      'ar': 'لم تتم إضافة فحوصات الهيموجرام بعد. اضغط على العضو لإضافة النتائج.',
+      'es':
+          'Aún no se han añadido pruebas de hemograma. Toca el miembro para añadir resultados.',
+      'fr':
+          'Aucun test d\'hémogramme ajouté. Touchez le membre pour ajouter des résultats.',
+      'de':
+          'Noch keine Hämogrammtests hinzugefügt. Tippen Sie auf das Mitglied, um Ergebnisse hinzuzufügen.',
+      'ar':
+          'لم تتم إضافة فحوصات الهيموجرام بعد. اضغط على العضو لإضافة النتائج.',
     },
     'family_member_updated': {
       'tr': 'Aile üyesi güncellendi',
@@ -9546,7 +11731,8 @@ class LocalizationService extends ChangeNotifier {
       'es': '✅ ¡Plan de dieta compartida de 2 semanas con IA creado!',
       'fr': '✅ Plan de régime partagé de 2 semaines avec IA créé !',
       'de': '✅ KI-gestützter 2-Wochen-Gemeinsamer Diätplan erstellt!',
-      'ar': '✅ تم إنشاء خطة نظام غذائي مشتركة لمدة أسبوعين مدعومة بالذكاء الاصطناعي!',
+      'ar':
+          '✅ تم إنشاء خطة نظام غذائي مشتركة لمدة أسبوعين مدعومة بالذكاء الاصطناعي!',
       'it': '✅ Piano dieta condivisa di 2 settimane con IA creato!',
       'pt': '✅ Plano de dieta compartilhada de 2 semanas com IA criado!',
       'ru': '✅ Создан план совместной диеты на 2 недели с ИИ!',
@@ -9719,12 +11905,18 @@ class LocalizationService extends ChangeNotifier {
       'ar': 'آخر',
     },
     'family_invite_info': {
-      'tr': 'Bu kişi HemoAI uygulamasını kullanıyor olmalıdır. Davet gönderilecek ve onaylaması beklenecek.',
-      'en': 'This person must be using the HemoAI app. An invitation will be sent and must be accepted.',
-      'es': 'Esta persona debe usar la aplicación HemoAI. Se enviará una invitación y debe aceptarla.',
-      'fr': 'Cette personne doit utiliser l\'application HemoAI. Une invitation sera envoyée et devra être acceptée.',
-      'de': 'Diese Person muss die HemoAI-App verwenden. Eine Einladung wird gesendet und muss akzeptiert werden.',
-      'ar': 'يجب أن يستخدم هذا الشخص تطبيق HemoAI. سيتم إرسال دعوة ويجب قبولها.',
+      'tr':
+          'Bu kişi HemoAI uygulamasını kullanıyor olmalıdır. Davet gönderilecek ve onaylaması beklenecek.',
+      'en':
+          'This person must be using the HemoAI app. An invitation will be sent and must be accepted.',
+      'es':
+          'Esta persona debe usar la aplicación HemoAI. Se enviará una invitación y debe aceptarla.',
+      'fr':
+          'Cette personne doit utiliser l\'application HemoAI. Une invitation sera envoyée et devra être acceptée.',
+      'de':
+          'Diese Person muss die HemoAI-App verwenden. Eine Einladung wird gesendet und muss akzeptiert werden.',
+      'ar':
+          'يجب أن يستخدم هذا الشخص تطبيق HemoAI. سيتم إرسال دعوة ويجب قبولها.',
     },
     'family_phone_label': {
       'tr': 'Telefon Numarası',
@@ -9944,14 +12136,20 @@ class LocalizationService extends ChangeNotifier {
       'ar': 'نظام التذكير الذكي',
     },
     'app_disclaimer': {
-      'tr': 'HemoAI, hemogram sonuçlarınızı analiz ederek size kişiselleştirilmiş sağlık önerileri sunar. Bu uygulama tıbbi tanı koymaz, sadece bilgi amaçlıdır.',
-      'en': 'HemoAI analyzes your hemogram results and provides personalized health recommendations. This application does not make medical diagnoses and is for informational purposes only.',
-      'es': 'HemoAI analiza los resultados de su hemograma y proporciona recomendaciones de salud personalizadas. Esta aplicación no realiza diagnósticos médicos y es solo para fines informativos.',
-      'fr': 'HemoAI analyse les résultats de votre hémogramme et fournit des recommandations de santé personnalisées. Cette application ne fait pas de diagnostic médical et est à des fins informatives seulement.',
-      'de': 'HemoAI analysiert Ihre Hämogramm-Ergebnisse und bietet personalisierte Gesundheitsempfehlungen. Diese Anwendung stellt keine medizinischen Diagnosen und dient nur zu Informationszwecken.',
-      'ar': 'يحلل HemoAI نتائج الهيموجرام الخاصة بك ويقدم توصيات صحية مخصصة. هذا التطبيق لا يقوم بالتشخيص الطبي وهو لأغراض إعلامية فقط.',
+      'tr':
+          'HemoAI, hemogram sonuçlarınızı analiz ederek size kişiselleştirilmiş sağlık önerileri sunar. Bu uygulama tıbbi tanı koymaz, sadece bilgi amaçlıdır.',
+      'en':
+          'HemoAI analyzes your hemogram results and provides personalized health recommendations. This application does not make medical diagnoses and is for informational purposes only.',
+      'es':
+          'HemoAI analiza los resultados de su hemograma y proporciona recomendaciones de salud personalizadas. Esta aplicación no realiza diagnósticos médicos y es solo para fines informativos.',
+      'fr':
+          'HemoAI analyse les résultats de votre hémogramme et fournit des recommandations de santé personnalisées. Cette application ne fait pas de diagnostic médical et est à des fins informatives seulement.',
+      'de':
+          'HemoAI analysiert Ihre Hämogramm-Ergebnisse und bietet personalisierte Gesundheitsempfehlungen. Diese Anwendung stellt keine medizinischen Diagnosen und dient nur zu Informationszwecken.',
+      'ar':
+          'يحلل HemoAI نتائج الهيموجرام الخاصة بك ويقدم توصيات صحية مخصصة. هذا التطبيق لا يقوم بالتشخيص الطبي وهو لأغراض إعلامية فقط.',
     },
-    
+
     'medication_reminder': {
       'tr': 'İlaç Hatırlatıcısı',
       'en': 'Medication Reminder',
@@ -10142,20 +12340,27 @@ class LocalizationService extends ChangeNotifier {
       'tr': 'Normalin dışında bulunan değerler:',
     },
     'all_values_normal_message': {
-      'en': 'All your hemogram values are within normal ranges. Keep maintaining your health with regular check-ups.',
-      'tr': 'Tüm hemogram değerleriniz normal aralıkta bulunuyor. Sağlığınızı korumak için düzenli kontroller yaptırmaya devam edin.',
+      'en':
+          'All your hemogram values are within normal ranges. Keep maintaining your health with regular check-ups.',
+      'tr':
+          'Tüm hemogram değerleriniz normal aralıkta bulunuyor. Sağlığınızı korumak için düzenli kontroller yaptırmaya devam edin.',
     },
     'overall_assessment_normal': {
-      'en': 'Your hemogram values are generally within normal ranges. Keep up the good habits!',
-      'tr': 'Hemogram değerleriniz genel olarak normal aralıkta. Sağlığınızı korumaya devam edin!',
+      'en':
+          'Your hemogram values are generally within normal ranges. Keep up the good habits!',
+      'tr':
+          'Hemogram değerleriniz genel olarak normal aralıkta. Sağlığınızı korumaya devam edin!',
     },
     'overall_assessment_some_abnormal': {
       'en': 'Some values are noteworthy. Consider consulting your doctor.',
-      'tr': 'Bazı değerleriniz dikkat çekici. Doktorunuzla görüşmenizi öneririz.',
+      'tr':
+          'Bazı değerleriniz dikkat çekici. Doktorunuzla görüşmenizi öneririz.',
     },
     'overall_assessment_many_abnormal': {
-      'en': 'Several values are outside the normal range. A prompt medical consultation is recommended.',
-      'tr': 'Birkaç değeriniz normal aralığın dışında. Acil doktor kontrolü önerilir.',
+      'en':
+          'Several values are outside the normal range. A prompt medical consultation is recommended.',
+      'tr':
+          'Birkaç değeriniz normal aralığın dışında. Acil doktor kontrolü önerilir.',
     },
     // Trend analysis (last 6 months)
     'trend_last_6_months': {
@@ -10179,28 +12384,38 @@ class LocalizationService extends ChangeNotifier {
       'tr': '{param}: {direction} ({percent}%)',
     },
     'hemoglobin_low_recommendation': {
-      'en': 'Low hemoglobin: Consume iron-rich foods (red meat, spinach, lentils)',
-      'tr': 'Hemoglobin düşük: Demir açısından zengin besinler tüketin (kırmızı et, ıspanak, mercimek)',
+      'en':
+          'Low hemoglobin: Consume iron-rich foods (red meat, spinach, lentils)',
+      'tr':
+          'Hemoglobin düşük: Demir açısından zengin besinler tüketin (kırmızı et, ıspanak, mercimek)',
     },
     'iron_low_recommendation': {
       'en': 'Iron deficiency: Increase iron intake with vitamin C',
       'tr': 'Demir eksikliği: C vitamini ile birlikte demir alımını artırın',
     },
     'wbc_high_recommendation': {
-      'en': 'High white blood cells: Watch for infection signs, drink plenty of fluids',
-      'tr': 'Lökosit yüksek: Enfeksiyon belirtilerine dikkat edin, bol sıvı tüketin',
+      'en':
+          'High white blood cells: Watch for infection signs, drink plenty of fluids',
+      'tr':
+          'Lökosit yüksek: Enfeksiyon belirtilerine dikkat edin, bol sıvı tüketin',
     },
     'glucose_high_recommendation': {
-      'en': 'High fasting glucose: Limit sugars/refined carbs and consult your doctor',
-      'tr': 'Açlık glikozu yüksek: Şeker/rafine karbonhidratı kısıtlayın ve doktorunuza danışın',
+      'en':
+          'High fasting glucose: Limit sugars/refined carbs and consult your doctor',
+      'tr':
+          'Açlık glikozu yüksek: Şeker/rafine karbonhidratı kısıtlayın ve doktorunuza danışın',
     },
     'vitamin_d3_low_recommendation': {
-      'en': 'Low Vitamin D: Consider sensible sunlight exposure and supplementation',
-      'tr': 'Vitamin D düşük: Güneşten faydalanın ve takviye kullanımını değerlendirin',
+      'en':
+          'Low Vitamin D: Consider sensible sunlight exposure and supplementation',
+      'tr':
+          'Vitamin D düşük: Güneşten faydalanın ve takviye kullanımını değerlendirin',
     },
     'tsh_abnormal_recommendation': {
-      'en': 'Abnormal TSH: Follow up with thyroid panel (Free T3/T4) and your physician',
-      'tr': 'TSH anormal: Tiroid paneli (Serbest T3/T4) ve doktor takibi önerilir',
+      'en':
+          'Abnormal TSH: Follow up with thyroid panel (Free T3/T4) and your physician',
+      'tr':
+          'TSH anormal: Tiroid paneli (Serbest T3/T4) ve doktor takibi önerilir',
     },
     'suggestion_increase_water_intake': {
       'en': 'Increase daily water intake and monitor salt consumption',
@@ -10211,8 +12426,10 @@ class LocalizationService extends ChangeNotifier {
       'tr': 'Doktorunuza danışarak demir takviyesini değerlendirin',
     },
     'medication_check_iron_dosage': {
-      'en': 'Iron is high while on iron supplement: discuss dosage with your doctor',
-      'tr': 'Demir yüksek ve demir takviyesi kullanılıyor: dozajı doktorunuzla değerlendirin',
+      'en':
+          'Iron is high while on iron supplement: discuss dosage with your doctor',
+      'tr':
+          'Demir yüksek ve demir takviyesi kullanılıyor: dozajı doktorunuzla değerlendirin',
     },
     'recommendation_default_1': {
       'en': 'Exercise regularly and maintain a healthy diet',
@@ -10570,7 +12787,8 @@ class LocalizationService extends ChangeNotifier {
       'tr': 'Doğal bitkisel ürünlerle kan değerlerinizi destekleyin',
       'en': 'Support your blood values with natural herbal products',
       'es': 'Apoye sus valores sanguíneos con productos herbales naturales',
-      'fr': 'Soutenez vos valeurs sanguines avec des produits à base de plantes naturelles',
+      'fr':
+          'Soutenez vos valeurs sanguines avec des produits à base de plantes naturelles',
       'de': 'Unterstützen Sie Ihre Blutwerte mit natürlichen Kräuterprodukten',
       'ar': 'ادعم قيم دمك بالمنتجات العشبية الطبيعية',
     },
@@ -10781,295 +12999,1052 @@ class LocalizationService extends ChangeNotifier {
     },
     // Alternative Medicine - Herbs (names, usage, benefits, preparation, warning)
     'herb_stinging_nettle_name': {'tr': 'Isırgan Otu', 'en': 'Stinging Nettle'},
-    'herb_stinging_nettle_usage': {'tr': 'Günde 2 kez çay olarak', 'en': 'Tea, twice daily'},
-    'herb_stinging_nettle_benefits': {'tr': 'Doğal demir kaynağı, kan yapımını destekler', 'en': 'Natural iron source; supports blood formation'},
-    'herb_stinging_nettle_preparation': {'tr': '1 çay kaşığı kurutulmuş yaprak, 1 bardak sıcak su ile demleyin', 'en': 'Infuse 1 tsp dried leaves in 1 cup hot water'},
-    'herb_stinging_nettle_warning': {'tr': 'Hamilelikte doktor kontrolü gerekli', 'en': 'Consult doctor during pregnancy'},
+    'herb_stinging_nettle_usage': {
+      'tr': 'Günde 2 kez çay olarak',
+      'en': 'Tea, twice daily'
+    },
+    'herb_stinging_nettle_benefits': {
+      'tr': 'Doğal demir kaynağı, kan yapımını destekler',
+      'en': 'Natural iron source; supports blood formation'
+    },
+    'herb_stinging_nettle_preparation': {
+      'tr': '1 çay kaşığı kurutulmuş yaprak, 1 bardak sıcak su ile demleyin',
+      'en': 'Infuse 1 tsp dried leaves in 1 cup hot water'
+    },
+    'herb_stinging_nettle_warning': {
+      'tr': 'Hamilelikte doktor kontrolü gerekli',
+      'en': 'Consult doctor during pregnancy'
+    },
 
-    'herb_molasses_name': {'tr': 'Pekmez (Üzüm/Dut)', 'en': 'Molasses (Grape/Mulberry)'},
+    'herb_molasses_name': {
+      'tr': 'Pekmez (Üzüm/Dut)',
+      'en': 'Molasses (Grape/Mulberry)'
+    },
     'herb_molasses_usage': {'tr': 'Günde 1 yemek kaşığı', 'en': '1 tbsp daily'},
-    'herb_molasses_benefits': {'tr': 'Yüksek demir içeriği, kolay emilim', 'en': 'High iron content; easy absorption'},
-    'herb_molasses_preparation': {'tr': 'Kahvaltıda veya ara öğünde tüketin', 'en': 'Consume at breakfast or as a snack'},
-    'herb_molasses_warning': {'tr': 'Şeker hastalığında dikkatli kullanın', 'en': 'Use with caution in diabetes'},
+    'herb_molasses_benefits': {
+      'tr': 'Yüksek demir içeriği, kolay emilim',
+      'en': 'High iron content; easy absorption'
+    },
+    'herb_molasses_preparation': {
+      'tr': 'Kahvaltıda veya ara öğünde tüketin',
+      'en': 'Consume at breakfast or as a snack'
+    },
+    'herb_molasses_warning': {
+      'tr': 'Şeker hastalığında dikkatli kullanın',
+      'en': 'Use with caution in diabetes'
+    },
 
     'herb_thyme_tea_name': {'tr': 'Kekik Çayı', 'en': 'Thyme Tea'},
     'herb_thyme_tea_usage': {'tr': 'Günde 2-3 fincan', 'en': '2–3 cups daily'},
-    'herb_thyme_tea_benefits': {'tr': 'Demir emilimini artırır, bağışıklığı güçlendirir', 'en': 'Improves iron absorption; boosts immunity'},
-    'herb_thyme_tea_preparation': {'tr': '1 tatlı kaşığı kekik, 5 dakika demleyin', 'en': 'Steep 1 tsp thyme for 5 minutes'},
-    'herb_thyme_tea_warning': {'tr': 'Tansiyon hastaları dikkat etsin', 'en': 'Use caution with hypertension'},
+    'herb_thyme_tea_benefits': {
+      'tr': 'Demir emilimini artırır, bağışıklığı güçlendirir',
+      'en': 'Improves iron absorption; boosts immunity'
+    },
+    'herb_thyme_tea_preparation': {
+      'tr': '1 tatlı kaşığı kekik, 5 dakika demleyin',
+      'en': 'Steep 1 tsp thyme for 5 minutes'
+    },
+    'herb_thyme_tea_warning': {
+      'tr': 'Tansiyon hastaları dikkat etsin',
+      'en': 'Use caution with hypertension'
+    },
 
     'herb_carob_name': {'tr': 'Keçiboynuzu', 'en': 'Carob'},
     'herb_carob_usage': {'tr': 'Günde 1 bardak çay', 'en': '1 cup daily (tea)'},
-    'herb_carob_benefits': {'tr': 'B12 ve folik asit içerir, kan yapımını destekler', 'en': 'Contains B12 and folate; supports hematopoiesis'},
-    'herb_carob_preparation': {'tr': 'Tozunu süt veya suyla karıştırın', 'en': 'Mix the powder with milk or water'},
-    'herb_carob_warning': {'tr': 'Alerji durumunda kullanmayın', 'en': 'Avoid if allergic'},
+    'herb_carob_benefits': {
+      'tr': 'B12 ve folik asit içerir, kan yapımını destekler',
+      'en': 'Contains B12 and folate; supports hematopoiesis'
+    },
+    'herb_carob_preparation': {
+      'tr': 'Tozunu süt veya suyla karıştırın',
+      'en': 'Mix the powder with milk or water'
+    },
+    'herb_carob_warning': {
+      'tr': 'Alerji durumunda kullanmayın',
+      'en': 'Avoid if allergic'
+    },
 
-    'herb_pomegranate_juice_name': {'tr': 'Nar Suyu', 'en': 'Pomegranate Juice'},
-    'herb_pomegranate_juice_usage': {'tr': 'Günde 1 bardak taze sıkılmış', 'en': '1 glass fresh daily'},
-    'herb_pomegranate_juice_benefits': {'tr': 'Antioksidan, hemoglobin artırıcı', 'en': 'Antioxidant; may increase hemoglobin'},
-    'herb_pomegranate_juice_preparation': {'tr': 'Taze sıkılmış tercih edin, aç karnına için', 'en': 'Prefer fresh; drink on an empty stomach'},
-    'herb_pomegranate_juice_warning': {'tr': 'İlaç etkileşimi olabilir', 'en': 'Possible drug interactions'},
+    'herb_pomegranate_juice_name': {
+      'tr': 'Nar Suyu',
+      'en': 'Pomegranate Juice'
+    },
+    'herb_pomegranate_juice_usage': {
+      'tr': 'Günde 1 bardak taze sıkılmış',
+      'en': '1 glass fresh daily'
+    },
+    'herb_pomegranate_juice_benefits': {
+      'tr': 'Antioksidan, hemoglobin artırıcı',
+      'en': 'Antioxidant; may increase hemoglobin'
+    },
+    'herb_pomegranate_juice_preparation': {
+      'tr': 'Taze sıkılmış tercih edin, aç karnına için',
+      'en': 'Prefer fresh; drink on an empty stomach'
+    },
+    'herb_pomegranate_juice_warning': {
+      'tr': 'İlaç etkileşimi olabilir',
+      'en': 'Possible drug interactions'
+    },
 
     'herb_beetroot_name': {'tr': 'Kırmızı Pancar', 'en': 'Beetroot'},
-    'herb_beetroot_usage': {'tr': 'Haftada 3-4 kez salata olarak', 'en': 'Salad, 3–4 times weekly'},
-    'herb_beetroot_benefits': {'tr': 'Nitrat içeriği yüksek, kan dolaşımını iyileştirir', 'en': 'High in nitrates; improves circulation'},
-    'herb_beetroot_preparation': {'tr': 'Çiğ rendeleyin veya haşlayın', 'en': 'Grate raw or boil'},
-    'herb_beetroot_warning': {'tr': 'Böbrek taşı riski olanlar dikkat etsin', 'en': 'Use caution if prone to kidney stones'},
+    'herb_beetroot_usage': {
+      'tr': 'Haftada 3-4 kez salata olarak',
+      'en': 'Salad, 3–4 times weekly'
+    },
+    'herb_beetroot_benefits': {
+      'tr': 'Nitrat içeriği yüksek, kan dolaşımını iyileştirir',
+      'en': 'High in nitrates; improves circulation'
+    },
+    'herb_beetroot_preparation': {
+      'tr': 'Çiğ rendeleyin veya haşlayın',
+      'en': 'Grate raw or boil'
+    },
+    'herb_beetroot_warning': {
+      'tr': 'Böbrek taşı riski olanlar dikkat etsin',
+      'en': 'Use caution if prone to kidney stones'
+    },
 
     'herb_propolis_name': {'tr': 'Propolis', 'en': 'Propolis'},
-    'herb_propolis_usage': {'tr': 'Günde 10-15 damla', 'en': '10–15 drops daily'},
-    'herb_propolis_benefits': {'tr': 'Doğal antibiyotik, bağışıklık güçlendirici', 'en': 'Natural antibiotic; immune booster'},
-    'herb_propolis_preparation': {'tr': 'Su veya bal ile karıştırarak alın', 'en': 'Take mixed with water or honey'},
-    'herb_propolis_warning': {'tr': 'Arı ürünlerine alerjisi olanlarda dikkat', 'en': 'Caution if allergic to bee products'},
+    'herb_propolis_usage': {
+      'tr': 'Günde 10-15 damla',
+      'en': '10–15 drops daily'
+    },
+    'herb_propolis_benefits': {
+      'tr': 'Doğal antibiyotik, bağışıklık güçlendirici',
+      'en': 'Natural antibiotic; immune booster'
+    },
+    'herb_propolis_preparation': {
+      'tr': 'Su veya bal ile karıştırarak alın',
+      'en': 'Take mixed with water or honey'
+    },
+    'herb_propolis_warning': {
+      'tr': 'Arı ürünlerine alerjisi olanlarda dikkat',
+      'en': 'Caution if allergic to bee products'
+    },
 
     'herb_echinacea_name': {'tr': 'Ekinezya', 'en': 'Echinacea'},
-    'herb_echinacea_usage': {'tr': 'Günde 2-3 fincan çay', 'en': '2–3 cups tea daily'},
-    'herb_echinacea_benefits': {'tr': 'Viral enfeksiyonlara karşı korur', 'en': 'May protect against viral infections'},
-    'herb_echinacea_preparation': {'tr': 'Kurutulmuş kökü kaynatın', 'en': 'Boil dried root'},
-    'herb_echinacea_warning': {'tr': 'Otoimmün hastalıklarda kullanmayın', 'en': 'Avoid in autoimmune disease'},
+    'herb_echinacea_usage': {
+      'tr': 'Günde 2-3 fincan çay',
+      'en': '2–3 cups tea daily'
+    },
+    'herb_echinacea_benefits': {
+      'tr': 'Viral enfeksiyonlara karşı korur',
+      'en': 'May protect against viral infections'
+    },
+    'herb_echinacea_preparation': {
+      'tr': 'Kurutulmuş kökü kaynatın',
+      'en': 'Boil dried root'
+    },
+    'herb_echinacea_warning': {
+      'tr': 'Otoimmün hastalıklarda kullanmayın',
+      'en': 'Avoid in autoimmune disease'
+    },
 
     'herb_ginger_name': {'tr': 'Zencefil', 'en': 'Ginger'},
-    'herb_ginger_usage': {'tr': 'Günde 2-3 dilim taze', 'en': '2–3 fresh slices daily'},
-    'herb_ginger_benefits': {'tr': 'Anti-enflamatuar, sindirim destekleyici', 'en': 'Anti-inflammatory; aids digestion'},
-    'herb_ginger_preparation': {'tr': 'Çay olarak demleyin veya yemeğe ekleyin', 'en': 'Brew as tea or add to meals'},
-    'herb_ginger_warning': {'tr': 'Kan sulandırıcı kullanıyorsanız dikkat', 'en': 'Use caution with blood thinners'},
+    'herb_ginger_usage': {
+      'tr': 'Günde 2-3 dilim taze',
+      'en': '2–3 fresh slices daily'
+    },
+    'herb_ginger_benefits': {
+      'tr': 'Anti-enflamatuar, sindirim destekleyici',
+      'en': 'Anti-inflammatory; aids digestion'
+    },
+    'herb_ginger_preparation': {
+      'tr': 'Çay olarak demleyin veya yemeğe ekleyin',
+      'en': 'Brew as tea or add to meals'
+    },
+    'herb_ginger_warning': {
+      'tr': 'Kan sulandırıcı kullanıyorsanız dikkat',
+      'en': 'Use caution with blood thinners'
+    },
 
     'herb_papaya_leaf_name': {'tr': 'Papaya Yaprağı', 'en': 'Papaya Leaf'},
-    'herb_papaya_leaf_usage': {'tr': 'Günde 2 kez çay olarak', 'en': 'Tea, twice daily'},
-    'herb_papaya_leaf_benefits': {'tr': 'Trombosit sayısını artırır', 'en': 'May increase platelet count'},
-    'herb_papaya_leaf_preparation': {'tr': 'Taze yaprakları kaynatın, soğutarak için', 'en': 'Boil fresh leaves; drink after cooling'},
-    'herb_papaya_leaf_warning': {'tr': 'Hamilelikte kullanmayın', 'en': 'Avoid during pregnancy'},
+    'herb_papaya_leaf_usage': {
+      'tr': 'Günde 2 kez çay olarak',
+      'en': 'Tea, twice daily'
+    },
+    'herb_papaya_leaf_benefits': {
+      'tr': 'Trombosit sayısını artırır',
+      'en': 'May increase platelet count'
+    },
+    'herb_papaya_leaf_preparation': {
+      'tr': 'Taze yaprakları kaynatın, soğutarak için',
+      'en': 'Boil fresh leaves; drink after cooling'
+    },
+    'herb_papaya_leaf_warning': {
+      'tr': 'Hamilelikte kullanmayın',
+      'en': 'Avoid during pregnancy'
+    },
 
     'herb_ginkgo_biloba_name': {'tr': 'Ginkgo Biloba', 'en': 'Ginkgo Biloba'},
-    'herb_ginkgo_biloba_usage': {'tr': 'Günde 1-2 fincan çay', 'en': '1–2 cups tea daily'},
-    'herb_ginkgo_biloba_benefits': {'tr': 'Kan dolaşımını iyileştirir', 'en': 'Improves blood circulation'},
-    'herb_ginkgo_biloba_preparation': {'tr': 'Kurutulmuş yaprakları demleyin', 'en': 'Brew dried leaves'},
-    'herb_ginkgo_biloba_warning': {'tr': 'Ameliyat öncesi bırakın', 'en': 'Discontinue before surgery'},
+    'herb_ginkgo_biloba_usage': {
+      'tr': 'Günde 1-2 fincan çay',
+      'en': '1–2 cups tea daily'
+    },
+    'herb_ginkgo_biloba_benefits': {
+      'tr': 'Kan dolaşımını iyileştirir',
+      'en': 'Improves blood circulation'
+    },
+    'herb_ginkgo_biloba_preparation': {
+      'tr': 'Kurutulmuş yaprakları demleyin',
+      'en': 'Brew dried leaves'
+    },
+    'herb_ginkgo_biloba_warning': {
+      'tr': 'Ameliyat öncesi bırakın',
+      'en': 'Discontinue before surgery'
+    },
 
-  // Green Tea
-  'herb_green_tea_name': {'tr': 'Yeşil Çay', 'en': 'Green Tea', 'es': 'Té verde', 'fr': 'Thé vert', 'de': 'Grüner Tee', 'ar': 'الشاي الأخضر'},
-  'herb_green_tea_usage': {'tr': 'Günde 2-3 fincan', 'en': '2–3 cups daily', 'es': '2–3 tazas al día', 'fr': '2–3 tasses par jour', 'de': '2–3 Tassen täglich', 'ar': '2–3 أكواب يومياً'},
-  'herb_green_tea_benefits': {'tr': 'Antioksidan; bağışıklığı destekleyebilir', 'en': 'Antioxidant; may support immunity', 'es': 'Antioxidante; puede apoyar la inmunidad', 'fr': 'Antioxydant; peut soutenir l’immunité', 'de': 'Antioxidans; kann das Immunsystem unterstützen', 'ar': 'مضاد للأكسدة؛ قد يدعم المناعة'},
-  'herb_green_tea_preparation': {'tr': '80°C suda 2-3 dk demleyin', 'en': 'Steep 2–3 min at ~80°C', 'es': 'Infusionar 2–3 min a ~80°C', 'fr': 'Infuser 2–3 min à ~80°C', 'de': '2–3 Min bei ~80°C ziehen lassen', 'ar': 'انقع 2–3 دقائق عند ~80°م'},
-  'herb_green_tea_warning': {'tr': 'Kafein hassasiyetinde dikkat', 'en': 'Use caution with caffeine sensitivity', 'es': 'Precaución con sensibilidad a la cafeína', 'fr': 'Prudence en cas de sensibilité à la caféine', 'de': 'Vorsicht bei Koffeinempfindlichkeit', 'ar': 'الحذر مع حساسية الكافيين'},
+    // Green Tea
+    'herb_green_tea_name': {
+      'tr': 'Yeşil Çay',
+      'en': 'Green Tea',
+      'es': 'Té verde',
+      'fr': 'Thé vert',
+      'de': 'Grüner Tee',
+      'ar': 'الشاي الأخضر'
+    },
+    'herb_green_tea_usage': {
+      'tr': 'Günde 2-3 fincan',
+      'en': '2–3 cups daily',
+      'es': '2–3 tazas al día',
+      'fr': '2–3 tasses par jour',
+      'de': '2–3 Tassen täglich',
+      'ar': '2–3 أكواب يومياً'
+    },
+    'herb_green_tea_benefits': {
+      'tr': 'Antioksidan; bağışıklığı destekleyebilir',
+      'en': 'Antioxidant; may support immunity',
+      'es': 'Antioxidante; puede apoyar la inmunidad',
+      'fr': 'Antioxydant; peut soutenir l’immunité',
+      'de': 'Antioxidans; kann das Immunsystem unterstützen',
+      'ar': 'مضاد للأكسدة؛ قد يدعم المناعة'
+    },
+    'herb_green_tea_preparation': {
+      'tr': '80°C suda 2-3 dk demleyin',
+      'en': 'Steep 2–3 min at ~80°C',
+      'es': 'Infusionar 2–3 min a ~80°C',
+      'fr': 'Infuser 2–3 min à ~80°C',
+      'de': '2–3 Min bei ~80°C ziehen lassen',
+      'ar': 'انقع 2–3 دقائق عند ~80°م'
+    },
+    'herb_green_tea_warning': {
+      'tr': 'Kafein hassasiyetinde dikkat',
+      'en': 'Use caution with caffeine sensitivity',
+      'es': 'Precaución con sensibilidad a la cafeína',
+      'fr': 'Prudence en cas de sensibilité à la caféine',
+      'de': 'Vorsicht bei Koffeinempfindlichkeit',
+      'ar': 'الحذر مع حساسية الكافيين'
+    },
 
-  // Turmeric
-  'herb_turmeric_name': {'tr': 'Zerdeçal', 'en': 'Turmeric', 'es': 'Cúrcuma', 'fr': 'Curcuma', 'de': 'Kurkuma', 'ar': 'الكركم'},
-  'herb_turmeric_usage': {'tr': 'Günde 1 çay kaşığı (toz/çay)', 'en': '1 tsp daily (powder/tea)', 'es': '1 cdta diaria (polvo/té)', 'fr': '1 c. à c. par jour (poudre/thé)', 'de': '1 TL täglich (Pulver/Tee)', 'ar': 'ملعقة صغيرة يومياً (مسحوق/شاي)'},
-  'herb_turmeric_benefits': {'tr': 'Anti-enflamatuar; karabiberle emilim artar', 'en': 'Anti-inflammatory; absorption improves with black pepper', 'es': 'Antiinflamatorio; la absorción mejora con pimienta negra', 'fr': 'Anti-inflammatoire; meilleure absorption avec poivre noir', 'de': 'Entzündungshemmend; bessere Aufnahme mit schwarzem Pfeffer', 'ar': 'مضاد للالتهاب؛ يتحسن الامتصاص مع الفلفل الأسود'},
-  'herb_turmeric_preparation': {'tr': 'Süt/çorba/çaya ekleyin', 'en': 'Add to milk/soup/tea', 'es': 'Añadir a leche/sopa/té', 'fr': 'Ajouter au lait/soupe/thé', 'de': 'Zu Milch/Suppe/Tee geben', 'ar': 'أضفه إلى الحليب/الحساء/الشاي'},
-  'herb_turmeric_warning': {'tr': 'Safra tıkanıklığında kullanmayın', 'en': 'Avoid with bile duct obstruction', 'es': 'Evitar con obstrucción biliar', 'fr': 'À éviter en cas d’obstruction biliaire', 'de': 'Bei Gallengangsverschluss vermeiden', 'ar': 'تجنب في انسداد القنوات الصفراوية'},
+    // Turmeric
+    'herb_turmeric_name': {
+      'tr': 'Zerdeçal',
+      'en': 'Turmeric',
+      'es': 'Cúrcuma',
+      'fr': 'Curcuma',
+      'de': 'Kurkuma',
+      'ar': 'الكركم'
+    },
+    'herb_turmeric_usage': {
+      'tr': 'Günde 1 çay kaşığı (toz/çay)',
+      'en': '1 tsp daily (powder/tea)',
+      'es': '1 cdta diaria (polvo/té)',
+      'fr': '1 c. à c. par jour (poudre/thé)',
+      'de': '1 TL täglich (Pulver/Tee)',
+      'ar': 'ملعقة صغيرة يومياً (مسحوق/شاي)'
+    },
+    'herb_turmeric_benefits': {
+      'tr': 'Anti-enflamatuar; karabiberle emilim artar',
+      'en': 'Anti-inflammatory; absorption improves with black pepper',
+      'es': 'Antiinflamatorio; la absorción mejora con pimienta negra',
+      'fr': 'Anti-inflammatoire; meilleure absorption avec poivre noir',
+      'de': 'Entzündungshemmend; bessere Aufnahme mit schwarzem Pfeffer',
+      'ar': 'مضاد للالتهاب؛ يتحسن الامتصاص مع الفلفل الأسود'
+    },
+    'herb_turmeric_preparation': {
+      'tr': 'Süt/çorba/çaya ekleyin',
+      'en': 'Add to milk/soup/tea',
+      'es': 'Añadir a leche/sopa/té',
+      'fr': 'Ajouter au lait/soupe/thé',
+      'de': 'Zu Milch/Suppe/Tee geben',
+      'ar': 'أضفه إلى الحليب/الحساء/الشاي'
+    },
+    'herb_turmeric_warning': {
+      'tr': 'Safra tıkanıklığında kullanmayın',
+      'en': 'Avoid with bile duct obstruction',
+      'es': 'Evitar con obstrucción biliar',
+      'fr': 'À éviter en cas d’obstruction biliaire',
+      'de': 'Bei Gallengangsverschluss vermeiden',
+      'ar': 'تجنب في انسداد القنوات الصفراوية'
+    },
 
-  // Chamomile
-  'herb_chamomile_name': {'tr': 'Papatya', 'en': 'Chamomile', 'es': 'Manzanilla', 'fr': 'Camomille', 'de': 'Kamille', 'ar': 'البابونج'},
-  'herb_chamomile_usage': {'tr': 'Günde 1-2 fincan çay', 'en': '1–2 cups tea daily', 'es': '1–2 tazas de té al día', 'fr': '1–2 tasses de thé par jour', 'de': '1–2 Tassen Tee täglich', 'ar': '1–2 أكواب شاي يومياً'},
-  'herb_chamomile_benefits': {'tr': 'Sakinleştirici; alerjiye destek olabilir', 'en': 'Calming; may support allergy relief', 'es': 'Calmante; puede ayudar con alergias', 'fr': 'Apaisante; peut aider contre les allergies', 'de': 'Beruhigend; kann bei Allergien helfen', 'ar': 'مهدئ؛ قد يساعد في الحساسية'},
-  'herb_chamomile_preparation': {'tr': 'Kurutulmuş çiçekleri 5-7 dk demleyin', 'en': 'Steep dried flowers 5–7 min', 'es': 'Infusionar flores secas 5–7 min', 'fr': 'Infuser fleurs séchées 5–7 min', 'de': 'Getrocknete Blüten 5–7 Min ziehen lassen', 'ar': 'انقع الأزهار المجففة 5–7 دقائق'},
-  'herb_chamomile_warning': {'tr': 'Papatyagiller alerjisinde kaçının', 'en': 'Avoid if allergic to Asteraceae', 'es': 'Evitar si alérgico a Asteraceae', 'fr': 'Éviter si allergique aux Astéracées', 'de': 'Bei Allergie gegen Korbblütler meiden', 'ar': 'تجنب إذا كنت تعاني من حساسية من النجمية'},
+    // Chamomile
+    'herb_chamomile_name': {
+      'tr': 'Papatya',
+      'en': 'Chamomile',
+      'es': 'Manzanilla',
+      'fr': 'Camomille',
+      'de': 'Kamille',
+      'ar': 'البابونج'
+    },
+    'herb_chamomile_usage': {
+      'tr': 'Günde 1-2 fincan çay',
+      'en': '1–2 cups tea daily',
+      'es': '1–2 tazas de té al día',
+      'fr': '1–2 tasses de thé par jour',
+      'de': '1–2 Tassen Tee täglich',
+      'ar': '1–2 أكواب شاي يومياً'
+    },
+    'herb_chamomile_benefits': {
+      'tr': 'Sakinleştirici; alerjiye destek olabilir',
+      'en': 'Calming; may support allergy relief',
+      'es': 'Calmante; puede ayudar con alergias',
+      'fr': 'Apaisante; peut aider contre les allergies',
+      'de': 'Beruhigend; kann bei Allergien helfen',
+      'ar': 'مهدئ؛ قد يساعد في الحساسية'
+    },
+    'herb_chamomile_preparation': {
+      'tr': 'Kurutulmuş çiçekleri 5-7 dk demleyin',
+      'en': 'Steep dried flowers 5–7 min',
+      'es': 'Infusionar flores secas 5–7 min',
+      'fr': 'Infuser fleurs séchées 5–7 min',
+      'de': 'Getrocknete Blüten 5–7 Min ziehen lassen',
+      'ar': 'انقع الأزهار المجففة 5–7 دقائق'
+    },
+    'herb_chamomile_warning': {
+      'tr': 'Papatyagiller alerjisinde kaçının',
+      'en': 'Avoid if allergic to Asteraceae',
+      'es': 'Evitar si alérgico a Asteraceae',
+      'fr': 'Éviter si allergique aux Astéracées',
+      'de': 'Bei Allergie gegen Korbblütler meiden',
+      'ar': 'تجنب إذا كنت تعاني من حساسية من النجمية'
+    },
 
-  // New Herbs used by popular marker categories
-  'herb_cinnamon_name': {'tr': 'Tarçın', 'en': 'Cinnamon'},
-  'herb_cinnamon_usage': {'tr': 'Günde 1-2 çay kaşığı (toz/çay)', 'en': '1–2 tsp daily (powder/tea)'},
-  'herb_cinnamon_benefits': {'tr': 'Glikoz dengesine destek olabilir', 'en': 'May support glucose balance'},
-  'herb_cinnamon_preparation': {'tr': 'Yoğurda serpin veya çay olarak tüketin', 'en': 'Sprinkle on yogurt or brew as tea'},
-  'herb_cinnamon_warning': {'tr': 'Karaciğer hastalarında aşırıya kaçmayın', 'en': 'Avoid excess with liver disease'},
+    // New Herbs used by popular marker categories
+    'herb_cinnamon_name': {'tr': 'Tarçın', 'en': 'Cinnamon'},
+    'herb_cinnamon_usage': {
+      'tr': 'Günde 1-2 çay kaşığı (toz/çay)',
+      'en': '1–2 tsp daily (powder/tea)'
+    },
+    'herb_cinnamon_benefits': {
+      'tr': 'Glikoz dengesine destek olabilir',
+      'en': 'May support glucose balance'
+    },
+    'herb_cinnamon_preparation': {
+      'tr': 'Yoğurda serpin veya çay olarak tüketin',
+      'en': 'Sprinkle on yogurt or brew as tea'
+    },
+    'herb_cinnamon_warning': {
+      'tr': 'Karaciğer hastalarında aşırıya kaçmayın',
+      'en': 'Avoid excess with liver disease'
+    },
 
-  'herb_fenugreek_name': {'tr': 'Çemen Tohumu', 'en': 'Fenugreek'},
-  'herb_fenugreek_usage': {'tr': 'Günde 1 fincan çay', 'en': '1 cup tea daily'},
-  'herb_fenugreek_benefits': {'tr': 'Glikemik kontrolü destekler', 'en': 'Supports glycemic control'},
-  'herb_fenugreek_preparation': {'tr': 'Tohumları 10 dk kaynatın', 'en': 'Simmer seeds for 10 minutes'},
-  'herb_fenugreek_warning': {'tr': 'Gebelikte kullanmayın', 'en': 'Avoid during pregnancy'},
+    'herb_fenugreek_name': {'tr': 'Çemen Tohumu', 'en': 'Fenugreek'},
+    'herb_fenugreek_usage': {
+      'tr': 'Günde 1 fincan çay',
+      'en': '1 cup tea daily'
+    },
+    'herb_fenugreek_benefits': {
+      'tr': 'Glikemik kontrolü destekler',
+      'en': 'Supports glycemic control'
+    },
+    'herb_fenugreek_preparation': {
+      'tr': 'Tohumları 10 dk kaynatın',
+      'en': 'Simmer seeds for 10 minutes'
+    },
+    'herb_fenugreek_warning': {
+      'tr': 'Gebelikte kullanmayın',
+      'en': 'Avoid during pregnancy'
+    },
 
-  'herb_milk_thistle_name': {'tr': 'Deve Dikeni', 'en': 'Milk Thistle'},
-  'herb_milk_thistle_usage': {'tr': 'Günde 1 kapsül/çay', 'en': '1 capsule/tea daily'},
-  'herb_milk_thistle_benefits': {'tr': 'Karaciğer detoksuna destek', 'en': 'Supports liver detox'},
-  'herb_milk_thistle_preparation': {'tr': 'Standartize ekstre veya çay', 'en': 'Standardized extract or tea'},
-  'herb_milk_thistle_warning': {'tr': 'Safra tıkanıklığında kullanmayın', 'en': 'Avoid with bile duct obstruction'},
+    'herb_milk_thistle_name': {'tr': 'Deve Dikeni', 'en': 'Milk Thistle'},
+    'herb_milk_thistle_usage': {
+      'tr': 'Günde 1 kapsül/çay',
+      'en': '1 capsule/tea daily'
+    },
+    'herb_milk_thistle_benefits': {
+      'tr': 'Karaciğer detoksuna destek',
+      'en': 'Supports liver detox'
+    },
+    'herb_milk_thistle_preparation': {
+      'tr': 'Standartize ekstre veya çay',
+      'en': 'Standardized extract or tea'
+    },
+    'herb_milk_thistle_warning': {
+      'tr': 'Safra tıkanıklığında kullanmayın',
+      'en': 'Avoid with bile duct obstruction'
+    },
 
-  'herb_artichoke_name': {'tr': 'Enginar Yaprağı', 'en': 'Artichoke Leaf'},
-  'herb_artichoke_usage': {'tr': 'Günde 1-2 fincan çay', 'en': '1–2 cups tea daily'},
-  'herb_artichoke_benefits': {'tr': 'Safra akışını destekler', 'en': 'Promotes bile flow'},
-  'herb_artichoke_preparation': {'tr': 'Yapraklarını 5-7 dk demleyin', 'en': 'Steep leaves 5–7 minutes'},
-  'herb_artichoke_warning': {'tr': 'Safra taşı varsa doktora danışın', 'en': 'Consult doctor if gallstones'},
+    'herb_artichoke_name': {'tr': 'Enginar Yaprağı', 'en': 'Artichoke Leaf'},
+    'herb_artichoke_usage': {
+      'tr': 'Günde 1-2 fincan çay',
+      'en': '1–2 cups tea daily'
+    },
+    'herb_artichoke_benefits': {
+      'tr': 'Safra akışını destekler',
+      'en': 'Promotes bile flow'
+    },
+    'herb_artichoke_preparation': {
+      'tr': 'Yapraklarını 5-7 dk demleyin',
+      'en': 'Steep leaves 5–7 minutes'
+    },
+    'herb_artichoke_warning': {
+      'tr': 'Safra taşı varsa doktora danışın',
+      'en': 'Consult doctor if gallstones'
+    },
 
-  'herb_dandelion_name': {'tr': 'Karahindiba', 'en': 'Dandelion'},
-  'herb_dandelion_usage': {'tr': 'Günde 1 fincan kök/çay', 'en': '1 cup root/tea daily'},
-  'herb_dandelion_benefits': {'tr': 'Karaciğer ve safra desteği', 'en': 'Liver and bile support'},
-  'herb_dandelion_preparation': {'tr': 'Kökünü 10 dk kaynatın', 'en': 'Decoct root 10 minutes'},
-  'herb_dandelion_warning': {'tr': 'Safra tıkanıklığında kaçının', 'en': 'Avoid with bile obstruction'},
+    'herb_dandelion_name': {'tr': 'Karahindiba', 'en': 'Dandelion'},
+    'herb_dandelion_usage': {
+      'tr': 'Günde 1 fincan kök/çay',
+      'en': '1 cup root/tea daily'
+    },
+    'herb_dandelion_benefits': {
+      'tr': 'Karaciğer ve safra desteği',
+      'en': 'Liver and bile support'
+    },
+    'herb_dandelion_preparation': {
+      'tr': 'Kökünü 10 dk kaynatın',
+      'en': 'Decoct root 10 minutes'
+    },
+    'herb_dandelion_warning': {
+      'tr': 'Safra tıkanıklığında kaçının',
+      'en': 'Avoid with bile obstruction'
+    },
 
-  'herb_seaweed_name': {'tr': 'Deniz Yosunu', 'en': 'Seaweed'},
-  'herb_seaweed_usage': {'tr': 'Haftada 2-3 porsiyon', 'en': '2–3 servings weekly'},
-  'herb_seaweed_benefits': {'tr': 'İyot kaynağı, tiroid desteği', 'en': 'Iodine source, thyroid support'},
-  'herb_seaweed_preparation': {'tr': 'Salatalara/çorbalara ekleyin', 'en': 'Add to salads/soups'},
-  'herb_seaweed_warning': {'tr': 'Hipertiroidide kullanmayın', 'en': 'Avoid in hyperthyroidism'},
+    'herb_seaweed_name': {'tr': 'Deniz Yosunu', 'en': 'Seaweed'},
+    'herb_seaweed_usage': {
+      'tr': 'Haftada 2-3 porsiyon',
+      'en': '2–3 servings weekly'
+    },
+    'herb_seaweed_benefits': {
+      'tr': 'İyot kaynağı, tiroid desteği',
+      'en': 'Iodine source, thyroid support'
+    },
+    'herb_seaweed_preparation': {
+      'tr': 'Salatalara/çorbalara ekleyin',
+      'en': 'Add to salads/soups'
+    },
+    'herb_seaweed_warning': {
+      'tr': 'Hipertiroidide kullanmayın',
+      'en': 'Avoid in hyperthyroidism'
+    },
 
-  'herb_brazil_nut_name': {'tr': 'Brezilya Fındığı', 'en': 'Brazil Nut'},
-  'herb_brazil_nut_usage': {'tr': 'Günde 1-2 adet', 'en': '1–2 nuts daily'},
-  'herb_brazil_nut_benefits': {'tr': 'Selenyum kaynağı, tiroid desteği', 'en': 'Selenium source, thyroid support'},
-  'herb_brazil_nut_preparation': {'tr': 'Direkt tüketin', 'en': 'Eat directly'},
-  'herb_brazil_nut_warning': {'tr': 'Aşırı selenyumdan kaçının', 'en': 'Avoid excess selenium'},
+    'herb_brazil_nut_name': {'tr': 'Brezilya Fındığı', 'en': 'Brazil Nut'},
+    'herb_brazil_nut_usage': {'tr': 'Günde 1-2 adet', 'en': '1–2 nuts daily'},
+    'herb_brazil_nut_benefits': {
+      'tr': 'Selenyum kaynağı, tiroid desteği',
+      'en': 'Selenium source, thyroid support'
+    },
+    'herb_brazil_nut_preparation': {
+      'tr': 'Direkt tüketin',
+      'en': 'Eat directly'
+    },
+    'herb_brazil_nut_warning': {
+      'tr': 'Aşırı selenyumdan kaçının',
+      'en': 'Avoid excess selenium'
+    },
 
-  'herb_cod_liver_oil_name': {'tr': 'Balık Karaciğeri Yağı', 'en': 'Cod Liver Oil'},
-  'herb_cod_liver_oil_usage': {'tr': 'Günlük takviye (etikete göre)', 'en': 'Daily supplement (per label)'},
-  'herb_cod_liver_oil_benefits': {'tr': 'D vitamini ve omega-3 kaynağı', 'en': 'Source of vitamin D and omega-3'},
-  'herb_cod_liver_oil_preparation': {'tr': 'Kapsül/sıvı form', 'en': 'Capsule/liquid form'},
-  'herb_cod_liver_oil_warning': {'tr': 'A vitamini fazlasına dikkat', 'en': 'Watch for vitamin A excess'},
+    'herb_cod_liver_oil_name': {
+      'tr': 'Balık Karaciğeri Yağı',
+      'en': 'Cod Liver Oil'
+    },
+    'herb_cod_liver_oil_usage': {
+      'tr': 'Günlük takviye (etikete göre)',
+      'en': 'Daily supplement (per label)'
+    },
+    'herb_cod_liver_oil_benefits': {
+      'tr': 'D vitamini ve omega-3 kaynağı',
+      'en': 'Source of vitamin D and omega-3'
+    },
+    'herb_cod_liver_oil_preparation': {
+      'tr': 'Kapsül/sıvı form',
+      'en': 'Capsule/liquid form'
+    },
+    'herb_cod_liver_oil_warning': {
+      'tr': 'A vitamini fazlasına dikkat',
+      'en': 'Watch for vitamin A excess'
+    },
 
-  'herb_nutritional_yeast_name': {'tr': 'Besin Mayası', 'en': 'Nutritional Yeast'},
-  'herb_nutritional_yeast_usage': {'tr': 'Günlük 1 yemek kaşığı', 'en': '1 tbsp daily'},
-  'herb_nutritional_yeast_benefits': {'tr': 'B12 kaynağı (zenginleştirilmiş)', 'en': 'B12 source (fortified)'},
-  'herb_nutritional_yeast_preparation': {'tr': 'Salatalara/çorbalara serpin', 'en': 'Sprinkle on salads/soups'},
-  'herb_nutritional_yeast_warning': {'tr': 'Pürin hassasiyetinde dikkat', 'en': 'Use caution with purine sensitivity'},
+    'herb_nutritional_yeast_name': {
+      'tr': 'Besin Mayası',
+      'en': 'Nutritional Yeast'
+    },
+    'herb_nutritional_yeast_usage': {
+      'tr': 'Günlük 1 yemek kaşığı',
+      'en': '1 tbsp daily'
+    },
+    'herb_nutritional_yeast_benefits': {
+      'tr': 'B12 kaynağı (zenginleştirilmiş)',
+      'en': 'B12 source (fortified)'
+    },
+    'herb_nutritional_yeast_preparation': {
+      'tr': 'Salatalara/çorbalara serpin',
+      'en': 'Sprinkle on salads/soups'
+    },
+    'herb_nutritional_yeast_warning': {
+      'tr': 'Pürin hassasiyetinde dikkat',
+      'en': 'Use caution with purine sensitivity'
+    },
 
-  'herb_coconut_water_name': {'tr': 'Hindistan Cevizi Suyu', 'en': 'Coconut Water'},
-  'herb_coconut_water_usage': {'tr': 'Günde 1 bardak', 'en': '1 glass daily'},
-  'herb_coconut_water_benefits': {'tr': 'Potasyum ve hidrasyon desteği', 'en': 'Potassium and hydration support'},
-  'herb_coconut_water_preparation': {'tr': 'Soğuk tüketin', 'en': 'Consume chilled'},
-  'herb_coconut_water_warning': {'tr': 'Hiperkalemide dikkat', 'en': 'Caution in hyperkalemia'},
+    'herb_coconut_water_name': {
+      'tr': 'Hindistan Cevizi Suyu',
+      'en': 'Coconut Water'
+    },
+    'herb_coconut_water_usage': {'tr': 'Günde 1 bardak', 'en': '1 glass daily'},
+    'herb_coconut_water_benefits': {
+      'tr': 'Potasyum ve hidrasyon desteği',
+      'en': 'Potassium and hydration support'
+    },
+    'herb_coconut_water_preparation': {
+      'tr': 'Soğuk tüketin',
+      'en': 'Consume chilled'
+    },
+    'herb_coconut_water_warning': {
+      'tr': 'Hiperkalemide dikkat',
+      'en': 'Caution in hyperkalemia'
+    },
 
-  'herb_sesame_name': {'tr': 'Susam/Tahin', 'en': 'Sesame/Tahini'},
-  'herb_sesame_usage': {'tr': 'Günde 1-2 yemek kaşığı', 'en': '1–2 tbsp daily'},
-  'herb_sesame_benefits': {'tr': 'Kalsiyum kaynağı', 'en': 'Calcium source'},
-  'herb_sesame_preparation': {'tr': 'Kahvaltıda/ara öğünde', 'en': 'At breakfast/snack'},
-  'herb_sesame_warning': {'tr': 'Alerji varsa kaçının', 'en': 'Avoid if allergic'},
+    'herb_sesame_name': {'tr': 'Susam/Tahin', 'en': 'Sesame/Tahini'},
+    'herb_sesame_usage': {
+      'tr': 'Günde 1-2 yemek kaşığı',
+      'en': '1–2 tbsp daily'
+    },
+    'herb_sesame_benefits': {'tr': 'Kalsiyum kaynağı', 'en': 'Calcium source'},
+    'herb_sesame_preparation': {
+      'tr': 'Kahvaltıda/ara öğünde',
+      'en': 'At breakfast/snack'
+    },
+    'herb_sesame_warning': {
+      'tr': 'Alerji varsa kaçının',
+      'en': 'Avoid if allergic'
+    },
 
-  // Diet Programs for new markers
-  'diet_glucose_control_title': {'tr': 'Glikoz Kontrol Diyeti', 'en': 'Glucose Control Diet'},
-  'diet_glucose_control_desc': {'tr': 'Düşük glisemik indeksli beslenme', 'en': 'Low glycemic index nutrition'},
-  'diet_glucose_control_include': {'tr': '• Tam tahıllar, sebzeler, baklagiller', 'en': '• Whole grains, vegetables, legumes'},
-  'diet_glucose_control_limit': {'tr': '• Rafine şeker, beyaz unlu gıdalar', 'en': '• Refined sugar, white flour foods'},
-  'diet_glucose_control_macros': {'tr': 'Karbonhidrat dağılımı gün içine yayılmalı', 'en': 'Distribute carbs evenly through the day'},
-  'diet_glucose_control_menu': {'tr': 'Örnek: Yulaf + yoğurt + tarçın; mercimek çorbası', 'en': 'Sample: Oats + yogurt + cinnamon; lentil soup'},
+    // Diet Programs for new markers
+    'diet_glucose_control_title': {
+      'tr': 'Glikoz Kontrol Diyeti',
+      'en': 'Glucose Control Diet'
+    },
+    'diet_glucose_control_desc': {
+      'tr': 'Düşük glisemik indeksli beslenme',
+      'en': 'Low glycemic index nutrition'
+    },
+    'diet_glucose_control_include': {
+      'tr': '• Tam tahıllar, sebzeler, baklagiller',
+      'en': '• Whole grains, vegetables, legumes'
+    },
+    'diet_glucose_control_limit': {
+      'tr': '• Rafine şeker, beyaz unlu gıdalar',
+      'en': '• Refined sugar, white flour foods'
+    },
+    'diet_glucose_control_macros': {
+      'tr': 'Karbonhidrat dağılımı gün içine yayılmalı',
+      'en': 'Distribute carbs evenly through the day'
+    },
+    'diet_glucose_control_menu': {
+      'tr': 'Örnek: Yulaf + yoğurt + tarçın; mercimek çorbası',
+      'en': 'Sample: Oats + yogurt + cinnamon; lentil soup'
+    },
 
-  'diet_liver_support_title': {'tr': 'Karaciğer Dostu Beslenme', 'en': 'Liver-Friendly Diet'},
-  'diet_liver_support_desc': {'tr': 'ALT/AST/GGT yüksekliğinde destek', 'en': 'Support when ALT/AST/GGT elevated'},
-  'diet_liver_support_include': {'tr': '• Enginar, karahindiba, lifli sebzeler', 'en': '• Artichoke, dandelion, fibrous vegetables'},
-  'diet_liver_support_limit': {'tr': '• Alkol, kızartma, işlenmiş yağlar', 'en': '• Alcohol, fried/processed fats'},
-  'diet_liver_support_macros': {'tr': 'Doymuş yağları azaltın, lif artırın', 'en': 'Reduce saturated fats, increase fiber'},
-  'diet_liver_support_menu': {'tr': 'Örnek: Izgara balık + roka salatası; enginar', 'en': 'Sample: Grilled fish + arugula salad; artichoke'},
+    'diet_liver_support_title': {
+      'tr': 'Karaciğer Dostu Beslenme',
+      'en': 'Liver-Friendly Diet'
+    },
+    'diet_liver_support_desc': {
+      'tr': 'ALT/AST/GGT yüksekliğinde destek',
+      'en': 'Support when ALT/AST/GGT elevated'
+    },
+    'diet_liver_support_include': {
+      'tr': '• Enginar, karahindiba, lifli sebzeler',
+      'en': '• Artichoke, dandelion, fibrous vegetables'
+    },
+    'diet_liver_support_limit': {
+      'tr': '• Alkol, kızartma, işlenmiş yağlar',
+      'en': '• Alcohol, fried/processed fats'
+    },
+    'diet_liver_support_macros': {
+      'tr': 'Doymuş yağları azaltın, lif artırın',
+      'en': 'Reduce saturated fats, increase fiber'
+    },
+    'diet_liver_support_menu': {
+      'tr': 'Örnek: Izgara balık + roka salatası; enginar',
+      'en': 'Sample: Grilled fish + arugula salad; artichoke'
+    },
 
-  'diet_bilirubin_support_title': {'tr': 'Safra Akışını Destekleyen Beslenme', 'en': 'Bile Flow Support Diet'},
-  'diet_bilirubin_support_desc': {'tr': 'Bilirubin yüksekliğinde destek', 'en': 'Support for elevated bilirubin'},
-  'diet_bilirubin_support_include': {'tr': '• Enginar, zerdeçal, limonlu su', 'en': '• Artichoke, turmeric, lemon water'},
-  'diet_bilirubin_support_limit': {'tr': '• Yağlı/çok baharatlı yemekler', 'en': '• Fatty/very spicy foods'},
-  'diet_bilirubin_support_macros': {'tr': 'Yağı kademeli azaltın', 'en': 'Gradually reduce fats'},
-  'diet_bilirubin_support_menu': {'tr': 'Örnek: Buharda sebze + zerdeçallı pilav', 'en': 'Sample: Steamed veggies + turmeric rice'},
+    'diet_bilirubin_support_title': {
+      'tr': 'Safra Akışını Destekleyen Beslenme',
+      'en': 'Bile Flow Support Diet'
+    },
+    'diet_bilirubin_support_desc': {
+      'tr': 'Bilirubin yüksekliğinde destek',
+      'en': 'Support for elevated bilirubin'
+    },
+    'diet_bilirubin_support_include': {
+      'tr': '• Enginar, zerdeçal, limonlu su',
+      'en': '• Artichoke, turmeric, lemon water'
+    },
+    'diet_bilirubin_support_limit': {
+      'tr': '• Yağlı/çok baharatlı yemekler',
+      'en': '• Fatty/very spicy foods'
+    },
+    'diet_bilirubin_support_macros': {
+      'tr': 'Yağı kademeli azaltın',
+      'en': 'Gradually reduce fats'
+    },
+    'diet_bilirubin_support_menu': {
+      'tr': 'Örnek: Buharda sebze + zerdeçallı pilav',
+      'en': 'Sample: Steamed veggies + turmeric rice'
+    },
 
-  'diet_crp_antiinflam_title': {'tr': 'Anti-enflamatuar Beslenme', 'en': 'Anti-inflammatory Diet'},
-  'diet_crp_antiinflam_desc': {'tr': 'CRP yüksekliğinde öneriler', 'en': 'For elevated CRP'},
-  'diet_crp_antiinflam_include': {'tr': '• Zerdeçal, zencefil, yeşil yapraklılar', 'en': '• Turmeric, ginger, leafy greens'},
-  'diet_crp_antiinflam_limit': {'tr': '• İşlenmiş gıdalar, trans yağlar', 'en': '• Processed foods, trans fats'},
-  'diet_crp_antiinflam_macros': {'tr': 'Omega-3 artırın, omega-6 dengeleyin', 'en': 'Increase omega-3, balance omega-6'},
-  'diet_crp_antiinflam_menu': {'tr': 'Örnek: Zerdeçallı tavuk + ıspanak salatası', 'en': 'Sample: Turmeric chicken + spinach salad'},
+    'diet_crp_antiinflam_title': {
+      'tr': 'Anti-enflamatuar Beslenme',
+      'en': 'Anti-inflammatory Diet'
+    },
+    'diet_crp_antiinflam_desc': {
+      'tr': 'CRP yüksekliğinde öneriler',
+      'en': 'For elevated CRP'
+    },
+    'diet_crp_antiinflam_include': {
+      'tr': '• Zerdeçal, zencefil, yeşil yapraklılar',
+      'en': '• Turmeric, ginger, leafy greens'
+    },
+    'diet_crp_antiinflam_limit': {
+      'tr': '• İşlenmiş gıdalar, trans yağlar',
+      'en': '• Processed foods, trans fats'
+    },
+    'diet_crp_antiinflam_macros': {
+      'tr': 'Omega-3 artırın, omega-6 dengeleyin',
+      'en': 'Increase omega-3, balance omega-6'
+    },
+    'diet_crp_antiinflam_menu': {
+      'tr': 'Örnek: Zerdeçallı tavuk + ıspanak salatası',
+      'en': 'Sample: Turmeric chicken + spinach salad'
+    },
 
-  'diet_thyroid_support_title': {'tr': 'Tiroid Destek Diyeti', 'en': 'Thyroid Support Diet'},
-  'diet_thyroid_support_desc': {'tr': 'TSH/Serbest T3-T4 dengesine destek', 'en': 'Support for TSH/Free T3-T4 balance'},
-  'diet_thyroid_support_include': {'tr': '• İyot/selen­yum kaynakları (yosun, Brezilya fındığı)', 'en': '• Iodine/selenium sources (seaweed, Brazil nuts)'},
-  'diet_thyroid_support_limit': {'tr': '• Aşırı soya, aşırı lahana-türü', 'en': '• Excess soy, excessive goitrogens'},
-  'diet_thyroid_support_macros': {'tr': 'Yeterli protein ve iyot alımı', 'en': 'Adequate protein and iodine intake'},
-  'diet_thyroid_support_menu': {'tr': 'Örnek: Yosunlu salata + 1 Brezilya fındığı', 'en': 'Sample: Seaweed salad + 1 Brazil nut'},
+    'diet_thyroid_support_title': {
+      'tr': 'Tiroid Destek Diyeti',
+      'en': 'Thyroid Support Diet'
+    },
+    'diet_thyroid_support_desc': {
+      'tr': 'TSH/Serbest T3-T4 dengesine destek',
+      'en': 'Support for TSH/Free T3-T4 balance'
+    },
+    'diet_thyroid_support_include': {
+      'tr': '• İyot/selen­yum kaynakları (yosun, Brezilya fındığı)',
+      'en': '• Iodine/selenium sources (seaweed, Brazil nuts)'
+    },
+    'diet_thyroid_support_limit': {
+      'tr': '• Aşırı soya, aşırı lahana-türü',
+      'en': '• Excess soy, excessive goitrogens'
+    },
+    'diet_thyroid_support_macros': {
+      'tr': 'Yeterli protein ve iyot alımı',
+      'en': 'Adequate protein and iodine intake'
+    },
+    'diet_thyroid_support_menu': {
+      'tr': 'Örnek: Yosunlu salata + 1 Brezilya fındığı',
+      'en': 'Sample: Seaweed salad + 1 Brazil nut'
+    },
 
-  'diet_vitd_support_title': {'tr': 'Vitamin D Destekli Beslenme', 'en': 'Vitamin D Support Diet'},
-  'diet_vitd_support_desc': {'tr': 'Düşük D vitamini için öneriler', 'en': 'For low vitamin D'},
-  'diet_vitd_support_include': {'tr': '• Yağlı balıklar, yumurta, D takviyesi', 'en': '• Fatty fish, eggs, vitamin D supplement'},
-  'diet_vitd_support_limit': {'tr': '• Aşırı şekerli atıştırmalıklar', 'en': '• Excess sugary snacks'},
-  'diet_vitd_support_macros': {'tr': 'Yağda çözünen vitamin emilimine dikkat', 'en': 'Support fat-soluble vitamin absorption'},
-  'diet_vitd_support_menu': {'tr': 'Örnek: Somon + zeytinyağlı salata', 'en': 'Sample: Salmon + olive oil salad'},
+    'diet_vitd_support_title': {
+      'tr': 'Vitamin D Destekli Beslenme',
+      'en': 'Vitamin D Support Diet'
+    },
+    'diet_vitd_support_desc': {
+      'tr': 'Düşük D vitamini için öneriler',
+      'en': 'For low vitamin D'
+    },
+    'diet_vitd_support_include': {
+      'tr': '• Yağlı balıklar, yumurta, D takviyesi',
+      'en': '• Fatty fish, eggs, vitamin D supplement'
+    },
+    'diet_vitd_support_limit': {
+      'tr': '• Aşırı şekerli atıştırmalıklar',
+      'en': '• Excess sugary snacks'
+    },
+    'diet_vitd_support_macros': {
+      'tr': 'Yağda çözünen vitamin emilimine dikkat',
+      'en': 'Support fat-soluble vitamin absorption'
+    },
+    'diet_vitd_support_menu': {
+      'tr': 'Örnek: Somon + zeytinyağlı salata',
+      'en': 'Sample: Salmon + olive oil salad'
+    },
 
-  'diet_b12_support_title': {'tr': 'B12 Destekli Beslenme', 'en': 'Vitamin B12 Support Diet'},
-  'diet_b12_support_desc': {'tr': 'B12 düşüklüğünde öneriler', 'en': 'For low B12 levels'},
-  'diet_b12_support_include': {'tr': '• Kırmızı et, yumurta, süt ürünleri', 'en': '• Red meat, eggs, dairy'},
-  'diet_b12_support_limit': {'tr': '• Aşırı lif (emilimi azaltabilir)', 'en': '• Excess fiber (may reduce absorption)'},
-  'diet_b12_support_macros': {'tr': 'Protein zengini öğünler', 'en': 'Protein-rich meals'},
-  'diet_b12_support_menu': {'tr': 'Örnek: Yumurta + yoğurt + tam tahıllar', 'en': 'Sample: Eggs + yogurt + whole grains'},
+    'diet_b12_support_title': {
+      'tr': 'B12 Destekli Beslenme',
+      'en': 'Vitamin B12 Support Diet'
+    },
+    'diet_b12_support_desc': {
+      'tr': 'B12 düşüklüğünde öneriler',
+      'en': 'For low B12 levels'
+    },
+    'diet_b12_support_include': {
+      'tr': '• Kırmızı et, yumurta, süt ürünleri',
+      'en': '• Red meat, eggs, dairy'
+    },
+    'diet_b12_support_limit': {
+      'tr': '• Aşırı lif (emilimi azaltabilir)',
+      'en': '• Excess fiber (may reduce absorption)'
+    },
+    'diet_b12_support_macros': {
+      'tr': 'Protein zengini öğünler',
+      'en': 'Protein-rich meals'
+    },
+    'diet_b12_support_menu': {
+      'tr': 'Örnek: Yumurta + yoğurt + tam tahıllar',
+      'en': 'Sample: Eggs + yogurt + whole grains'
+    },
 
-  'diet_electrolyte_balance_title': {'tr': 'Elektrolit Dengesi', 'en': 'Electrolyte Balance'},
-  'diet_electrolyte_balance_desc': {'tr': 'Sodyum/Potasyum/Klor dengesine destek', 'en': 'Support Na/K/Cl balance'},
-  'diet_electrolyte_balance_include': {'tr': '• Hidrasyon, potasyum kaynakları', 'en': '• Hydration, potassium sources'},
-  'diet_electrolyte_balance_limit': {'tr': '• Aşırı tuz, işlenmiş gıdalar', 'en': '• Excess salt, processed foods'},
-  'diet_electrolyte_balance_macros': {'tr': 'Sodyumu azaltın, potasyumu dengeleyin', 'en': 'Reduce sodium, balance potassium'},
-  'diet_electrolyte_balance_menu': {'tr': 'Örnek: Hindistan cevizi suyu + muz', 'en': 'Sample: Coconut water + banana'},
+    'diet_electrolyte_balance_title': {
+      'tr': 'Elektrolit Dengesi',
+      'en': 'Electrolyte Balance'
+    },
+    'diet_electrolyte_balance_desc': {
+      'tr': 'Sodyum/Potasyum/Klor dengesine destek',
+      'en': 'Support Na/K/Cl balance'
+    },
+    'diet_electrolyte_balance_include': {
+      'tr': '• Hidrasyon, potasyum kaynakları',
+      'en': '• Hydration, potassium sources'
+    },
+    'diet_electrolyte_balance_limit': {
+      'tr': '• Aşırı tuz, işlenmiş gıdalar',
+      'en': '• Excess salt, processed foods'
+    },
+    'diet_electrolyte_balance_macros': {
+      'tr': 'Sodyumu azaltın, potasyumu dengeleyin',
+      'en': 'Reduce sodium, balance potassium'
+    },
+    'diet_electrolyte_balance_menu': {
+      'tr': 'Örnek: Hindistan cevizi suyu + muz',
+      'en': 'Sample: Coconut water + banana'
+    },
 
-  'diet_calcium_support_title': {'tr': 'Kalsiyum Destekli Beslenme', 'en': 'Calcium Support Diet'},
-  'diet_calcium_support_desc': {'tr': 'Düşük kalsiyum için öneriler', 'en': 'For low calcium'},
-  'diet_calcium_support_include': {'tr': '• Süt ürünleri, susam/tahin, yeşil yapraklılar', 'en': '• Dairy, sesame/tahini, leafy greens'},
-  'diet_calcium_support_limit': {'tr': '• Aşırı kafein ve tuz', 'en': '• Excess caffeine and salt'},
-  'diet_calcium_support_macros': {'tr': 'Kalsiyum-fosfor dengesi', 'en': 'Calcium-phosphorus balance'},
-  'diet_calcium_support_menu': {'tr': 'Örnek: Yoğurt + tahin + pekmez', 'en': 'Sample: Yogurt + tahini + molasses'},
-  // Diet UI modern filters and labels
-  'diet_filters_title': {'tr': 'Diyet Filtreleri', 'en': 'Diet Filters'},
-  'diet_filter_all': {'tr': 'Tümü', 'en': 'All', 'es': 'Todo', 'fr': 'Tout', 'de': 'Alle', 'ar': 'الكل', 'it': 'Tutti', 'pt': 'Todos', 'ru': 'Все'},
-  'diet_filter_glucose': {'tr': 'Glikoz', 'en': 'Glucose', 'es': 'Glucosa', 'fr': 'Glucose', 'de': 'Glukose', 'ar': 'الجلوكوز', 'it': 'Glucosio', 'pt': 'Glicose', 'ru': 'Глюкоза'},
-  'diet_filter_liver': {'tr': 'Karaciğer', 'en': 'Liver', 'es': 'Hígado', 'fr': 'Foie', 'de': 'Leber', 'ar': 'الكبد', 'it': 'Fegato', 'pt': 'Fígado', 'ru': 'Печень'},
-  'diet_filter_bilirubin': {'tr': 'Bilirubin', 'en': 'Bilirubin', 'es': 'Bilirrubina', 'fr': 'Bilirubine', 'de': 'Bilirubin', 'ar': 'البيليروبين', 'it': 'Bilirubina', 'pt': 'Bilirrubina', 'ru': 'Билирубин'},
-  'diet_filter_crp': {'tr': 'CRP', 'en': 'CRP', 'es': 'CRP', 'fr': 'CRP', 'de': 'CRP', 'ar': 'CRP', 'it': 'CRP', 'pt': 'CRP', 'ru': 'СРБ'},
-  'diet_filter_thyroid': {'tr': 'Tiroid', 'en': 'Thyroid', 'es': 'Tiroides', 'fr': 'Thyroïde', 'de': 'Schilddrüse', 'ar': 'الغدة الدرقية', 'it': 'Tiroide', 'pt': 'Tireoide', 'ru': 'Щитовидная железа'},
-  'diet_filter_vitd': {'tr': 'Vitamin D', 'en': 'Vitamin D', 'es': 'Vitamina D', 'fr': 'Vitamine D', 'de': 'Vitamin D', 'ar': 'فيتامين د', 'it': 'Vitamina D', 'pt': 'Vitamina D', 'ru': 'Витамин D'},
-  'diet_filter_b12': {'tr': 'Vitamin B12', 'en': 'Vitamin B12', 'es': 'Vitamina B12', 'fr': 'Vitamine B12', 'de': 'Vitamin B12', 'ar': 'فيتامين ب12', 'it': 'Vitamina B12', 'pt': 'Vitamina B12', 'ru': 'Витамин B12'},
-  'diet_filter_electrolytes': {'tr': 'Elektrolitler', 'en': 'Electrolytes', 'es': 'Electrolitos', 'fr': 'Électrolytes', 'de': 'Elektrolyte', 'ar': 'الكهارل', 'it': 'Elettroliti', 'pt': 'Eletrólitos', 'ru': 'Электролиты'},
-  'diet_filter_calcium': {'tr': 'Kalsiyum', 'en': 'Calcium', 'es': 'Calcio', 'fr': 'Calcium', 'de': 'Kalzium', 'ar': 'الكالسيوم', 'it': 'Calcio', 'pt': 'Cálcio', 'ru': 'Кальций'},
-  'diet_filter_hemoglobin': {'tr': 'Hemoglobin', 'en': 'Hemoglobin', 'es': 'Hemoglobina', 'fr': 'Hémoglobine', 'de': 'Hämoglobin', 'ar': 'الهيموجلوبين', 'it': 'Emoglobina', 'pt': 'Hemoglobina', 'ru': 'Гемоглобин'},
-  'diet_filter_iron': {'tr': 'Demir', 'en': 'Iron', 'es': 'Hierro', 'fr': 'Fer', 'de': 'Eisen', 'ar': 'الحديد', 'it': 'Ferro', 'pt': 'Ferro', 'ru': 'Железо'},
-  'diet_filter_wbc': {'tr': 'Lökosit', 'en': 'WBC', 'es': 'Glóbulos Blancos', 'fr': 'Leucocytes', 'de': 'Leukozyten', 'ar': 'خلايا الدم البيضاء', 'it': 'Globuli Bianchi', 'pt': 'Glóbulos Brancos', 'ru': 'Лейкоциты'},
-  'diet_view_details': {'tr': 'Detayları Gör', 'en': 'View Details'},
-  'diet_copy_plan': {'tr': 'Planı Kopyala', 'en': 'Copy Plan'},
-  'diet_share_plan': {'tr': 'Planı Paylaş', 'en': 'Share Plan'},
-  'diet_personalized_header': {'tr': 'Son değerlerinize göre öneriler', 'en': 'Personalized based on your values'},
-  // Diet progress & streaks
-  'days_streak': {'tr': 'gün seri', 'en': 'Day Streak'},
-  'today_progress': {'tr': 'Bugünün ilerlemesi', 'en': 'Today\'s Progress'},
-  'meals_completed_today': {'tr': 'öğün tamamlandı', 'en': 'meals completed'},
-  'weekly_completion': {'tr': 'Haftalık Tamamlanma', 'en': 'Weekly Completion'},
-  'total_meals': {'tr': 'Toplam Öğünler', 'en': 'Total Meals'},
-  'diet_streak_fire': {'tr': '🔥 Mükemmel! Tam bir haftayı tamamladınız!', 'en': '🔥 Excellent! You completed a full week!'},
-  'diet_streak_great': {'tr': '⭐ Harika! Çok iyi gidiyorsunuz!', 'en': '⭐ Great! You\'re doing very well!'},
-  'diet_streak_good': {'tr': '✨ İyi başlangıç! Devam edin!', 'en': '✨ Good start! Keep going!'},
-  'diet_streak_start': {'tr': '🌱 Başlayalım! İlk öğününüzü tamamlayın.', 'en': '🌱 Let\'s start! Complete your first meal.'},
-  // Diet latest results & AI summary
-  'latest_results_title': {'tr': 'Son Test Değerleri', 'en': 'Latest Results'},
-  'copy_values': {'tr': 'Değerleri Kopyala', 'en': 'Copy Values'},
-  'values_copied': {'tr': 'Değerler kopyalandı', 'en': 'Values copied'},
-  'see_full_analysis': {'tr': 'Tam Analizi Gör', 'en': 'See Full Analysis'},
-  'ai_interpretation_title': {'tr': 'Yapay Zeka Yorumları', 'en': 'AI Interpretation'},
-  'ai_interpretation_hint': {'tr': 'Özet değerlendirme; ayrıntılar için Analiz bölümüne gidin.', 'en': 'Quick summary; see Analysis for details.'},
-  'filter_to_category': {'tr': 'Bu kategoriye filtrele', 'en': 'Filter to this category'},
+    'diet_calcium_support_title': {
+      'tr': 'Kalsiyum Destekli Beslenme',
+      'en': 'Calcium Support Diet'
+    },
+    'diet_calcium_support_desc': {
+      'tr': 'Düşük kalsiyum için öneriler',
+      'en': 'For low calcium'
+    },
+    'diet_calcium_support_include': {
+      'tr': '• Süt ürünleri, susam/tahin, yeşil yapraklılar',
+      'en': '• Dairy, sesame/tahini, leafy greens'
+    },
+    'diet_calcium_support_limit': {
+      'tr': '• Aşırı kafein ve tuz',
+      'en': '• Excess caffeine and salt'
+    },
+    'diet_calcium_support_macros': {
+      'tr': 'Kalsiyum-fosfor dengesi',
+      'en': 'Calcium-phosphorus balance'
+    },
+    'diet_calcium_support_menu': {
+      'tr': 'Örnek: Yoğurt + tahin + pekmez',
+      'en': 'Sample: Yogurt + tahini + molasses'
+    },
+    // Diet UI modern filters and labels
+    'diet_filters_title': {'tr': 'Diyet Filtreleri', 'en': 'Diet Filters'},
+    'diet_filter_all': {
+      'tr': 'Tümü',
+      'en': 'All',
+      'es': 'Todo',
+      'fr': 'Tout',
+      'de': 'Alle',
+      'ar': 'الكل',
+      'it': 'Tutti',
+      'pt': 'Todos',
+      'ru': 'Все'
+    },
+    'diet_filter_glucose': {
+      'tr': 'Glikoz',
+      'en': 'Glucose',
+      'es': 'Glucosa',
+      'fr': 'Glucose',
+      'de': 'Glukose',
+      'ar': 'الجلوكوز',
+      'it': 'Glucosio',
+      'pt': 'Glicose',
+      'ru': 'Глюкоза'
+    },
+    'diet_filter_liver': {
+      'tr': 'Karaciğer',
+      'en': 'Liver',
+      'es': 'Hígado',
+      'fr': 'Foie',
+      'de': 'Leber',
+      'ar': 'الكبد',
+      'it': 'Fegato',
+      'pt': 'Fígado',
+      'ru': 'Печень'
+    },
+    'diet_filter_bilirubin': {
+      'tr': 'Bilirubin',
+      'en': 'Bilirubin',
+      'es': 'Bilirrubina',
+      'fr': 'Bilirubine',
+      'de': 'Bilirubin',
+      'ar': 'البيليروبين',
+      'it': 'Bilirubina',
+      'pt': 'Bilirrubina',
+      'ru': 'Билирубин'
+    },
+    'diet_filter_crp': {
+      'tr': 'CRP',
+      'en': 'CRP',
+      'es': 'CRP',
+      'fr': 'CRP',
+      'de': 'CRP',
+      'ar': 'CRP',
+      'it': 'CRP',
+      'pt': 'CRP',
+      'ru': 'СРБ'
+    },
+    'diet_filter_thyroid': {
+      'tr': 'Tiroid',
+      'en': 'Thyroid',
+      'es': 'Tiroides',
+      'fr': 'Thyroïde',
+      'de': 'Schilddrüse',
+      'ar': 'الغدة الدرقية',
+      'it': 'Tiroide',
+      'pt': 'Tireoide',
+      'ru': 'Щитовидная железа'
+    },
+    'diet_filter_vitd': {
+      'tr': 'Vitamin D',
+      'en': 'Vitamin D',
+      'es': 'Vitamina D',
+      'fr': 'Vitamine D',
+      'de': 'Vitamin D',
+      'ar': 'فيتامين د',
+      'it': 'Vitamina D',
+      'pt': 'Vitamina D',
+      'ru': 'Витамин D'
+    },
+    'diet_filter_b12': {
+      'tr': 'Vitamin B12',
+      'en': 'Vitamin B12',
+      'es': 'Vitamina B12',
+      'fr': 'Vitamine B12',
+      'de': 'Vitamin B12',
+      'ar': 'فيتامين ب12',
+      'it': 'Vitamina B12',
+      'pt': 'Vitamina B12',
+      'ru': 'Витамин B12'
+    },
+    'diet_filter_electrolytes': {
+      'tr': 'Elektrolitler',
+      'en': 'Electrolytes',
+      'es': 'Electrolitos',
+      'fr': 'Électrolytes',
+      'de': 'Elektrolyte',
+      'ar': 'الكهارل',
+      'it': 'Elettroliti',
+      'pt': 'Eletrólitos',
+      'ru': 'Электролиты'
+    },
+    'diet_filter_calcium': {
+      'tr': 'Kalsiyum',
+      'en': 'Calcium',
+      'es': 'Calcio',
+      'fr': 'Calcium',
+      'de': 'Kalzium',
+      'ar': 'الكالسيوم',
+      'it': 'Calcio',
+      'pt': 'Cálcio',
+      'ru': 'Кальций'
+    },
+    'diet_filter_hemoglobin': {
+      'tr': 'Hemoglobin',
+      'en': 'Hemoglobin',
+      'es': 'Hemoglobina',
+      'fr': 'Hémoglobine',
+      'de': 'Hämoglobin',
+      'ar': 'الهيموجلوبين',
+      'it': 'Emoglobina',
+      'pt': 'Hemoglobina',
+      'ru': 'Гемоглобин'
+    },
+    'diet_filter_iron': {
+      'tr': 'Demir',
+      'en': 'Iron',
+      'es': 'Hierro',
+      'fr': 'Fer',
+      'de': 'Eisen',
+      'ar': 'الحديد',
+      'it': 'Ferro',
+      'pt': 'Ferro',
+      'ru': 'Железо'
+    },
+    'diet_filter_wbc': {
+      'tr': 'Lökosit',
+      'en': 'WBC',
+      'es': 'Glóbulos Blancos',
+      'fr': 'Leucocytes',
+      'de': 'Leukozyten',
+      'ar': 'خلايا الدم البيضاء',
+      'it': 'Globuli Bianchi',
+      'pt': 'Glóbulos Brancos',
+      'ru': 'Лейкоциты'
+    },
+    'diet_view_details': {'tr': 'Detayları Gör', 'en': 'View Details'},
+    'diet_copy_plan': {'tr': 'Planı Kopyala', 'en': 'Copy Plan'},
+    'diet_share_plan': {'tr': 'Planı Paylaş', 'en': 'Share Plan'},
+    'diet_personalized_header': {
+      'tr': 'Son değerlerinize göre öneriler',
+      'en': 'Personalized based on your values'
+    },
+    // Diet progress & streaks
+    'days_streak': {'tr': 'gün seri', 'en': 'Day Streak'},
+    'today_progress': {'tr': 'Bugünün ilerlemesi', 'en': 'Today\'s Progress'},
+    'meals_completed_today': {'tr': 'öğün tamamlandı', 'en': 'meals completed'},
+    'weekly_completion': {
+      'tr': 'Haftalık Tamamlanma',
+      'en': 'Weekly Completion'
+    },
+    'total_meals': {'tr': 'Toplam Öğünler', 'en': 'Total Meals'},
+    'diet_streak_fire': {
+      'tr': '🔥 Mükemmel! Tam bir haftayı tamamladınız!',
+      'en': '🔥 Excellent! You completed a full week!'
+    },
+    'diet_streak_great': {
+      'tr': '⭐ Harika! Çok iyi gidiyorsunuz!',
+      'en': '⭐ Great! You\'re doing very well!'
+    },
+    'diet_streak_good': {
+      'tr': '✨ İyi başlangıç! Devam edin!',
+      'en': '✨ Good start! Keep going!'
+    },
+    'diet_streak_start': {
+      'tr': '🌱 Başlayalım! İlk öğününüzü tamamlayın.',
+      'en': '🌱 Let\'s start! Complete your first meal.'
+    },
+    // Diet latest results & AI summary
+    'latest_results_title': {
+      'tr': 'Son Test Değerleri',
+      'en': 'Latest Results'
+    },
+    'copy_values': {'tr': 'Değerleri Kopyala', 'en': 'Copy Values'},
+    'values_copied': {'tr': 'Değerler kopyalandı', 'en': 'Values copied'},
+    'see_full_analysis': {'tr': 'Tam Analizi Gör', 'en': 'See Full Analysis'},
+    'ai_interpretation_title': {
+      'tr': 'Yapay Zeka Yorumları',
+      'en': 'AI Interpretation'
+    },
+    'ai_interpretation_hint': {
+      'tr': 'Özet değerlendirme; ayrıntılar için Analiz bölümüne gidin.',
+      'en': 'Quick summary; see Analysis for details.'
+    },
+    'filter_to_category': {
+      'tr': 'Bu kategoriye filtrele',
+      'en': 'Filter to this category'
+    },
 
     // Alternative Medicine - Traditional methods
     'trad_cupping_title': {'tr': 'Hacamat Tedavisi', 'en': 'Cupping Therapy'},
-    'trad_cupping_description': {'tr': 'Kan dolaşımını iyileştiren geleneksel yöntem', 'en': 'Traditional method to improve blood circulation'},
-    'trad_cupping_benefits': {'tr': 'Kirli kanın çıkarılması, dolaşım iyileşmesi', 'en': 'Removes stagnant blood; improves circulation'},
-    'trad_cupping_procedure': {'tr': 'Uzman tarafından steril ortamda uygulanmalı', 'en': 'Must be performed by a specialist in sterile conditions'},
-    'trad_cupping_frequency': {'tr': 'Ayda 1-2 kez', 'en': '1–2 times per month'},
-    'trad_cupping_warning': {'tr': 'Kan hastalığı varsa doktor onayı şart', 'en': 'Doctor approval required for blood disorders'},
+    'trad_cupping_description': {
+      'tr': 'Kan dolaşımını iyileştiren geleneksel yöntem',
+      'en': 'Traditional method to improve blood circulation'
+    },
+    'trad_cupping_benefits': {
+      'tr': 'Kirli kanın çıkarılması, dolaşım iyileşmesi',
+      'en': 'Removes stagnant blood; improves circulation'
+    },
+    'trad_cupping_procedure': {
+      'tr': 'Uzman tarafından steril ortamda uygulanmalı',
+      'en': 'Must be performed by a specialist in sterile conditions'
+    },
+    'trad_cupping_frequency': {
+      'tr': 'Ayda 1-2 kez',
+      'en': '1–2 times per month'
+    },
+    'trad_cupping_warning': {
+      'tr': 'Kan hastalığı varsa doktor onayı şart',
+      'en': 'Doctor approval required for blood disorders'
+    },
 
     'trad_leech_title': {'tr': 'Sülük Tedavisi', 'en': 'Leech Therapy'},
-    'trad_leech_description': {'tr': 'Doğal kan inceltici ve detoks yöntemi', 'en': 'Natural blood thinner and detox method'},
-    'trad_leech_benefits': {'tr': 'Kan pıhtılaşmasını önler, toksin atılımı', 'en': 'Prevents clotting; aids toxin removal'},
-    'trad_leech_procedure': {'tr': 'Tıbbi sülüklerle uzman gözetiminde', 'en': 'With medical leeches under specialist supervision'},
+    'trad_leech_description': {
+      'tr': 'Doğal kan inceltici ve detoks yöntemi',
+      'en': 'Natural blood thinner and detox method'
+    },
+    'trad_leech_benefits': {
+      'tr': 'Kan pıhtılaşmasını önler, toksin atılımı',
+      'en': 'Prevents clotting; aids toxin removal'
+    },
+    'trad_leech_procedure': {
+      'tr': 'Tıbbi sülüklerle uzman gözetiminde',
+      'en': 'With medical leeches under specialist supervision'
+    },
     'trad_leech_frequency': {'tr': '3 ayda 1 kez', 'en': 'Once every 3 months'},
-    'trad_leech_warning': {'tr': 'Enfeksiyon riski, steril ortam şart', 'en': 'Infection risk; requires sterile conditions'},
+    'trad_leech_warning': {
+      'tr': 'Enfeksiyon riski, steril ortam şart',
+      'en': 'Infection risk; requires sterile conditions'
+    },
 
     'trad_dry_cupping_title': {'tr': 'Kuru Kupa', 'en': 'Dry Cupping'},
-    'trad_dry_cupping_description': {'tr': 'Vakum ile kan dolaşımını hızlandırma', 'en': 'Speeds blood circulation via vacuum'},
-    'trad_dry_cupping_benefits': {'tr': 'Kas gevşemesi, dolaşım artışı', 'en': 'Muscle relaxation; increased circulation'},
-    'trad_dry_cupping_procedure': {'tr': 'Cam kupa ile vakum oluşturulur', 'en': 'Creates vacuum with glass cups'},
-    'trad_dry_cupping_frequency': {'tr': 'Haftada 1-2 kez', 'en': '1–2 times weekly'},
-    'trad_dry_cupping_warning': {'tr': 'Deri hassasiyeti olanlarda dikkat', 'en': 'Use caution with skin sensitivity'},
+    'trad_dry_cupping_description': {
+      'tr': 'Vakum ile kan dolaşımını hızlandırma',
+      'en': 'Speeds blood circulation via vacuum'
+    },
+    'trad_dry_cupping_benefits': {
+      'tr': 'Kas gevşemesi, dolaşım artışı',
+      'en': 'Muscle relaxation; increased circulation'
+    },
+    'trad_dry_cupping_procedure': {
+      'tr': 'Cam kupa ile vakum oluşturulur',
+      'en': 'Creates vacuum with glass cups'
+    },
+    'trad_dry_cupping_frequency': {
+      'tr': 'Haftada 1-2 kez',
+      'en': '1–2 times weekly'
+    },
+    'trad_dry_cupping_warning': {
+      'tr': 'Deri hassasiyeti olanlarda dikkat',
+      'en': 'Use caution with skin sensitivity'
+    },
 
     'trad_reflexology_title': {'tr': 'Refleksoloji', 'en': 'Reflexology'},
-    'trad_reflexology_description': {'tr': 'Ayak masajı ile organ uyarımı', 'en': 'Stimulates organs via foot massage'},
-    'trad_reflexology_benefits': {'tr': 'Dolaşımı artırır, organları uyarır', 'en': 'Increases circulation; stimulates organs'},
-    'trad_reflexology_procedure': {'tr': 'Ayak tabanında belirli noktalara baskı', 'en': 'Applies pressure to specific points on feet'},
-    'trad_reflexology_frequency': {'tr': 'Haftada 2-3 kez', 'en': '2–3 times weekly'},
-    'trad_reflexology_warning': {'tr': 'Ayak yaraları varsa yapmayın', 'en': 'Avoid with foot wounds'},
+    'trad_reflexology_description': {
+      'tr': 'Ayak masajı ile organ uyarımı',
+      'en': 'Stimulates organs via foot massage'
+    },
+    'trad_reflexology_benefits': {
+      'tr': 'Dolaşımı artırır, organları uyarır',
+      'en': 'Increases circulation; stimulates organs'
+    },
+    'trad_reflexology_procedure': {
+      'tr': 'Ayak tabanında belirli noktalara baskı',
+      'en': 'Applies pressure to specific points on feet'
+    },
+    'trad_reflexology_frequency': {
+      'tr': 'Haftada 2-3 kez',
+      'en': '2–3 times weekly'
+    },
+    'trad_reflexology_warning': {
+      'tr': 'Ayak yaraları varsa yapmayın',
+      'en': 'Avoid with foot wounds'
+    },
 
     'trad_aromatherapy_title': {'tr': 'Aromaterapi', 'en': 'Aromatherapy'},
-    'trad_aromatherapy_description': {'tr': 'Uçucu yağlarla tedavi', 'en': 'Treatment with essential oils'},
-    'trad_aromatherapy_benefits': {'tr': 'Stres azalması, hormon dengelenmesi', 'en': 'Reduces stress; balances hormones'},
-    'trad_aromatherapy_procedure': {'tr': 'Diffüzer ile soluma veya masaj yağı', 'en': 'Inhalation via diffuser or massage oil'},
+    'trad_aromatherapy_description': {
+      'tr': 'Uçucu yağlarla tedavi',
+      'en': 'Treatment with essential oils'
+    },
+    'trad_aromatherapy_benefits': {
+      'tr': 'Stres azalması, hormon dengelenmesi',
+      'en': 'Reduces stress; balances hormones'
+    },
+    'trad_aromatherapy_procedure': {
+      'tr': 'Diffüzer ile soluma veya masaj yağı',
+      'en': 'Inhalation via diffuser or massage oil'
+    },
     'trad_aromatherapy_frequency': {'tr': 'Günlük kullanım', 'en': 'Daily use'},
-    'trad_aromatherapy_warning': {'tr': 'Hamilelikte bazı yağlar tehlikeli', 'en': 'Some oils are unsafe during pregnancy'},
+    'trad_aromatherapy_warning': {
+      'tr': 'Hamilelikte bazı yağlar tehlikeli',
+      'en': 'Some oils are unsafe during pregnancy'
+    },
     'share_suggestions': {
       'tr': '• Önerilerinizi paylaşın',
       'en': '• Share your suggestions',
@@ -11151,14 +14126,6 @@ class LocalizationService extends ChangeNotifier {
       'de': 'Benachrichtigungseinstellungen gespeichert!',
       'ar': 'تم حفظ إعدادات الإشعارات!',
     },
-    'save_settings': {
-      'tr': 'Ayarları Kaydet',
-      'en': 'Save Settings',
-      'es': 'Guardar Configuración',
-      'fr': 'Enregistrer les Paramètres',
-      'de': 'Einstellungen Speichern',
-      'ar': 'حفظ الإعدادات',
-    },
     'notification_deleted': {
       'tr': 'Bildirim silindi',
       'en': 'Notification deleted',
@@ -11208,12 +14175,18 @@ class LocalizationService extends ChangeNotifier {
       'ar': '💧 فوائد شرب الماء',
     },
     'water_benefits_list': {
-      'tr': '• Kan dolaşımını iyileştirir\n• Hemoglobin taşınmasına yardımcı olur\n• Demir emilimini artırır\n• Toksinleri vücuttan atar\n• Enerji seviyesini yükseltir',
-      'en': '• Improves blood circulation\n• Supports hemoglobin transport\n• Enhances iron absorption\n• Flushes out toxins\n• Boosts energy levels',
-      'es': '• Mejora la circulación sanguínea\n• Apoya el transporte de hemoglobina\n• Mejora la absorción de hierro\n• Elimina toxinas\n• Aumenta los niveles de energía',
-      'fr': '• Améliore la circulation sanguine\n• Soutient le transport de l\'hémoglobine\n• Améliore l\'absorption du fer\n• Élimine les toxines\n• Augmente les niveaux d\'énergie',
-      'de': '• Verbessert die Blutzirkulation\n• Unterstützt den Hämoglobintransport\n• Erhöht die Eisenaufnahme\n• Spült Toxine aus\n• Steigert das Energieniveau',
-      'ar': '• يحسن الدورة الدموية\n• يدعم نقل الهيموجلوبين\n• يعزز امتصاص الحديد\n• يطرد السموم\n• يعزز مستويات الطاقة',
+      'tr':
+          '• Kan dolaşımını iyileştirir\n• Hemoglobin taşınmasına yardımcı olur\n• Demir emilimini artırır\n• Toksinleri vücuttan atar\n• Enerji seviyesini yükseltir',
+      'en':
+          '• Improves blood circulation\n• Supports hemoglobin transport\n• Enhances iron absorption\n• Flushes out toxins\n• Boosts energy levels',
+      'es':
+          '• Mejora la circulación sanguínea\n• Apoya el transporte de hemoglobina\n• Mejora la absorción de hierro\n• Elimina toxinas\n• Aumenta los niveles de energía',
+      'fr':
+          '• Améliore la circulation sanguine\n• Soutient le transport de l\'hémoglobine\n• Améliore l\'absorption du fer\n• Élimine les toxines\n• Augmente les niveaux d\'énergie',
+      'de':
+          '• Verbessert die Blutzirkulation\n• Unterstützt den Hämoglobintransport\n• Erhöht die Eisenaufnahme\n• Spült Toxine aus\n• Steigert das Energieniveau',
+      'ar':
+          '• يحسن الدورة الدموية\n• يدعم نقل الهيموجلوبين\n• يعزز امتصاص الحديد\n• يطرد السموم\n• يعزز مستويات الطاقة',
     },
     'daily_medication_tracking': {
       'tr': 'Günlük İlaç Takibi',
@@ -11298,9 +14271,12 @@ class LocalizationService extends ChangeNotifier {
     },
     'water_goal_completed_message': {
       'tr': 'Günlük {goal} bardak su hedefinizi başarıyla tamamladınız!',
-      'en': 'You have successfully completed your daily goal of {goal} glasses of water!',
-      'es': '¡Ha completado con éxito su objetivo diario de {goal} vasos de agua!',
-      'fr': 'Vous avez atteint votre objectif quotidien de {goal} verres d\'eau !',
+      'en':
+          'You have successfully completed your daily goal of {goal} glasses of water!',
+      'es':
+          '¡Ha completado con éxito su objetivo diario de {goal} vasos de agua!',
+      'fr':
+          'Vous avez atteint votre objectif quotidien de {goal} verres d\'eau !',
       'de': 'Sie haben Ihr tägliches Ziel von {goal} Gläsern Wasser erreicht!',
       'ar': 'لقد أكملت بنجاح هدفك اليومي البالغ {goal} أكواب من الماء!',
     },
@@ -11309,7 +14285,8 @@ class LocalizationService extends ChangeNotifier {
       'tr': 'Tebrikler! Günlük su hedefinizi tamamladınız! 🎉',
       'en': 'Congratulations! You\'ve completed your daily water goal! 🎉',
       'es': '¡Felicidades! ¡Has completado tu objetivo diario de agua! 🎉',
-      'fr': 'Félicitations ! Vous avez atteint votre objectif quotidien d\'eau ! 🎉',
+      'fr':
+          'Félicitations ! Vous avez atteint votre objectif quotidien d\'eau ! 🎉',
       'de': 'Glückwunsch! Du hast dein tägliches Wasserziel erreicht! 🎉',
       'ar': 'تهانينا! لقد أكملت هدفك اليومي من الماء! 🎉',
     },
@@ -11399,24 +14376,30 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Important Reminder',
     },
     'important_reminder_body': {
-      'tr': 'Alternatif tıp yöntemleri tamamlayıcı tedavi amacıyla kullanılmalıdır. Ana tedavinizin yerini alamaz. Mutlaka doktorunuzla görüşerek uygulayın.',
-      'en': 'Alternative medicine methods should be used as complementary treatments. They cannot replace your main treatment. Always consult your doctor before applying.',
+      'tr':
+          'Alternatif tıp yöntemleri tamamlayıcı tedavi amacıyla kullanılmalıdır. Ana tedavinizin yerini alamaz. Mutlaka doktorunuzla görüşerek uygulayın.',
+      'en':
+          'Alternative medicine methods should be used as complementary treatments. They cannot replace your main treatment. Always consult your doctor before applying.',
     },
     'basic_rules_title': {
       'tr': 'Temel Kurallar',
       'en': 'Basic Rules',
     },
     'basic_rules_list': {
-      'tr': 'Herhangi bir bitkisel ürünü kullanmadan önce doktorunuza danışın\nİlaçlarınızla etkileşim olup olmadığını kontrol ettirin\nHamilelik, emzirme döneminde ekstra dikkatli olun\nAlerjik reaksiyonlara karşı dikkatli olun, küçük dozlarla başlayın\nKaliteli, güvenilir kaynaklardan temin edin\nBelirtilen dozları aşmayın\nYan etki görürseniz hemen bırakın ve doktora başvurun',
-      'en': 'Consult your doctor before using any herbal product\nCheck for possible interactions with your medications\nBe extra cautious during pregnancy and breastfeeding\nWatch for allergic reactions and start with small doses\nSource products from high-quality, trusted suppliers\nDo not exceed the stated dosages\nStop immediately and consult a doctor if side effects occur',
+      'tr':
+          'Herhangi bir bitkisel ürünü kullanmadan önce doktorunuza danışın\nİlaçlarınızla etkileşim olup olmadığını kontrol ettirin\nHamilelik, emzirme döneminde ekstra dikkatli olun\nAlerjik reaksiyonlara karşı dikkatli olun, küçük dozlarla başlayın\nKaliteli, güvenilir kaynaklardan temin edin\nBelirtilen dozları aşmayın\nYan etki görürseniz hemen bırakın ve doktora başvurun',
+      'en':
+          'Consult your doctor before using any herbal product\nCheck for possible interactions with your medications\nBe extra cautious during pregnancy and breastfeeding\nWatch for allergic reactions and start with small doses\nSource products from high-quality, trusted suppliers\nDo not exceed the stated dosages\nStop immediately and consult a doctor if side effects occur',
     },
     'expert_support_title': {
       'tr': 'Uzman Desteği',
       'en': 'Expert Support',
     },
     'expert_support_body': {
-      'tr': 'Alternatif tıp yöntemlerini uygulamadan önce:\n\n• Fitoterapist veya geleneksel tıp uzmanına danışın\n• Hematoloji uzmanınızın onayını alın\n• Düzenli kan takibinizi aksatmayın\n• Tedavi sürecinizi doktorunuzla paylaşın',
-      'en': 'Before applying alternative medicine methods:\n\n• Consult a phytotherapist or traditional medicine specialist\n• Obtain approval from your hematology specialist\n• Do not neglect regular blood monitoring\n• Share your treatment process with your doctor',
+      'tr':
+          'Alternatif tıp yöntemlerini uygulamadan önce:\n\n• Fitoterapist veya geleneksel tıp uzmanına danışın\n• Hematoloji uzmanınızın onayını alın\n• Düzenli kan takibinizi aksatmayın\n• Tedavi sürecinizi doktorunuzla paylaşın',
+      'en':
+          'Before applying alternative medicine methods:\n\n• Consult a phytotherapist or traditional medicine specialist\n• Obtain approval from your hematology specialist\n• Do not neglect regular blood monitoring\n• Share your treatment process with your doctor',
     },
     // New traditional methods
     'trad_acupuncture_title': {
@@ -11428,12 +14411,16 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Complementary method aiming to balance neuro-hormonal system',
     },
     'trad_acupuncture_benefits': {
-      'tr': 'Stres yönetimi, uyku kalitesi; tiroid ve bağışıklık dengesine destek',
-      'en': 'Stress management, sleep quality; supports thyroid and immune balance',
+      'tr':
+          'Stres yönetimi, uyku kalitesi; tiroid ve bağışıklık dengesine destek',
+      'en':
+          'Stress management, sleep quality; supports thyroid and immune balance',
     },
     'trad_acupuncture_procedure': {
-      'tr': 'Yetkin bir uzman tarafından ince iğneler belirli noktalara uygulanır',
-      'en': 'Fine needles applied to specific points by a certified practitioner',
+      'tr':
+          'Yetkin bir uzman tarafından ince iğneler belirli noktalara uygulanır',
+      'en':
+          'Fine needles applied to specific points by a certified practitioner',
     },
     'trad_acupuncture_frequency': {
       'tr': 'Haftada 1-2 seans, 4-6 hafta',
@@ -11453,8 +14440,10 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Applies heat to acupuncture points to improve circulation',
     },
     'trad_moxibustion_benefits': {
-      'tr': 'Soğuk duyarlılığı ve yorgunlukta destek; sindirim ve dolaşımda iyileşme',
-      'en': 'Supports cold sensitivity and fatigue; may aid digestion and circulation',
+      'tr':
+          'Soğuk duyarlılığı ve yorgunlukta destek; sindirim ve dolaşımda iyileşme',
+      'en':
+          'Supports cold sensitivity and fatigue; may aid digestion and circulation',
     },
     'trad_moxibustion_procedure': {
       'tr': 'Uzman eşliğinde moksa çubuğu ile hedef noktalara ısı uygulanır',
@@ -11465,7 +14454,8 @@ class LocalizationService extends ChangeNotifier {
       'en': '1–2 applications per week',
     },
     'trad_moxibustion_warning': {
-      'tr': 'Diyabetik nöropati ve duyusal kayıpta yanık riski nedeniyle kaçınılmalı',
+      'tr':
+          'Diyabetik nöropati ve duyusal kayıpta yanık riski nedeniyle kaçınılmalı',
       'en': 'Avoid with diabetic neuropathy or sensory loss due to burn risk',
     },
 
@@ -11503,11 +14493,13 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Warm external compress applied over liver/bile area',
     },
     'trad_castor_pack_benefits': {
-      'tr': 'Rahatlama, dolaşım ve lenf akımına destek; karaciğer yükünü hafifletebilir',
+      'tr':
+          'Rahatlama, dolaşım ve lenf akımına destek; karaciğer yükünü hafifletebilir',
       'en': 'Relaxation, supports circulation and lymph; may ease liver load',
     },
     'trad_castor_pack_procedure': {
-      'tr': 'Gazlı bezi hint yağıyla ıslatın, sıcak torba ile 20-30 dk uygulayın',
+      'tr':
+          'Gazlı bezi hint yağıyla ıslatın, sıcak torba ile 20-30 dk uygulayın',
       'en': 'Soak gauze with castor oil; apply with warm pack for 20–30 min',
     },
     'trad_castor_pack_frequency': {
@@ -11654,12 +14646,18 @@ class LocalizationService extends ChangeNotifier {
       'ar': 'اعتن بنفسك اليوم',
     },
     'motivational_message_long': {
-      'tr': 'Sağlığın için küçük adımlar büyük fark yaratır. Bugün bol su içmeyi, dengeli beslenmeyi ve hareket etmeyi unutma.',
-      'en': 'Small steps make a big difference for your health. Remember to drink water, eat balanced meals and move today.',
-      'es': 'Pequeños pasos marcan una gran diferencia para tu salud. Recuerda beber agua, comer equilibradamente y moverte hoy.',
-      'fr': 'De petits pas font une grande différence pour ta santé. N\'oublie pas de boire de l\'eau, de manger équilibré et de bouger.',
-      'de': 'Kleine Schritte machen einen großen Unterschied für deine Gesundheit. Trinke Wasser, iss ausgewogen und bewege dich heute.',
-      'ar': 'الخطوات الصغيرة تصنع فرقاً كبيراً لصحتك. تذكر شرب الماء وتناول وجبات متوازنة والحركة اليوم.',
+      'tr':
+          'Sağlığın için küçük adımlar büyük fark yaratır. Bugün bol su içmeyi, dengeli beslenmeyi ve hareket etmeyi unutma.',
+      'en':
+          'Small steps make a big difference for your health. Remember to drink water, eat balanced meals and move today.',
+      'es':
+          'Pequeños pasos marcan una gran diferencia para tu salud. Recuerda beber agua, comer equilibradamente y moverte hoy.',
+      'fr':
+          'De petits pas font une grande différence pour ta santé. N\'oublie pas de boire de l\'eau, de manger équilibré et de bouger.',
+      'de':
+          'Kleine Schritte machen einen großen Unterschied für deine Gesundheit. Trinke Wasser, iss ausgewogen und bewege dich heute.',
+      'ar':
+          'الخطوات الصغيرة تصنع فرقاً كبيراً لصحتك. تذكر شرب الماء وتناول وجبات متوازنة والحركة اليوم.',
     },
     'motivational_rotating_title': {
       'tr': 'Günün Motivasyonu',
@@ -11678,12 +14676,18 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Daily motivation notification time',
     },
     'motivational_custom_quote': {
-      'tr': 'Sabır zor koşullar altında ceserat ve metanetini yitirmeme duygusudur.Sabırlı insan uzun süreli gecikmelere ve tahriklere rağmen moralini bozmadan yoluna devam eder veya beklemesini sürdürür',
-      'en': 'In difficult conditions, it is the feeling of not losing courage and fortitude. A patient person does not lose morale despite delays and provocations, continues on the right path or knows to wait.',
-      'es': 'En condiciones difíciles, es el sentimiento de no perder el valor y la fortaleza. Una persona paciente no pierde la moral a pesar de los retrasos y las provocaciones, continúa por el camino correcto o sabe esperar.',
-      'fr': "Dans des conditions difficiles, c'est le fait de ne pas perdre courage et endurance. Une personne patiente ne perd pas le moral malgré les retards et les provocations, continue sur la bonne voie ou sait attendre.",
-      'de': 'Unter schwierigen Bedingungen ist es das Gefühl, Mut und Standhaftigkeit nicht zu verlieren. Eine geduldige Person verliert trotz Verzögerungen und Provokationen nicht den Mut, bleibt auf dem richtigen Weg oder weiß zu warten.',
-      'ar': 'في الظروف الصعبة، هو الشعور بعدم فقدان الشجاعة والثبات. الشخص الصبور لا يفقد معنوياته رغم التأخيرات والاستفزازات، يواصل السير في الطريق الصحيح أو يعرف كيف ينتظر.',
+      'tr':
+          'Sabır zor koşullar altında ceserat ve metanetini yitirmeme duygusudur.Sabırlı insan uzun süreli gecikmelere ve tahriklere rağmen moralini bozmadan yoluna devam eder veya beklemesini sürdürür',
+      'en':
+          'In difficult conditions, it is the feeling of not losing courage and fortitude. A patient person does not lose morale despite delays and provocations, continues on the right path or knows to wait.',
+      'es':
+          'En condiciones difíciles, es el sentimiento de no perder el valor y la fortaleza. Una persona paciente no pierde la moral a pesar de los retrasos y las provocaciones, continúa por el camino correcto o sabe esperar.',
+      'fr':
+          "Dans des conditions difficiles, c'est le fait de ne pas perdre courage et endurance. Une personne patiente ne perd pas le moral malgré les retards et les provocations, continue sur la bonne voie ou sait attendre.",
+      'de':
+          'Unter schwierigen Bedingungen ist es das Gefühl, Mut und Standhaftigkeit nicht zu verlieren. Eine geduldige Person verliert trotz Verzögerungen und Provokationen nicht den Mut, bleibt auf dem richtigen Weg oder weiß zu warten.',
+      'ar':
+          'في الظروف الصعبة، هو الشعور بعدم فقدان الشجاعة والثبات. الشخص الصبور لا يفقد معنوياته رغم التأخيرات والاستفزازات، يواصل السير في الطريق الصحيح أو يعرف كيف ينتظر.',
     },
     'personal_diet_suggestion': {
       'tr': 'Kişisel Diyet Önerisi',
@@ -11702,12 +14706,18 @@ class LocalizationService extends ChangeNotifier {
       'ar': 'قائمة مثال لتوازن الهيموجلوبين لديك',
     },
     'personal_diet_plan_example': {
-      'tr': 'Kahvaltı: Yulaf + Ceviz\nÖğle: Izgara tavuk + yeşil sebzeler\nAkşam: Mercimek çorbası + yoğurt. Gün boyu bol su içmeyi unutma.',
-      'en': 'Breakfast: Oats + Walnuts\nLunch: Grilled chicken + greens\nDinner: Lentil soup + yogurt. Remember to stay hydrated.',
-      'es': 'Desayuno: Avena + Nueces\nAlmuerzo: Pollo a la parrilla + vegetales verdes\nCena: Sopa de lentejas + yogur. Recuerda mantenerte hidratado.',
-      'fr': 'Petit-déj: Flocons d\'avoine + Noix\nDéj: Poulet grillé + légumes verts\nDîner: Soupe de lentilles + yaourt. Reste hydraté.',
-      'de': 'Frühstück: Hafer + Walnüsse\nMittag: Gegrilltes Hähnchen + Grünes Gemüse\nAbend: Linsensuppe + Joghurt. Bleib hydriert.',
-      'ar': 'الإفطار: شوفان + جوز\nالغداء: دجاج مشوي + خضار خضراء\nالعشاء: شوربة عدس + زبادي. تذكر شرب الماء.',
+      'tr':
+          'Kahvaltı: Yulaf + Ceviz\nÖğle: Izgara tavuk + yeşil sebzeler\nAkşam: Mercimek çorbası + yoğurt. Gün boyu bol su içmeyi unutma.',
+      'en':
+          'Breakfast: Oats + Walnuts\nLunch: Grilled chicken + greens\nDinner: Lentil soup + yogurt. Remember to stay hydrated.',
+      'es':
+          'Desayuno: Avena + Nueces\nAlmuerzo: Pollo a la parrilla + vegetales verdes\nCena: Sopa de lentejas + yogur. Recuerda mantenerte hidratado.',
+      'fr':
+          'Petit-déj: Flocons d\'avoine + Noix\nDéj: Poulet grillé + légumes verts\nDîner: Soupe de lentilles + yaourt. Reste hydraté.',
+      'de':
+          'Frühstück: Hafer + Walnüsse\nMittag: Gegrilltes Hähnchen + Grünes Gemüse\nAbend: Linsensuppe + Joghurt. Bleib hydriert.',
+      'ar':
+          'الإفطار: شوفان + جوز\nالغداء: دجاج مشوي + خضار خضراء\nالعشاء: شوربة عدس + زبادي. تذكر شرب الماء.',
     },
     'test_reminder_title': {
       'tr': 'Test Hatırlatıcısı',
@@ -11726,12 +14736,18 @@ class LocalizationService extends ChangeNotifier {
       'ar': 'وقت فحص تعداد الدم الشهري',
     },
     'test_reminder_description': {
-      'tr': 'Düzenli kontroller sağlığınızı korumanıza yardımcı olur. Bugün test için randevu alabilirsiniz.',
-      'en': 'Regular checks help maintain your health. You can schedule a test today.',
-      'es': 'Los controles regulares ayudan a mantener tu salud. Puedes programar una prueba hoy.',
-      'fr': 'Les contrôles réguliers aident à maintenir ta santé. Tu peux planifier un test aujourd\'hui.',
-      'de': 'Regelmäßige Kontrollen helfen, deine Gesundheit zu erhalten. Du kannst heute einen Test planen.',
-      'ar': 'الفحوصات المنتظمة تساعد في الحفاظ على صحتك. يمكنك جدولة فحص اليوم.',
+      'tr':
+          'Düzenli kontroller sağlığınızı korumanıza yardımcı olur. Bugün test için randevu alabilirsiniz.',
+      'en':
+          'Regular checks help maintain your health. You can schedule a test today.',
+      'es':
+          'Los controles regulares ayudan a mantener tu salud. Puedes programar una prueba hoy.',
+      'fr':
+          'Les contrôles réguliers aident à maintenir ta santé. Tu peux planifier un test aujourd\'hui.',
+      'de':
+          'Regelmäßige Kontrollen helfen, deine Gesundheit zu erhalten. Du kannst heute einen Test planen.',
+      'ar':
+          'الفحوصات المنتظمة تساعد في الحفاظ على صحتك. يمكنك جدولة فحص اليوم.',
     },
     // Notification titles and bodies
     'medication_reminder_title': {
@@ -11790,8 +14806,10 @@ class LocalizationService extends ChangeNotifier {
     },
     // Newline-delimited list of short, public-domain-inspired maxims (localized)
     'daily_quotes_list': {
-      'tr': 'Marcus Aurelius: Engeller, hedefe giden yolun kendisidir.\nSeneca: Rotası olmayan gemiye hiçbir rüzgâr yaramaz.\nEpiktetos: Ne olmak istediğini söyle; sonra gereğini yap.\nKonfüçyüs: Yavaş gitsen de durma; küçük adımlar hedefe götürür.\nHerakleitos: Değişim ilerlemenin motorudur.\nPlaton: Ölçülü ilerleme kalıcıdır.\nSokrates: Kendini bil; gücünü nereye harcayacağını seç.\nPlutarkhos: Büyük işler küçük alışkanlıklarla başlar.\nCicero: İstikrarlı çaba, yeteneğin yerini alır.\nZeno: Erdemli hedef, sağlam istikamet ister.\nDiyojenes: Azla yetinmek, yolda kalmanın gücüdür.\nPitagoras: Düzen, hedefin dostudur.\nThales: Uygun zamanı beklemek değil, zaman yaratmaktır.\nDemokritos: Küçük ilerlemeler büyük sonuçlar verir.\nLaozi: Bin millik yol tek bir adımla başlar.\nSun Tzu: Hazırlık, zaferin yarısıdır.\nEpiktetos: Dışarıdan değil, içeriden yönet.\nSeneca: Zaman kısa değil; biz onu israf ederiz.\nMarcus Aurelius: Yapabileceğin tek an şimdidir.\nKonfüçyüs: Hedefe bakan, ayağını sağlam basar.\nAristoteles: Amaca uygun eylem mutluluk getirir.\nHerakleitos: Nehir değişir; yürüyen hedefe yaklaşır.\nPlaton: Doğru yön, yarı mesafedir.\nSokrates: Soru sor; yol kendini gösterir.\nCicero: Hırs değil, azim güven verir.\nPlutarkhos: Ruh disiplinle büyür.\nZeno: Küçük iyiler, büyük iyiliği kurar.\nDiyojenes: Fazlalığı bırak; rotanı hafiflet.\nDemokritos: Nedensiz başarı yoktur; sebep ol.\nLaozi: Esneklik, uzun yürüyüşün sırrıdır.\nSun Tzu: Önce plan, sonra hamle.\nEpikür: Yeterince olan, özgürleştirir.\nMarcus Aurelius: Doğaya uygun yaşa; yol açılır.',
-      'en': 'Marcus Aurelius: The obstacle is the path to your goal.\nSeneca: No wind helps the sailor without a course.\nEpictetus: First declare what you aim to be; then act as required.\nConfucius: Move slowly if you must—just don’t stop.\nHeraclitus: Change powers progress.\nPlato: Measured steps endure.\nSocrates: Know yourself; choose where to spend your strength.\nPlutarch: Great deeds begin with small habits.\nCicero: Steady effort outworks talent.\nZeno: A worthy aim demands a steady course.\nDiogenes: Needing less keeps you on the road.\nPythagoras: Order is a friend to goals.\nThales: Don’t wait for time—make it.\nDemocritus: Small advances yield great outcomes.\nLaozi: A thousand-mile journey begins with a single step.\nSun Tzu: Preparation is half the victory.\nEpictetus: Govern from within, not from without.\nSeneca: Time isn’t short; we waste much of it.\nMarcus Aurelius: The present is the only moment to act.\nConfucius: Eyes on the aim, feet firm on the ground.\nAristotle: Action fitted to purpose breeds fulfillment.\nHeraclitus: The river changes; the walker nears the goal.\nPlato: Right direction is half the distance.\nSocrates: Ask; the way reveals itself.\nCicero: Confidence rests on perseverance, not frenzy.\nPlutarch: The soul grows by discipline.\nZeno: Many small goods build the great good.\nDiogenes: Drop excess; lighten your route.\nDemocritus: There is no success without cause—be the cause.\nLaozi: Flexibility sustains a long march.\nSun Tzu: Plan first, strike later.\nEpicurus: Having enough sets you free.\nMarcus Aurelius: Live in accord with nature; the road opens.',
+      'tr':
+          'Marcus Aurelius: Engeller, hedefe giden yolun kendisidir.\nSeneca: Rotası olmayan gemiye hiçbir rüzgâr yaramaz.\nEpiktetos: Ne olmak istediğini söyle; sonra gereğini yap.\nKonfüçyüs: Yavaş gitsen de durma; küçük adımlar hedefe götürür.\nHerakleitos: Değişim ilerlemenin motorudur.\nPlaton: Ölçülü ilerleme kalıcıdır.\nSokrates: Kendini bil; gücünü nereye harcayacağını seç.\nPlutarkhos: Büyük işler küçük alışkanlıklarla başlar.\nCicero: İstikrarlı çaba, yeteneğin yerini alır.\nZeno: Erdemli hedef, sağlam istikamet ister.\nDiyojenes: Azla yetinmek, yolda kalmanın gücüdür.\nPitagoras: Düzen, hedefin dostudur.\nThales: Uygun zamanı beklemek değil, zaman yaratmaktır.\nDemokritos: Küçük ilerlemeler büyük sonuçlar verir.\nLaozi: Bin millik yol tek bir adımla başlar.\nSun Tzu: Hazırlık, zaferin yarısıdır.\nEpiktetos: Dışarıdan değil, içeriden yönet.\nSeneca: Zaman kısa değil; biz onu israf ederiz.\nMarcus Aurelius: Yapabileceğin tek an şimdidir.\nKonfüçyüs: Hedefe bakan, ayağını sağlam basar.\nAristoteles: Amaca uygun eylem mutluluk getirir.\nHerakleitos: Nehir değişir; yürüyen hedefe yaklaşır.\nPlaton: Doğru yön, yarı mesafedir.\nSokrates: Soru sor; yol kendini gösterir.\nCicero: Hırs değil, azim güven verir.\nPlutarkhos: Ruh disiplinle büyür.\nZeno: Küçük iyiler, büyük iyiliği kurar.\nDiyojenes: Fazlalığı bırak; rotanı hafiflet.\nDemokritos: Nedensiz başarı yoktur; sebep ol.\nLaozi: Esneklik, uzun yürüyüşün sırrıdır.\nSun Tzu: Önce plan, sonra hamle.\nEpikür: Yeterince olan, özgürleştirir.\nMarcus Aurelius: Doğaya uygun yaşa; yol açılır.',
+      'en':
+          'Marcus Aurelius: The obstacle is the path to your goal.\nSeneca: No wind helps the sailor without a course.\nEpictetus: First declare what you aim to be; then act as required.\nConfucius: Move slowly if you must—just don’t stop.\nHeraclitus: Change powers progress.\nPlato: Measured steps endure.\nSocrates: Know yourself; choose where to spend your strength.\nPlutarch: Great deeds begin with small habits.\nCicero: Steady effort outworks talent.\nZeno: A worthy aim demands a steady course.\nDiogenes: Needing less keeps you on the road.\nPythagoras: Order is a friend to goals.\nThales: Don’t wait for time—make it.\nDemocritus: Small advances yield great outcomes.\nLaozi: A thousand-mile journey begins with a single step.\nSun Tzu: Preparation is half the victory.\nEpictetus: Govern from within, not from without.\nSeneca: Time isn’t short; we waste much of it.\nMarcus Aurelius: The present is the only moment to act.\nConfucius: Eyes on the aim, feet firm on the ground.\nAristotle: Action fitted to purpose breeds fulfillment.\nHeraclitus: The river changes; the walker nears the goal.\nPlato: Right direction is half the distance.\nSocrates: Ask; the way reveals itself.\nCicero: Confidence rests on perseverance, not frenzy.\nPlutarch: The soul grows by discipline.\nZeno: Many small goods build the great good.\nDiogenes: Drop excess; lighten your route.\nDemocritus: There is no success without cause—be the cause.\nLaozi: Flexibility sustains a long march.\nSun Tzu: Plan first, strike later.\nEpicurus: Having enough sets you free.\nMarcus Aurelius: Live in accord with nature; the road opens.',
     },
     // Generic/fallback small labels
     'you': {
@@ -11938,14 +14956,7 @@ class LocalizationService extends ChangeNotifier {
       'de': 'Erinnerung Erstellen',
       'ar': 'إنشاء تذكير',
     },
-    'health_score': {
-      'tr': 'Sağlık Skoru',
-      'en': 'Health Score',
-      'es': 'Puntuación de Salud',
-      'fr': 'Score de Santé',
-      'de': 'Gesundheitswert',
-      'ar': 'نتيجة الصحة',
-    },
+    // 'health_score' entry consolidated into extended localization section below.
     'health_status_excellent': {
       'tr': 'Mükemmel sağlık durumu',
       'en': 'Excellent health status',
@@ -12053,12 +15064,18 @@ class LocalizationService extends ChangeNotifier {
       'ar': 'الأمراض السابقة والعمليات الجراحية والتاريخ العائلي',
     },
     'medical_history_management_body': {
-      'tr': 'Tıbbi geçmişinizi yönetin. Hastalıklar, ameliyatlar ve aile öyküsü kayıtlarınızı burada saklayın. Doktor kontrolünde paylaşıma hazır.',
-      'en': 'Manage your medical history. Store records of illnesses, surgeries, and family history here. Ready to share with healthcare providers.',
-      'es': 'Gestione su historial médico. Almacene registros de enfermedades, cirugías e historial familiar aquí. Listo para compartir con proveedores de atención médica.',
-      'fr': 'Gérez vos antécédents médicaux. Stockez ici les dossiers de maladies, chirurgies et antécédents familiaux. Prêt à partager avec les professionnels de santé.',
-      'de': 'Verwalten Sie Ihre Krankengeschichte. Speichern Sie hier Aufzeichnungen über Krankheiten, Operationen und Familiengeschichte. Bereit für die Weitergabe an Gesundheitsdienstleister.',
-      'ar': 'إدارة تاريخك الطبي. قم بتخزين سجلات الأمراض والعمليات الجراحية والتاريخ العائلي هنا. جاهز للمشاركة مع مقدمي الرعاية الصحية.',
+      'tr':
+          'Tıbbi geçmişinizi yönetin. Hastalıklar, ameliyatlar ve aile öyküsü kayıtlarınızı burada saklayın. Doktor kontrolünde paylaşıma hazır.',
+      'en':
+          'Manage your medical history. Store records of illnesses, surgeries, and family history here. Ready to share with healthcare providers.',
+      'es':
+          'Gestione su historial médico. Almacene registros de enfermedades, cirugías e historial familiar aquí. Listo para compartir con proveedores de atención médica.',
+      'fr':
+          'Gérez vos antécédents médicaux. Stockez ici les dossiers de maladies, chirurgies et antécédents familiaux. Prêt à partager avec les professionnels de santé.',
+      'de':
+          'Verwalten Sie Ihre Krankengeschichte. Speichern Sie hier Aufzeichnungen über Krankheiten, Operationen und Familiengeschichte. Bereit für die Weitergabe an Gesundheitsdienstleister.',
+      'ar':
+          'إدارة تاريخك الطبي. قم بتخزين سجلات الأمراض والعمليات الجراحية والتاريخ العائلي هنا. جاهز للمشاركة مع مقدمي الرعاية الصحية.',
     },
     'lab_reports_archive': {
       'tr': 'Lab Raporları Arşivi',
@@ -12077,12 +15094,18 @@ class LocalizationService extends ChangeNotifier {
       'ar': 'نظم جميع نتائج المختبر',
     },
     'lab_reports_archive_body': {
-      'tr': 'Laboratuvar raporlarınızı merkezi bir konumda saklayın. PDF yükleme, tarih bazlı sıralama ve arama özellikleri.',
-      'en': 'Store your lab reports in a central location. Features include PDF upload, date-based sorting, and search functionality.',
-      'es': 'Almacene sus informes de laboratorio en una ubicación central. Incluye carga de PDF, orden por fecha y funcionalidad de búsqueda.',
-      'fr': 'Stockez vos rapports de laboratoire dans un emplacement central. Fonctionnalités : chargement PDF, tri par date et recherche.',
-      'de': 'Speichern Sie Ihre Laborberichte an einem zentralen Ort. Funktionen: PDF-Upload, Datumssortierung und Suchfunktion.',
-      'ar': 'قم بتخزين تقارير المختبر في موقع مركزي. يتضمن رفع PDF والترتيب حسب التاريخ ووظيفة البحث.',
+      'tr':
+          'Laboratuvar raporlarınızı merkezi bir konumda saklayın. PDF yükleme, tarih bazlı sıralama ve arama özellikleri.',
+      'en':
+          'Store your lab reports in a central location. Features include PDF upload, date-based sorting, and search functionality.',
+      'es':
+          'Almacene sus informes de laboratorio en una ubicación central. Incluye carga de PDF, orden por fecha y funcionalidad de búsqueda.',
+      'fr':
+          'Stockez vos rapports de laboratoire dans un emplacement central. Fonctionnalités : chargement PDF, tri par date et recherche.',
+      'de':
+          'Speichern Sie Ihre Laborberichte an einem zentralen Ort. Funktionen: PDF-Upload, Datumssortierung und Suchfunktion.',
+      'ar':
+          'قم بتخزين تقارير المختبر في موقع مركزي. يتضمن رفع PDF والترتيب حسب التاريخ ووظيفة البحث.',
     },
     'prescription_tracking': {
       'tr': 'Reçete Takibi',
@@ -12097,16 +15120,23 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Track medication use and get reminders',
       'es': 'Rastree el uso de medicamentos y reciba recordatorios',
       'fr': 'Suivez l\'utilisation des médicaments et recevez des rappels',
-      'de': 'Verfolgen Sie die Medikamenteneinnahme und erhalten Sie Erinnerungen',
+      'de':
+          'Verfolgen Sie die Medikamenteneinnahme und erhalten Sie Erinnerungen',
       'ar': 'تتبع استخدام الدواء واحصل على التذكيرات',
     },
     'prescription_tracking_body': {
-      'tr': 'Reçeteli ilaçlarınızı takip edin. Dozaj, sıklık ve sonraki dolum tarihlerini yönetin. Otomatik hatırlatmalar ile hiçbir dozu kaçırmayın.',
-      'en': 'Track your prescribed medications. Manage dosage, frequency, and refill dates. Never miss a dose with automatic reminders.',
-      'es': 'Rastree sus medicamentos recetados. Gestione la dosificación, frecuencia y fechas de recarga. Nunca se pierda una dosis con recordatorios automáticos.',
-      'fr': 'Suivez vos médicaments prescrits. Gérez les dosages, la fréquence et les dates de renouvellement. Ne manquez jamais une dose grâce aux rappels automatiques.',
-      'de': 'Verfolgen Sie Ihre verschriebenen Medikamente. Verwalten Sie Dosierung, Häufigkeit und Nachfülldaten. Verpassen Sie nie eine Dosis mit automatischen Erinnerungen.',
-      'ar': 'تتبع الأدوية الموصوفة. إدارة الجرعات والتكرار وتواريخ إعادة التعبئة. لا تفوت أي جرعة مع التذكيرات التلقائية.',
+      'tr':
+          'Reçeteli ilaçlarınızı takip edin. Dozaj, sıklık ve sonraki dolum tarihlerini yönetin. Otomatik hatırlatmalar ile hiçbir dozu kaçırmayın.',
+      'en':
+          'Track your prescribed medications. Manage dosage, frequency, and refill dates. Never miss a dose with automatic reminders.',
+      'es':
+          'Rastree sus medicamentos recetados. Gestione la dosificación, frecuencia y fechas de recarga. Nunca se pierda una dosis con recordatorios automáticos.',
+      'fr':
+          'Suivez vos médicaments prescrits. Gérez les dosages, la fréquence et les dates de renouvellement. Ne manquez jamais une dose grâce aux rappels automatiques.',
+      'de':
+          'Verfolgen Sie Ihre verschriebenen Medikamente. Verwalten Sie Dosierung, Häufigkeit und Nachfülldaten. Verpassen Sie nie eine Dosis mit automatischen Erinnerungen.',
+      'ar':
+          'تتبع الأدوية الموصوفة. إدارة الجرعات والتكرار وتواريخ إعادة التعبئة. لا تفوت أي جرعة مع التذكيرات التلقائية.',
     },
     'appointment_history': {
       'tr': 'Randevu Geçmişi',
@@ -12141,12 +15171,18 @@ class LocalizationService extends ChangeNotifier {
       'ar': 'حساسية الأدوية المعروفة والحالات المزمنة',
     },
     'allergies_conditions_body': {
-      'tr': 'İlaç alerjilerinizi ve kronik sağlık durumlarınızı kaydedin. Acil durumlarda bu bilgiler otomatik olarak sağlık personeli ile paylaşılabilir.',
-      'en': 'Record your drug allergies and chronic health conditions. In emergencies, this information can be automatically shared with healthcare personnel.',
-      'es': 'Registre sus alergias a medicamentos y condiciones crónicas de salud. En emergencias, esta información puede compartirse automáticamente con el personal de salud.',
-      'fr': 'Enregistrez vos allergies médicamenteuses et affections chroniques. En cas d\'urgence, ces informations peuvent être partagées automatiquement avec le personnel de santé.',
-      'de': 'Notieren Sie Ihre Arzneimittelallergien und chronischen Gesundheitszustände. In Notfällen können diese Informationen automatisch an medizinisches Personal weitergegeben werden.',
-      'ar': 'سجل حساسية الأدوية والحالات الصحية المزمنة. في حالات الطوارئ، يمكن مشاركة هذه المعلومات تلقائيًا مع أفراد الرعاية الصحية.',
+      'tr':
+          'İlaç alerjilerinizi ve kronik sağlık durumlarınızı kaydedin. Acil durumlarda bu bilgiler otomatik olarak sağlık personeli ile paylaşılabilir.',
+      'en':
+          'Record your drug allergies and chronic health conditions. In emergencies, this information can be automatically shared with healthcare personnel.',
+      'es':
+          'Registre sus alergias a medicamentos y condiciones crónicas de salud. En emergencias, esta información puede compartirse automáticamente con el personal de salud.',
+      'fr':
+          'Enregistrez vos allergies médicamenteuses et affections chroniques. En cas d\'urgence, ces informations peuvent être partagées automatiquement avec le personnel de santé.',
+      'de':
+          'Notieren Sie Ihre Arzneimittelallergien und chronischen Gesundheitszustände. In Notfällen können diese Informationen automatisch an medizinisches Personal weitergegeben werden.',
+      'ar':
+          'سجل حساسية الأدوية والحالات الصحية المزمنة. في حالات الطوارئ، يمكن مشاركة هذه المعلومات تلقائيًا مع أفراد الرعاية الصحية.',
     },
     // Advanced Health Analytics Section
     'advanced_health_analytics': {
@@ -12174,12 +15210,18 @@ class LocalizationService extends ChangeNotifier {
       'ar': 'التنبؤ بالقيم المستقبلية بالذكاء الاصطناعي',
     },
     'trend_prediction_body': {
-      'tr': 'Yapay zeka ile geçmiş verilerinizi analiz edip gelecek sağlık değerlerinizi tahmin edin. Risk faktörlerini erken tespit edin.',
-      'en': 'Analyze your historical data with AI to predict future health values. Detect risk factors early.',
-      'es': 'Analice sus datos históricos con IA para predecir valores de salud futuros. Detecte factores de riesgo temprano.',
-      'fr': 'Analysez vos données historiques avec l\'IA pour prédire les valeurs de santé futures. Détectez les facteurs de risque tôt.',
-      'de': 'Analysieren Sie Ihre historischen Daten mit KI, um zukünftige Gesundheitswerte vorherzusagen. Erkennen Sie Risikofaktoren früh.',
-      'ar': 'حلل بياناتك التاريخية بالذكاء الاصطناعي للتنبؤ بالقيم الصحية المستقبلية. اكتشف عوامل الخطر مبكرًا.',
+      'tr':
+          'Yapay zeka ile geçmiş verilerinizi analiz edip gelecek sağlık değerlerinizi tahmin edin. Risk faktörlerini erken tespit edin.',
+      'en':
+          'Analyze your historical data with AI to predict future health values. Detect risk factors early.',
+      'es':
+          'Analice sus datos históricos con IA para predecir valores de salud futuros. Detecte factores de riesgo temprano.',
+      'fr':
+          'Analysez vos données historiques avec l\'IA pour prédire les valeurs de santé futures. Détectez les facteurs de risque tôt.',
+      'de':
+          'Analysieren Sie Ihre historischen Daten mit KI, um zukünftige Gesundheitswerte vorherzusagen. Erkennen Sie Risikofaktoren früh.',
+      'ar':
+          'حلل بياناتك التاريخية بالذكاء الاصطناعي للتنبؤ بالقيم الصحية المستقبلية. اكتشف عوامل الخطر مبكرًا.',
     },
     'smart_alert_thresholds': {
       'tr': 'Akıllı Uyarı Eşikleri',
@@ -12214,12 +15256,18 @@ class LocalizationService extends ChangeNotifier {
       'ar': 'المقارنة على أساس العمر والجنس والسكان',
     },
     'comparative_analysis_body': {
-      'tr': 'Değerlerinizi aynı yaş, cinsiyet ve popülasyondaki kişilerle karşılaştırın. Sizin için neyin normal olduğunu anlayın.',
-      'en': 'Compare your values with people of the same age, gender, and population. Understand what\'s normal for you.',
-      'es': 'Compare sus valores con personas de la misma edad, género y población. Entienda qué es normal para usted.',
-      'fr': 'Comparez vos valeurs avec des personnes du même âge, genre et population. Comprenez ce qui est normal pour vous.',
-      'de': 'Vergleichen Sie Ihre Werte mit Personen gleichen Alters, Geschlechts und Bevölkerung. Verstehen Sie, was für Sie normal ist.',
-      'ar': 'قارن قيمك مع أشخاص من نفس العمر والجنس والسكان. افهم ما هو طبيعي بالنسبة لك.',
+      'tr':
+          'Değerlerinizi aynı yaş, cinsiyet ve popülasyondaki kişilerle karşılaştırın. Sizin için neyin normal olduğunu anlayın.',
+      'en':
+          'Compare your values with people of the same age, gender, and population. Understand what\'s normal for you.',
+      'es':
+          'Compare sus valores con personas de la misma edad, género y población. Entienda qué es normal para usted.',
+      'fr':
+          'Comparez vos valeurs avec des personnes du même âge, genre et population. Comprenez ce qui est normal pour vous.',
+      'de':
+          'Vergleichen Sie Ihre Werte mit Personen gleichen Alters, Geschlechts und Bevölkerung. Verstehen Sie, was für Sie normal ist.',
+      'ar':
+          'قارن قيمك مع أشخاص من نفس العمر والجنس والسكان. افهم ما هو طبيعي بالنسبة لك.',
     },
     'ai_recommendations': {
       'tr': 'AI Önerileri',
@@ -12254,12 +15302,18 @@ class LocalizationService extends ChangeNotifier {
       'ar': 'راجع صحتك العامة في نتيجة واحدة',
     },
     'health_score_calculation_body': {
-      'tr': 'Tüm sağlık parametrelerinizi analiz ederek kapsamlı bir sağlık skoru hesaplayın. Skorunuzu zaman içinde takip edin ve iyileştirin.',
-      'en': 'Calculate a comprehensive health score by analyzing all your health parameters. Track and improve your score over time.',
-      'es': 'Calcule una puntuación de salud integral analizando todos sus parámetros de salud. Rastree y mejore su puntuación con el tiempo.',
-      'fr': 'Calculez un score de santé complet en analysant tous vos paramètres de santé. Suivez et améliorez votre score au fil du temps.',
-      'de': 'Berechnen Sie einen umfassenden Gesundheitswert, indem Sie alle Ihre Gesundheitsparameter analysieren. Verfolgen und verbessern Sie Ihren Wert im Laufe der Zeit.',
-      'ar': 'احسب نتيجة صحية شاملة من خلال تحليل جميع معايير صحتك. تتبع وتحسين نتيجتك بمرور الوقت.',
+      'tr':
+          'Tüm sağlık parametrelerinizi analiz ederek kapsamlı bir sağlık skoru hesaplayın. Skorunuzu zaman içinde takip edin ve iyileştirin.',
+      'en':
+          'Calculate a comprehensive health score by analyzing all your health parameters. Track and improve your score over time.',
+      'es':
+          'Calcule una puntuación de salud integral analizando todos sus parámetros de salud. Rastree y mejore su puntuación con el tiempo.',
+      'fr':
+          'Calculez un score de santé complet en analysant tous vos paramètres de santé. Suivez et améliorez votre score au fil du temps.',
+      'de':
+          'Berechnen Sie einen umfassenden Gesundheitswert, indem Sie alle Ihre Gesundheitsparameter analysieren. Verfolgen und verbessern Sie Ihren Wert im Laufe der Zeit.',
+      'ar':
+          'احسب نتيجة صحية شاملة من خلال تحليل جميع معايير صحتك. تتبع وتحسين نتيجتك بمرور الوقت.',
     },
     // Data Sharing & Export Section
     'data_sharing_export': {
@@ -12287,12 +15341,18 @@ class LocalizationService extends ChangeNotifier {
       'ar': 'أرسل تقريرك الصحي إلى طبيبك',
     },
     'export_to_doctor_body': {
-      'tr': 'Tüm sağlık verilerinizi profesyonel bir raporda toplayın ve doktorunuzla kolayca paylaşın. PDF veya Excel formatında.',
-      'en': 'Compile all your health data in a professional report and easily share it with your doctor. PDF or Excel format.',
-      'es': 'Compile todos sus datos de salud en un informe profesional y compártalo fácilmente con su médico. Formato PDF o Excel.',
-      'fr': 'Compilez toutes vos données de santé dans un rapport professionnel et partagez-le facilement avec votre médecin. Format PDF ou Excel.',
-      'de': 'Erstellen Sie einen professionellen Bericht mit all Ihren Gesundheitsdaten und teilen Sie ihn einfach mit Ihrem Arzt. PDF- oder Excel-Format.',
-      'ar': 'اجمع جميع بياناتك الصحية في تقرير احترافي وشاركه بسهولة مع طبيبك. تنسيق PDF أو Excel.',
+      'tr':
+          'Tüm sağlık verilerinizi profesyonel bir raporda toplayın ve doktorunuzla kolayca paylaşın. PDF veya Excel formatında.',
+      'en':
+          'Compile all your health data in a professional report and easily share it with your doctor. PDF or Excel format.',
+      'es':
+          'Compile todos sus datos de salud en un informe profesional y compártalo fácilmente con su médico. Formato PDF o Excel.',
+      'fr':
+          'Compilez toutes vos données de santé dans un rapport professionnel et partagez-le facilement avec votre médecin. Format PDF ou Excel.',
+      'de':
+          'Erstellen Sie einen professionellen Bericht mit all Ihren Gesundheitsdaten und teilen Sie ihn einfach mit Ihrem Arzt. PDF- oder Excel-Format.',
+      'ar':
+          'اجمع جميع بياناتك الصحية في تقرير احترافي وشاركه بسهولة مع طبيبك. تنسيق PDF أو Excel.',
     },
     'cloud_storage_integration': {
       'tr': 'Bulut Depolama Entegrasyonu',
@@ -12311,12 +15371,18 @@ class LocalizationService extends ChangeNotifier {
       'ar': 'اتصال Google Drive وiCloud وDropbox',
     },
     'cloud_storage_integration_body': {
-      'tr': 'Sağlık verilerinizi güvenli bir şekilde bulut depolamaya yedekleyin. Otomatik yedekleme ve geri yükleme özellikleri.',
-      'en': 'Back up your health data securely to cloud storage. Automatic backup and restore features.',
-      'es': 'Haga una copia de seguridad de sus datos de salud de forma segura en el almacenamiento en la nube. Copia de seguridad y restauración automáticas.',
-      'fr': 'Sauvegardez vos données de santé de manière sécurisée dans le stockage cloud. Fonctionnalités de sauvegarde et de restauration automatiques.',
-      'de': 'Sichern Sie Ihre Gesundheitsdaten sicher in der Cloud. Automatische Backup- und Wiederherstellungsfunktionen.',
-      'ar': 'قم بنسخ بياناتك الصحية احتياطيًا بأمان إلى التخزين السحابي. ميزات النسخ الاحتياطي والاستعادة التلقائية.',
+      'tr':
+          'Sağlık verilerinizi güvenli bir şekilde bulut depolamaya yedekleyin. Otomatik yedekleme ve geri yükleme özellikleri.',
+      'en':
+          'Back up your health data securely to cloud storage. Automatic backup and restore features.',
+      'es':
+          'Haga una copia de seguridad de sus datos de salud de forma segura en el almacenamiento en la nube. Copia de seguridad y restauración automáticas.',
+      'fr':
+          'Sauvegardez vos données de santé de manière sécurisée dans le stockage cloud. Fonctionnalités de sauvegarde et de restauration automatiques.',
+      'de':
+          'Sichern Sie Ihre Gesundheitsdaten sicher in der Cloud. Automatische Backup- und Wiederherstellungsfunktionen.',
+      'ar':
+          'قم بنسخ بياناتك الصحية احتياطيًا بأمان إلى التخزين السحابي. ميزات النسخ الاحتياطي والاستعادة التلقائية.',
     },
     'family_sharing': {
       'tr': 'Aile Paylaşımı',
@@ -12335,12 +15401,18 @@ class LocalizationService extends ChangeNotifier {
       'ar': 'شارك البيانات مع أفراد العائلة',
     },
     'family_sharing_body': {
-      'tr': 'Seçili aile üyelerinizle sağlık verilerinizi paylaşın. Evdeki herkesin sağlık durumunu takip edin.',
-      'en': 'Share your health data with selected family members. Keep track of everyone\'s health at home.',
-      'es': 'Comparta sus datos de salud con miembros seleccionados de la familia. Mantenga un registro de la salud de todos en casa.',
-      'fr': 'Partagez vos données de santé avec des membres sélectionnés de votre famille. Suivez la santé de tous à la maison.',
-      'de': 'Teilen Sie Ihre Gesundheitsdaten mit ausgewählten Familienmitgliedern. Behalten Sie die Gesundheit aller zu Hause im Auge.',
-      'ar': 'شارك بياناتك الصحية مع أفراد الأسرة المختارين. تتبع صحة الجميع في المنزل.',
+      'tr':
+          'Seçili aile üyelerinizle sağlık verilerinizi paylaşın. Evdeki herkesin sağlık durumunu takip edin.',
+      'en':
+          'Share your health data with selected family members. Keep track of everyone\'s health at home.',
+      'es':
+          'Comparta sus datos de salud con miembros seleccionados de la familia. Mantenga un registro de la salud de todos en casa.',
+      'fr':
+          'Partagez vos données de santé avec des membres sélectionnés de votre famille. Suivez la santé de tous à la maison.',
+      'de':
+          'Teilen Sie Ihre Gesundheitsdaten mit ausgewählten Familienmitgliedern. Behalten Sie die Gesundheit aller zu Hause im Auge.',
+      'ar':
+          'شارك بياناتك الصحية مع أفراد الأسرة المختارين. تتبع صحة الجميع في المنزل.',
     },
     'auto_sync_enabled': {
       'tr': 'Otomatik Senkronizasyon',
@@ -12523,7 +15595,8 @@ class LocalizationService extends ChangeNotifier {
       'tr': 'Kritik değerlerde anında bildirim al',
       'en': 'Get instant notifications for critical values',
       'es': 'Recibe notificaciones instantáneas para valores críticos',
-      'fr': 'Recevoir des notifications instantanées pour les valeurs critiques',
+      'fr':
+          'Recevoir des notifications instantanées pour les valeurs critiques',
       'de': 'Sofortbenachrichtigungen bei kritischen Werten erhalten',
       'ar': 'احصل على إشعارات فورية للقيم الحرجة',
     },
@@ -12901,7 +15974,8 @@ class LocalizationService extends ChangeNotifier {
     'auto_backup_enabled_desc': {
       'tr': 'Verilerinizi belirlenen aralıklarla otomatik olarak yedekleyin',
       'en': 'Automatically backup your data at scheduled intervals',
-      'es': 'Haga una copia de seguridad automática de sus datos en intervalos programados',
+      'es':
+          'Haga una copia de seguridad automática de sus datos en intervalos programados',
       'fr': 'Sauvegardez automatiquement vos données à intervalles programmés',
       'de': 'Backen Sie Ihre Daten automatisch in geplanten Abständen',
       'ar': 'قم بنسخ بياناتك تلقائيًا على فترات محددة',
@@ -12967,7 +16041,8 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Restore your latest backup stored in the cloud',
       'es': 'Restaurar su última copia de seguridad almacenada en la nube',
       'fr': 'Restaurer votre dernière sauvegarde stockée dans le cloud',
-      'de': 'Stellen Sie Ihr letztes Backup wieder her, das in der Cloud gespeichert ist',
+      'de':
+          'Stellen Sie Ihr letztes Backup wieder her, das in der Cloud gespeichert ist',
       'ar': 'استعادة آخر نسخة احتياطية مخزنة في السحابة',
     },
     'backup_success': {
@@ -13084,28 +16159,46 @@ class LocalizationService extends ChangeNotifier {
       'ar': 'نصيحة مخصصة لك',
     },
     'ai_low_hemoglobin_tip': {
-      'tr': 'Demir değerleriniz düşük. Demir takviyesi ve demir açısından zengin besinler öneriyorum.',
-      'en': 'Your iron levels are low. I recommend iron supplements and iron-rich foods.',
-      'es': 'Sus niveles de hierro son bajos. Recomiendo suplementos de hierro y alimentos ricos en hierro.',
-      'fr': 'Vos niveaux de fer sont bas. Je recommande des suppléments de fer et des aliments riches en fer.',
-      'de': 'Ihre Eisenwerte sind niedrig. Ich empfehle Eisenergänzungen und eisenreiche Lebensmittel.',
-      'ar': 'مستويات الحديد منخفضة. أنصح بمكملات الحديد والأطعمة الغنية بالحديد.',
+      'tr':
+          'Demir değerleriniz düşük. Demir takviyesi ve demir açısından zengin besinler öneriyorum.',
+      'en':
+          'Your iron levels are low. I recommend iron supplements and iron-rich foods.',
+      'es':
+          'Sus niveles de hierro son bajos. Recomiendo suplementos de hierro y alimentos ricos en hierro.',
+      'fr':
+          'Vos niveaux de fer sont bas. Je recommande des suppléments de fer et des aliments riches en fer.',
+      'de':
+          'Ihre Eisenwerte sind niedrig. Ich empfehle Eisenergänzungen und eisenreiche Lebensmittel.',
+      'ar':
+          'مستويات الحديد منخفضة. أنصح بمكملات الحديد والأطعمة الغنية بالحديد.',
     },
     'ai_high_glucose_tip': {
-      'tr': 'Glikoz değerleriniz yüksek. Düşük glisemik indeksli besinler ve düzenli egzersiz öneriyorum.',
-      'en': 'Your glucose levels are high. I recommend low glycemic index foods and regular exercise.',
-      'es': 'Sus niveles de glucosa son altos. Recomiendo alimentos con bajo índice glucémico y ejercicio regular.',
-      'fr': 'Vos niveaux de glucose sont élevés. Je recommande des aliments à faible indice glycémique et un exercice régulier.',
-      'de': 'Ihre Glukosewerte sind hoch. Ich empfehle Lebensmittel mit niedrigem glykämischem Index und regelmäßige Bewegung.',
-      'ar': 'مستويات الجلوكوز مرتفعة. أنصح بالأطعمة ذات المؤشر الجلايسيمي المنخفض وممارسة الرياضة بانتظام.',
+      'tr':
+          'Glikoz değerleriniz yüksek. Düşük glisemik indeksli besinler ve düzenli egzersiz öneriyorum.',
+      'en':
+          'Your glucose levels are high. I recommend low glycemic index foods and regular exercise.',
+      'es':
+          'Sus niveles de glucosa son altos. Recomiendo alimentos con bajo índice glucémico y ejercicio regular.',
+      'fr':
+          'Vos niveaux de glucose sont élevés. Je recommande des aliments à faible indice glycémique et un exercice régulier.',
+      'de':
+          'Ihre Glukosewerte sind hoch. Ich empfehle Lebensmittel mit niedrigem glykämischem Index und regelmäßige Bewegung.',
+      'ar':
+          'مستويات الجلوكوز مرتفعة. أنصح بالأطعمة ذات المؤشر الجلايسيمي المنخفض وممارسة الرياضة بانتظام.',
     },
     'ai_low_vitd_tip': {
-      'tr': 'Vitamin D3 değerleriniz düşük. Güneş ışığına daha fazla maruz kalın ve D vitamini takviyeleri düşünün.',
-      'en': 'Your vitamin D3 levels are low. Get more sunlight exposure and consider vitamin D supplements.',
-      'es': 'Sus niveles de vitamina D3 son bajos. Expóngase más al sol y considere suplementos de vitamina D.',
-      'fr': 'Vos niveaux de vitamine D3 sont bas. Obtenez plus d\'exposition au soleil et envisagez des suppléments de vitamine D.',
-      'de': 'Ihre Vitamin-D3-Werte sind niedrig. Holen Sie mehr Sonnenschein und erwägen Sie Vitamin-D-Ergänzungen.',
-      'ar': 'مستويات فيتامين د منخفضة. احصل على مزيد من التعرض لأشعة الشمس وفكر في مكملات فيتامين د.',
+      'tr':
+          'Vitamin D3 değerleriniz düşük. Güneş ışığına daha fazla maruz kalın ve D vitamini takviyeleri düşünün.',
+      'en':
+          'Your vitamin D3 levels are low. Get more sunlight exposure and consider vitamin D supplements.',
+      'es':
+          'Sus niveles de vitamina D3 son bajos. Expóngase más al sol y considere suplementos de vitamina D.',
+      'fr':
+          'Vos niveaux de vitamine D3 sont bas. Obtenez plus d\'exposition au soleil et envisagez des suppléments de vitamine D.',
+      'de':
+          'Ihre Vitamin-D3-Werte sind niedrig. Holen Sie mehr Sonnenschein und erwägen Sie Vitamin-D-Ergänzungen.',
+      'ar':
+          'مستويات فيتامين د منخفضة. احصل على مزيد من التعرض لأشعة الشمس وفكر في مكملات فيتامين د.',
     },
     'ai_improving_trend': {
       'tr': 'İyileşme Trendi! 🎉',
@@ -13124,11 +16217,16 @@ class LocalizationService extends ChangeNotifier {
       'ar': 'تحذير: اتجاه نزولي',
     },
     'ai_trend_advice': {
-      'tr': '{param} değeriniz son dönemde {change} değişti. Bu konuya özel dikkat göstermenizi tavsiye ediyorum.',
-      'en': 'Your {param} value has changed by {change} recently. I recommend paying special attention to this.',
-      'es': 'Su valor de {param} ha cambiado {change} recientemente. Recomiendo prestar especial atención a esto.',
-      'fr': 'Votre valeur {param} a changé de {change} récemment. Je recommande d\'y porter une attention particulière.',
-      'de': 'Ihr {param}-Wert hat sich kürzlich um {change} geändert. Ich empfehle, hierauf besonders zu achten.',
+      'tr':
+          '{param} değeriniz son dönemde {change} değişti. Bu konuya özel dikkat göstermenizi tavsiye ediyorum.',
+      'en':
+          'Your {param} value has changed by {change} recently. I recommend paying special attention to this.',
+      'es':
+          'Su valor de {param} ha cambiado {change} recientemente. Recomiendo prestar especial atención a esto.',
+      'fr':
+          'Votre valeur {param} a changé de {change} récemment. Je recommande d\'y porter une attention particulière.',
+      'de':
+          'Ihr {param}-Wert hat sich kürzlich um {change} geändert. Ich empfehle, hierauf besonders zu achten.',
       'ar': 'قيمة {param} تغيرت بمقدار {change} مؤخراً. أنصح بالانتباه لذلك.',
     },
     'view_full_analysis': {
@@ -13394,6 +16492,50 @@ class LocalizationService extends ChangeNotifier {
       'it': 'Obiettivo',
       'pt': 'Meta',
       'ru': 'Цель',
+    },
+    'steps_label': {
+      'tr': 'Adımlar',
+      'en': 'Steps',
+      'es': 'Pasos',
+      'fr': 'Pas',
+      'de': 'Schritte',
+      'ar': 'الخطوات',
+      'it': 'Passi',
+      'pt': 'Passos',
+      'ru': 'Шаги',
+    },
+    'water_label': {
+      'tr': 'Su',
+      'en': 'Water',
+      'es': 'Agua',
+      'fr': 'Eau',
+      'de': 'Wasser',
+      'ar': 'الماء',
+      'it': 'Acqua',
+      'pt': 'Água',
+      'ru': 'Вода',
+    },
+    'sleep_label': {
+      'tr': 'Uyku',
+      'en': 'Sleep',
+      'es': 'Sueño',
+      'fr': 'Sommeil',
+      'de': 'Schlaf',
+      'ar': 'النوم',
+      'it': 'Sonno',
+      'pt': 'Sono',
+      'ru': 'Сон',
+    },
+    'points_label': {
+      'tr': 'Puanlar',
+      'en': 'Points',
+      'es': 'Puntos',
+      'fr': 'Points',
+      'de': 'Punkte',
+      'ar': 'النقاط',
+      'it': 'Punti',
+      'pt': 'Pontos',
+      'ru': 'Очки',
     },
     'friend_competition_title': {
       'tr': 'Arkadaş Yarışması',
@@ -13672,15 +16814,24 @@ class LocalizationService extends ChangeNotifier {
       'ar': 'مميز',
     },
     'premium_web_not_available': {
-      'tr': 'Premium özellikler sadece mobil uygulamalarda mevcuttur. Lütfen Android veya iOS uygulamasını indirin.',
-      'en': 'Premium features are only available on mobile apps. Please download the Android or iOS app.',
-      'es': 'Las características premium solo están disponibles en aplicaciones móviles. Por favor, descargue la aplicación Android o iOS.',
-      'fr': 'Les fonctionnalités premium ne sont disponibles que sur les applications mobiles. Veuillez télécharger l\'application Android ou iOS.',
-      'de': 'Premium-Funktionen sind nur in mobilen Apps verfügbar. Bitte laden Sie die Android- oder iOS-App herunter.',
-      'ar': 'الميزات المميزة متاحة فقط في التطبيقات المحمولة. يرجى تنزيل تطبيق Android أو iOS.',
-      'it': 'Le funzionalità premium sono disponibili solo nelle app mobili. Si prega di scaricare l\'app Android o iOS.',
-      'pt': 'Os recursos premium estão disponíveis apenas em aplicativos móveis. Por favor, baixe o aplicativo Android ou iOS.',
-      'ru': 'Премиум-функции доступны только в мобильных приложениях. Пожалуйста, загрузите приложение Android или iOS.',
+      'tr':
+          'Premium özellikler sadece mobil uygulamalarda mevcuttur. Lütfen Android veya iOS uygulamasını indirin.',
+      'en':
+          'Premium features are only available on mobile apps. Please download the Android or iOS app.',
+      'es':
+          'Las características premium solo están disponibles en aplicaciones móviles. Por favor, descargue la aplicación Android o iOS.',
+      'fr':
+          'Les fonctionnalités premium ne sont disponibles que sur les applications mobiles. Veuillez télécharger l\'application Android ou iOS.',
+      'de':
+          'Premium-Funktionen sind nur in mobilen Apps verfügbar. Bitte laden Sie die Android- oder iOS-App herunter.',
+      'ar':
+          'الميزات المميزة متاحة فقط في التطبيقات المحمولة. يرجى تنزيل تطبيق Android أو iOS.',
+      'it':
+          'Le funzionalità premium sono disponibili solo nelle app mobili. Si prega di scaricare l\'app Android o iOS.',
+      'pt':
+          'Os recursos premium estão disponíveis apenas em aplicativos móveis. Por favor, baixe o aplicativo Android ou iOS.',
+      'ru':
+          'Премиум-функции доступны только в мобильных приложениях. Пожалуйста, загрузите приложение Android или iOS.',
     },
     'premium_features': {
       'tr': 'Premium Özellikler',
@@ -13689,6 +16840,9 @@ class LocalizationService extends ChangeNotifier {
       'fr': 'Fonctionnalités Premium',
       'de': 'Premium-Funktionen',
       'ar': 'الميزات المميزة',
+      'it': 'Funzionalità Premium',
+      'pt': 'Recursos Premium',
+      'ru': 'Премиум функции',
     },
     'pricing_plans': {
       'tr': 'Fiyatlandırma Planları',
@@ -13697,6 +16851,1235 @@ class LocalizationService extends ChangeNotifier {
       'fr': 'Plans Tarifaires',
       'de': 'Preispläne',
       'ar': 'خطط الأسعار',
+      'it': 'Piani di Prezzo',
+      'pt': 'Planos de Preços',
+      'ru': 'Тарифные планы',
+    },
+    // Settings Screen - Privacy & Data Section
+    'privacy_data': {
+      'tr': 'Gizlilik ve Veri',
+      'en': 'Privacy & Data',
+      'es': 'Privacidad y Datos',
+      'fr': 'Confidentialité et Données',
+      'de': 'Datenschutz & Daten',
+      'ar': 'الخصوصية والبيانات',
+      'it': 'Privacy e Dati',
+      'pt': 'Privacidade e Dados',
+      'ru': 'Конфиденциальность и данные',
+    },
+    'restore_from_backup': {
+      'tr': 'Yedekten geri yükle',
+      'en': 'Restore from backup',
+      'es': 'Restaurar desde copia de seguridad',
+      'fr': 'Restaurer depuis la sauvegarde',
+      'de': 'Aus Sicherung wiederherstellen',
+      'ar': 'استعادة من النسخة الاحتياطية',
+      'it': 'Ripristina da backup',
+      'pt': 'Restaurar do backup',
+      'ru': 'Восстановить из резервной копии',
+    },
+    'delete_account_data': {
+      'tr': 'Hesabı ve Verileri Sil',
+      'en': 'Delete Account & Data',
+      'es': 'Eliminar Cuenta y Datos',
+      'fr': 'Supprimer le Compte et les Données',
+      'de': 'Konto und Daten löschen',
+      'ar': 'حذف الحساب والبيانات',
+      'it': 'Elimina Account e Dati',
+      'pt': 'Excluir Conta e Dados',
+      'ru': 'Удалить аккаунт и данные',
+    },
+    'kvkk_gdpr_compliant': {
+      'tr': 'KVKK/GDPR uyumlu silme hakkı',
+      'en': 'KVKK/GDPR compliant right to erasure',
+      'es': 'Derecho de supresión conforme a KVKK/GDPR',
+      'fr': 'Droit à l\'effacement conforme KVKK/GDPR',
+      'de': 'KVKK/DSGVO-konformes Löschungsrecht',
+      'ar': 'حق الحذف المتوافق مع KVKK/GDPR',
+      'it': 'Diritto alla cancellazione conforme a KVKK/GDPR',
+      'pt': 'Direito de exclusão em conformidade com KVKK/GDPR',
+      'ru': 'Право на удаление в соответствии с KVKK/GDPR',
+    },
+    // Settings Screen - Challenges Section
+    'open_challenges': {
+      'tr': 'Açık Zorluklar',
+      'en': 'Open Challenges',
+      'es': 'Desafíos Abiertos',
+      'fr': 'Défis Ouverts',
+      'de': 'Offene Herausforderungen',
+      'ar': 'التحديات المفتوحة',
+      'it': 'Sfide Aperte',
+      'pt': 'Desafios Abertos',
+      'ru': 'Открытые вызовы',
+    },
+    'progress_badges_shared_diets': {
+      'tr': 'İlerleme, rozetler, paylaşılan diyetler',
+      'en': 'Progress, badges, shared diets',
+      'es': 'Progreso, insignias, dietas compartidas',
+      'fr': 'Progrès, badges, régimes partagés',
+      'de': 'Fortschritt, Abzeichen, geteilte Diäten',
+      'ar': 'التقدم، الشارات، الأنظمة الغذائية المشتركة',
+      'it': 'Progresso, badge, diete condivise',
+      'pt': 'Progresso, emblemas, dietas compartilhadas',
+      'ru': 'Прогресс, значки, общие диеты',
+    },
+    'weekly_steps_challenge': {
+      'tr': 'Haftalık Adım Zorluğu',
+      'en': 'Weekly Steps Challenge',
+      'es': 'Desafío Semanal de Pasos',
+      'fr': 'Défi Hebdomadaire de Pas',
+      'de': 'Wöchentliche Schritte-Herausforderung',
+      'ar': 'تحدي الخطوات الأسبوعي',
+      'it': 'Sfida Settimanale dei Passi',
+      'pt': 'Desafio Semanal de Passos',
+      'ru': 'Еженедельный вызов шагов',
+    },
+    'join_weekly_step_goal': {
+      'tr': 'Haftalık adım hedefi zorluğuna katıl',
+      'en': 'Join weekly step goal challenge',
+      'es': 'Únete al desafío de objetivo de pasos semanal',
+      'fr': 'Rejoignez le défi d\'objectif de pas hebdomadaire',
+      'de': 'Nimm an der wöchentlichen Schrittziel-Herausforderung teil',
+      'ar': 'انضم إلى تحدي هدف الخطوات الأسبوعي',
+      'it': 'Partecipa alla sfida dell\'obiettivo settimanale di passi',
+      'pt': 'Participe do desafio de meta semanal de passos',
+      'ru': 'Присоединяйтесь к еженедельному вызову цели шагов',
+    },
+    'weekly_water_challenge': {
+      'tr': 'Haftalık Su Zorluğu',
+      'en': 'Weekly Water Challenge',
+      'es': 'Desafío Semanal de Agua',
+      'fr': 'Défi Hebdomadaire d\'Eau',
+      'de': 'Wöchentliche Wasser-Herausforderung',
+      'ar': 'تحدي الماء الأسبوعي',
+      'it': 'Sfida Settimanale dell\'Acqua',
+      'pt': 'Desafio Semanal de Água',
+      'ru': 'Еженедельный вызов воды',
+    },
+    'hydration_streak_badges': {
+      'tr': 'Hidrasyon serisi ve rozetler',
+      'en': 'Hydration streak & badges',
+      'es': 'Racha de hidratación e insignias',
+      'fr': 'Série d\'hydratation et badges',
+      'de': 'Hydratations-Serie und Abzeichen',
+      'ar': 'سلسلة الترطيب والشارات',
+      'it': 'Serie di idratazione e badge',
+      'pt': 'Sequência de hidratação e emblemas',
+      'ru': 'Серия гидратации и значки',
+    },
+    'weekly_sleep_challenge': {
+      'tr': 'Haftalık Uyku Zorluğu',
+      'en': 'Weekly Sleep Challenge',
+      'es': 'Desafío Semanal de Sueño',
+      'fr': 'Défi Hebdomadaire de Sommeil',
+      'de': 'Wöchentliche Schlaf-Herausforderung',
+      'ar': 'تحدي النوم الأسبوعي',
+      'it': 'Sfida Settimanale del Sonno',
+      'pt': 'Desafio Semanal de Sono',
+      'ru': 'Еженедельный вызов сна',
+    },
+    'consistent_sleep_schedule': {
+      'tr': 'Tutarlı uyku programı',
+      'en': 'Consistent sleep schedule',
+      'es': 'Horario de sueño consistente',
+      'fr': 'Horaires de sommeil réguliers',
+      'de': 'Konsistenter Schlafplan',
+      'ar': 'جدول نوم ثابت',
+      'it': 'Programma di sonno coerente',
+      'pt': 'Cronograma de sono consistente',
+      'ru': 'Последовательный график сна',
+    },
+    'daily_summary_time': {
+      'tr': 'Günlük Özet Zamanı',
+      'en': 'Daily Summary Time',
+      'es': 'Hora de Resumen Diario',
+      'fr': 'Heure du Résumé Quotidien',
+      'de': 'Tägliche Zusammenfassungszeit',
+      'ar': 'وقت الملخص اليومي',
+      'it': 'Ora del Riepilogo Giornaliero',
+      'pt': 'Hora do Resumo Diário',
+      'ru': 'Время ежедневного резюме',
+    },
+    'set_daily_notification_summary': {
+      'tr': 'Günlük bildirim özet zamanı ayarla',
+      'en': 'Set a daily notification summary time',
+      'es': 'Establecer una hora de resumen de notificaciones diarias',
+      'fr': 'Définir une heure de résumé des notifications quotidiennes',
+      'de': 'Zeit für tägliche Benachrichtigungszusammenfassung festlegen',
+      'ar': 'تعيين وقت ملخص الإشعارات اليومية',
+      'it': 'Imposta un\'ora per il riepilogo delle notifiche giornaliere',
+      'pt': 'Definir um horário de resumo de notificações diárias',
+      'ru': 'Установить время ежедневного свода уведомлений',
+    },
+    'share_weekly_progress': {
+      'tr': 'Haftalık İlerlemeyi Paylaş',
+      'en': 'Share Weekly Progress',
+      'es': 'Compartir Progreso Semanal',
+      'fr': 'Partager le Progrès Hebdomadaire',
+      'de': 'Wöchentlichen Fortschritt teilen',
+      'ar': 'مشاركة التقدم الأسبوعي',
+      'it': 'Condividi Progresso Settimanale',
+      'pt': 'Compartilhar Progresso Semanal',
+      'ru': 'Поделиться еженедельным прогрессом',
+    },
+    'badges_streaks_summary': {
+      'tr': 'Rozetler ve seriler özeti',
+      'en': 'Badges and streaks summary',
+      'es': 'Resumen de insignias y rachas',
+      'fr': 'Résumé des badges et séries',
+      'de': 'Zusammenfassung von Abzeichen und Serien',
+      'ar': 'ملخص الشارات والسلاسل',
+      'it': 'Riepilogo badge e serie',
+      'pt': 'Resumo de emblemas e sequências',
+      'ru': 'Сводка значков и серий',
+    },
+    'select_message_style': {
+      'tr': 'Mesaj stilini seç (Yumuşak / Aktif)',
+      'en': 'Select message style (Gentle / Active)',
+      'es': 'Seleccionar estilo de mensaje (Suave / Activo)',
+      'fr': 'Sélectionner le style de message (Doux / Actif)',
+      'de': 'Nachrichtenstil auswählen (Sanft / Aktiv)',
+      'ar': 'اختر نمط الرسالة (لطيف / نشط)',
+      'it': 'Seleziona stile messaggio (Gentile / Attivo)',
+      'pt': 'Selecionar estilo de mensagem (Gentil / Ativo)',
+      'ru': 'Выбрать стиль сообщения (Мягкий / Активный)',
+    },
+    // Settings Screen - About Section
+    'kvkk_gdpr_data_protection': {
+      'tr': 'KVKK/GDPR ve Veri Koruma',
+      'en': 'KVKK/GDPR & Data Protection',
+      'es': 'KVKK/GDPR y Protección de Datos',
+      'fr': 'KVKK/GDPR et Protection des Données',
+      'de': 'KVKK/DSGVO & Datenschutz',
+      'ar': 'KVKK/GDPR وحماية البيانات',
+      'it': 'KVKK/GDPR e Protezione dei Dati',
+      'pt': 'KVKK/GDPR e Proteção de Dados',
+      'ru': 'KVKK/GDPR и защита данных',
+    },
+    'encryption_consent_purpose': {
+      'tr': 'Şifreleme, onay, amaç sınırlaması, saklama kontrolü.',
+      'en': 'Encryption, consent, purpose limitation, retention control.',
+      'es':
+          'Cifrado, consentimiento, limitación de propósito, control de retención.',
+      'fr':
+          'Chiffrement, consentement, limitation d\'usage, contrôle de rétention.',
+      'de':
+          'Verschlüsselung, Einwilligung, Zweckbindung, Aufbewahrungskontrolle.',
+      'ar': 'التشفير، الموافقة، تحديد الغرض، التحكم في الاحتفاظ.',
+      'it':
+          'Crittografia, consenso, limitazione dello scopo, controllo della conservazione.',
+      'pt':
+          'Criptografia, consentimento, limitação de propósito, controle de retenção.',
+      'ru': 'Шифрование, согласие, ограничение цели, контроль хранения.',
+    },
+    'educational_insights_only': {
+      'tr': 'Sadece eğitici içgörüler; tıbbi tanı değildir.',
+      'en': 'Educational insights only; not a medical diagnosis.',
+      'es': 'Solo información educativa; no es un diagnóstico médico.',
+      'fr': 'Informations éducatives uniquement; pas un diagnostic médical.',
+      'de': 'Nur bildungsbezogene Einblicke; keine medizinische Diagnose.',
+      'ar': 'رؤى تعليمية فقط؛ ليست تشخيصًا طبيًا.',
+      'it': 'Solo informazioni educative; non una diagnosi medica.',
+      'pt': 'Apenas informações educacionais; não é um diagnóstico médico.',
+      'ru': 'Только образовательные сведения; не медицинский диагноз.',
+    },
+    // Challenge Messages
+    'steps_challenge_enabled': {
+      'tr': 'Adım zorluğu etkinleştirildi',
+      'en': 'Steps challenge enabled',
+      'es': 'Desafío de pasos habilitado',
+      'fr': 'Défi de pas activé',
+      'de': 'Schritte-Herausforderung aktiviert',
+      'ar': 'تم تفعيل تحدي الخطوات',
+      'it': 'Sfida passi abilitata',
+      'pt': 'Desafio de passos ativado',
+      'ru': 'Вызов шагов включен',
+    },
+    'steps_challenge_disabled': {
+      'tr': 'Adım zorluğu devre dışı bırakıldı',
+      'en': 'Steps challenge disabled',
+      'es': 'Desafío de pasos deshabilitado',
+      'fr': 'Défi de pas désactivé',
+      'de': 'Schritte-Herausforderung deaktiviert',
+      'ar': 'تم تعطيل تحدي الخطوات',
+      'it': 'Sfida passi disabilitata',
+      'pt': 'Desafio de passos desativado',
+      'ru': 'Вызов шагов отключен',
+    },
+    'water_challenge_enabled': {
+      'tr': 'Su zorluğu etkinleştirildi',
+      'en': 'Water challenge enabled',
+      'es': 'Desafío de agua habilitado',
+      'fr': 'Défi d\'eau activé',
+      'de': 'Wasser-Herausforderung aktiviert',
+      'ar': 'تم تفعيل تحدي الماء',
+      'it': 'Sfida acqua abilitata',
+      'pt': 'Desafio de água ativado',
+      'ru': 'Вызов воды включен',
+    },
+    'water_challenge_disabled': {
+      'tr': 'Su zorluğu devre dışı bırakıldı',
+      'en': 'Water challenge disabled',
+      'es': 'Desafío de agua deshabilitado',
+      'fr': 'Défi d\'eau désactivé',
+      'de': 'Wasser-Herausforderung deaktiviert',
+      'ar': 'تم تعطيل تحدي الماء',
+      'it': 'Sfida acqua disabilitata',
+      'pt': 'Desafio de água desativado',
+      'ru': 'Вызов воды отключен',
+    },
+    'sleep_challenge_enabled': {
+      'tr': 'Uyku zorluğu etkinleştirildi',
+      'en': 'Sleep challenge enabled',
+      'es': 'Desafío de sueño habilitado',
+      'fr': 'Défi de sommeil activé',
+      'de': 'Schlaf-Herausforderung aktiviert',
+      'ar': 'تم تفعيل تحدي النوم',
+      'it': 'Sfida sonno abilitata',
+      'pt': 'Desafio de sono ativado',
+      'ru': 'Вызов сна включен',
+    },
+    'sleep_challenge_disabled': {
+      'tr': 'Uyku zorluğu devre dışı bırakıldı',
+      'en': 'Sleep challenge disabled',
+      'es': 'Desafío de sueño deshabilitado',
+      'fr': 'Défi de sommeil désactivé',
+      'de': 'Schlaf-Herausforderung deaktiviert',
+      'ar': 'تم تعطيل تحدي النوم',
+      'it': 'Sfida sonno disabilitata',
+      'pt': 'Desafio de sono desativado',
+      'ru': 'Вызов сна отключен',
+    },
+    // Family Member Detail Screen
+    'smart_alerts_premium': {
+      'tr': 'Akıllı Uyarılar (Premium)',
+      'en': 'Smart Alerts (Premium)',
+      'es': 'Alertas Inteligentes (Premium)',
+      'fr': 'Alertes Intelligentes (Premium)',
+      'de': 'Intelligente Warnungen (Premium)',
+      'ar': 'تنبيهات ذكية (مميز)',
+      'it': 'Avvisi Intelligenti (Premium)',
+      'pt': 'Alertas Inteligentes (Premium)',
+      'ru': 'Умные предупреждения (Premium)',
+    },
+    'iron_boost_plan_premium': {
+      'tr': 'Demir Artırıcı Plan (Premium)',
+      'en': 'Iron-Boost Plan (Premium)',
+      'es': 'Plan de Aumento de Hierro (Premium)',
+      'fr': 'Plan d\'Augmentation du Fer (Premium)',
+      'de': 'Eisen-Boost-Plan (Premium)',
+      'ar': 'خطة تعزيز الحديد (مميز)',
+      'it': 'Piano Potenziamento Ferro (Premium)',
+      'pt': 'Plano de Aumento de Ferro (Premium)',
+      'ru': 'План повышения железа (Premium)',
+    },
+    'iron_boost_plan_desc': {
+      'tr':
+          'Kırmızı et haftada 2-3 kez, baklagiller, ıspanak, yemeklerle C vitamini; demir yemekleriyle çay/kahve sınırla',
+      'en':
+          'Red meat 2-3x/week, legumes, spinach, vitamin C with meals; limit tea/coffee with iron meals',
+      'es':
+          'Carne roja 2-3 veces/semana, legumbres, espinacas, vitamina C con las comidas; limita té/café con comidas de hierro',
+      'fr':
+          'Viande rouge 2-3x/semaine, légumineuses, épinards, vitamine C avec les repas; limiter thé/café avec repas de fer',
+      'de':
+          'Rotes Fleisch 2-3x/Woche, Hülsenfrüchte, Spinat, Vitamin C zu den Mahlzeiten; Tee/Kaffee zu eisenhaltigen Mahlzeiten einschränken',
+      'ar':
+          'اللحوم الحمراء 2-3 مرات/أسبوع، البقوليات، السبانخ، فيتامين C مع الوجبات؛ قلل الشاي/القهوة مع وجبات الحديد',
+      'it':
+          'Carne rossa 2-3 volte/settimana, legumi, spinaci, vitamina C con i pasti; limita tè/caffè con pasti di ferro',
+      'pt':
+          'Carne vermelha 2-3x/semana, leguminosas, espinafre, vitamina C com as refeições; limite chá/café com refeições de ferro',
+      'ru':
+          'Красное мясо 2-3 раза/неделю, бобовые, шпинат, витамин C с едой; ограничьте чай/кофе с железосодержащими блюдами',
+    },
+    'anti_inflammatory_plan_premium': {
+      'tr': 'Anti-inflamatuar Plan (Premium)',
+      'en': 'Anti-inflammatory Plan (Premium)',
+      'es': 'Plan Antiinflamatorio (Premium)',
+      'fr': 'Plan Anti-inflammatoire (Premium)',
+      'de': 'Entzündungshemmender Plan (Premium)',
+      'ar': 'خطة مضادة للالتهابات (مميز)',
+      'it': 'Piano Antinfiammatorio (Premium)',
+      'pt': 'Plano Anti-inflamatório (Premium)',
+      'ru': 'Противовоспалительный план (Premium)',
+    },
+    'anti_inflammatory_plan_desc': {
+      'tr':
+          'Omega-3 (somon, ceviz), zerdeçal/zencefil, meyveler; ultra işlenmiş, trans yağ, eklenmiş şekerleri azalt',
+      'en':
+          'Omega-3 (salmon, walnuts), turmeric/ginger, berries; reduce ultra-processed, trans fat, added sugars',
+      'es':
+          'Omega-3 (salmón, nueces), cúrcuma/jengibre, bayas; reduce ultraprocesados, grasas trans, azúcares añadidos',
+      'fr':
+          'Oméga-3 (saumon, noix), curcuma/gingembre, baies; réduire ultra-transformés, graisses trans, sucres ajoutés',
+      'de':
+          'Omega-3 (Lachs, Walnüsse), Kurkuma/Ingwer, Beeren; ultra-verarbeitete Lebensmittel, Transfette, zugesetzten Zucker reduzieren',
+      'ar':
+          'أوميغا 3 (السلمون، الجوز)، الكركم/الزنجبيل، التوت؛ قلل الأطعمة فائقة المعالجة، الدهون المتحولة، السكريات المضافة',
+      'it':
+          'Omega-3 (salmone, noci), curcuma/zenzero, bacche; ridurre ultra-processati, grassi trans, zuccheri aggiunti',
+      'pt':
+          'Ômega-3 (salmão, nozes), açafrão/gengibre, frutas vermelhas; reduzir ultraprocessados, gordura trans, açúcares adicionados',
+      'ru':
+          'Омега-3 (лосось, грецкие орехи), куркума/имбирь, ягоды; уменьшить ультраобработанные продукты, трансжиры, добавленный сахар',
+    },
+    'low_gi_plan_premium': {
+      'tr': 'Düşük Glisemik İndeks Planı (Premium)',
+      'en': 'Low-GI Plan (Premium)',
+      'es': 'Plan de Bajo Índice Glucémico (Premium)',
+      'fr': 'Plan à Indice Glycémique Bas (Premium)',
+      'de': 'Niedriger-GI-Plan (Premium)',
+      'ar': 'خطة منخفضة المؤشر الجلايسيمي (مميز)',
+      'it': 'Piano Basso Indice Glicemico (Premium)',
+      'pt': 'Plano de Baixo Índice Glicêmico (Premium)',
+      'ru': 'План с низким ГИ (Premium)',
+    },
+    'low_gi_plan_desc': {
+      'tr':
+          'Tam tahıllar, baklagiller, nişastasız sebzeler; şekerli içeceklerden kaçının; dengeli karbonhidrat porsiyonları',
+      'en':
+          'Whole grains, legumes, non-starchy veggies; avoid sugary drinks; balanced carb portions',
+      'es':
+          'Granos integrales, legumbres, verduras sin almidón; evita bebidas azucaradas; porciones balanceadas de carbohidratos',
+      'fr':
+          'Céréales complètes, légumineuses, légumes non féculents; éviter les boissons sucrées; portions équilibrées de glucides',
+      'de':
+          'Vollkorn, Hülsenfrüchte, stärkearmes Gemüse; zuckerhaltige Getränke vermeiden; ausgewogene Kohlenhydratportionen',
+      'ar':
+          'الحبوب الكاملة، البقوليات، الخضار غير النشوية؛ تجنب المشروبات السكرية؛ حصص متوازنة من الكربوهيدرات',
+      'it':
+          'Cereali integrali, legumi, verdure non amidacee; evita bevande zuccherate; porzioni bilanciate di carboidrati',
+      'pt':
+          'Grãos integrais, leguminosas, vegetais sem amido; evite bebidas açucaradas; porções balanceadas de carboidratos',
+      'ru':
+          'Цельные зерна, бобовые, некрахмалистые овощи; избегайте сладких напитков; сбалансированные порции углеводов',
+    },
+    // Diet Plans by Age
+    'balanced_teen_plan': {
+      'tr': 'Dengeli Genç Planı',
+      'en': 'Balanced teen plan',
+      'es': 'Plan equilibrado para adolescentes',
+      'fr': 'Plan équilibré pour adolescents',
+      'de': 'Ausgewogener Teenager-Plan',
+      'ar': 'خطة متوازنة للمراهقين',
+      'it': 'Piano bilanciato per adolescenti',
+      'pt': 'Plano equilibrado para adolescentes',
+      'ru': 'Сбалансированный план для подростков',
+    },
+    'balanced_teen_plan_desc': {
+      'tr': 'Yeterli protein, meyve/sebze, hidrasyon',
+      'en': 'Adequate protein, fruits/veggies, hydration',
+      'es': 'Proteína adecuada, frutas/verduras, hidratación',
+      'fr': 'Protéines adéquates, fruits/légumes, hydratation',
+      'de': 'Ausreichend Protein, Obst/Gemüse, Hydratation',
+      'ar': 'بروتين كافٍ، فواكه/خضروات، ترطيب',
+      'it': 'Proteine adeguate, frutta/verdura, idratazione',
+      'pt': 'Proteína adequada, frutas/legumes, hidratação',
+      'ru': 'Достаточный белок, фрукты/овощи, гидратация',
+    },
+    'iron_friendly_snacks': {
+      'tr': 'Demir Dostu Atıştırmalıklar',
+      'en': 'Iron-friendly snacks',
+      'es': 'Snacks ricos en hierro',
+      'fr': 'Collations riches en fer',
+      'de': 'Eisenfreundliche Snacks',
+      'ar': 'وجبات خفيفة غنية بالحديد',
+      'it': 'Spuntini ricchi di ferro',
+      'pt': 'Lanches ricos em ferro',
+      'ru': 'Закуски, богатые железом',
+    },
+    'iron_friendly_snacks_desc': {
+      'tr': 'Fındık, tohum, kuru meyve, yoğurt',
+      'en': 'Nuts, seeds, dried fruits, yogurt',
+      'es': 'Frutos secos, semillas, frutas secas, yogur',
+      'fr': 'Noix, graines, fruits secs, yaourt',
+      'de': 'Nüsse, Samen, Trockenfrüchte, Joghurt',
+      'ar': 'المكسرات، البذور، الفواكه المجففة، الزبادي',
+      'it': 'Noci, semi, frutta secca, yogurt',
+      'pt': 'Nozes, sementes, frutas secas, iogurte',
+      'ru': 'Орехи, семена, сухофрукты, йогурт',
+    },
+    'mediterranean_core': {
+      'tr': 'Akdeniz Temeli',
+      'en': 'Mediterranean core',
+      'es': 'Base mediterránea',
+      'fr': 'Base méditerranéenne',
+      'de': 'Mittelmeer-Basis',
+      'ar': 'أساس البحر الأبيض المتوسط',
+      'it': 'Base mediterranea',
+      'pt': 'Base mediterrânea',
+      'ru': 'Средиземноморская основа',
+    },
+    'mediterranean_core_desc': {
+      'tr': 'Zeytinyağı, haftada 2 kez balık, baklagiller, tam tahıllar',
+      'en': 'Olive oil, fish 2x/week, legumes, whole grains',
+      'es':
+          'Aceite de oliva, pescado 2 veces/semana, legumbres, granos integrales',
+      'fr':
+          'Huile d\'olive, poisson 2x/semaine, légumineuses, céréales complètes',
+      'de': 'Olivenöl, Fisch 2x/Woche, Hülsenfrüchte, Vollkorn',
+      'ar': 'زيت الزيتون، السمك مرتين/أسبوع، البقوليات، الحبوب الكاملة',
+      'it': 'Olio d\'oliva, pesce 2 volte/settimana, legumi, cereali integrali',
+      'pt': 'Azeite de oliva, peixe 2x/semana, leguminosas, grãos integrais',
+      'ru': 'Оливковое масло, рыба 2 раза/неделю, бобовые, цельные зерна',
+    },
+    'lean_protein_focus': {
+      'tr': 'Yağsız Protein Odaklı',
+      'en': 'Lean protein focus',
+      'es': 'Enfoque en proteína magra',
+      'fr': 'Focus sur protéines maigres',
+      'de': 'Fokus auf mageres Protein',
+      'ar': 'التركيز على البروتين الخالي من الدهون',
+      'it': 'Focus su proteine magre',
+      'pt': 'Foco em proteína magra',
+      'ru': 'Фокус на нежирный белок',
+    },
+    'lean_protein_focus_desc': {
+      'tr': 'Tavuk, hindi, yumurta, baklagiller',
+      'en': 'Chicken, turkey, eggs, legumes',
+      'es': 'Pollo, pavo, huevos, legumbres',
+      'fr': 'Poulet, dinde, œufs, légumineuses',
+      'de': 'Huhn, Truthahn, Eier, Hülsenfrüchte',
+      'ar': 'الدجاج، الديك الرومي، البيض، البقوليات',
+      'it': 'Pollo, tacchino, uova, legumi',
+      'pt': 'Frango, peru, ovos, leguminosas',
+      'ru': 'Курица, индейка, яйца, бобовые',
+    },
+    'cardio_friendly': {
+      'tr': 'Kardiyovasküler Dostu',
+      'en': 'Cardio-friendly',
+      'es': 'Cardiosaludable',
+      'fr': 'Cardio-friendly',
+      'de': 'Herzfreundlich',
+      'ar': 'صديق للقلب',
+      'it': 'Amico del cuore',
+      'pt': 'Amigável ao coração',
+      'ru': 'Полезно для сердца',
+    },
+    'cardio_friendly_desc': {
+      'tr': 'Düşük doymuş yağ, yüksek lif, daha fazla omega-3',
+      'en': 'Low saturated fat, high fiber, more omega-3',
+      'es': 'Baja grasa saturada, alta fibra, más omega-3',
+      'fr': 'Faible en graisses saturées, riche en fibres, plus d\'oméga-3',
+      'de': 'Wenig gesättigte Fette, viel Ballaststoffe, mehr Omega-3',
+      'ar': 'قليل الدهون المشبعة، عالي الألياف، المزيد من أوميغا 3',
+      'it':
+          'Basso contenuto di grassi saturi, alto contenuto di fibre, più omega-3',
+      'pt': 'Baixo teor de gordura saturada, alto teor de fibras, mais ômega-3',
+      'ru':
+          'Низкое содержание насыщенных жиров, высокое содержание клетчатки, больше омега-3',
+    },
+    'low_sodium_plan': {
+      'tr': 'Düşük Sodyum Planı',
+      'en': 'Low-sodium plan',
+      'es': 'Plan bajo en sodio',
+      'fr': 'Plan faible en sodium',
+      'de': 'Natriumarmer Plan',
+      'ar': 'خطة منخفضة الصوديوم',
+      'it': 'Piano a basso contenuto di sodio',
+      'pt': 'Plano com baixo teor de sódio',
+      'ru': 'План с низким содержанием натрия',
+    },
+    'low_sodium_plan_desc': {
+      'tr': 'İşlenmiş gıdaları sınırla, otlar/baharatlar kullan',
+      'en': 'Limit processed foods, use herbs/spices',
+      'es': 'Limita alimentos procesados, usa hierbas/especias',
+      'fr': 'Limiter les aliments transformés, utiliser herbes/épices',
+      'de': 'Verarbeitete Lebensmittel einschränken, Kräuter/Gewürze verwenden',
+      'ar': 'قلل الأطعمة المصنعة، استخدم الأعشاب/التوابل',
+      'it': 'Limita gli alimenti trasformati, usa erbe/spezie',
+      'pt': 'Limite alimentos processados, use ervas/temperos',
+      'ru': 'Ограничьте обработанные продукты, используйте травы/специи',
+    },
+    'senior_soft_menu': {
+      'tr': 'Yaşlılar İçin Yumuşak Menü',
+      'en': 'Senior soft menu',
+      'es': 'Menú suave para mayores',
+      'fr': 'Menu doux pour seniors',
+      'de': 'Weiches Menü für Senioren',
+      'ar': 'قائمة ناعمة لكبار السن',
+      'it': 'Menu morbido per anziani',
+      'pt': 'Cardápio suave para idosos',
+      'ru': 'Мягкое меню для пожилых',
+    },
+    'senior_soft_menu_desc': {
+      'tr': 'Çiğnemesi kolay yemekler, çorbalar, yahniler',
+      'en': 'Easier-to-chew meals, soups, stews',
+      'es': 'Comidas fáciles de masticar, sopas, guisos',
+      'fr': 'Repas faciles à mâcher, soupes, ragoûts',
+      'de': 'Leichter zu kauende Mahlzeiten, Suppen, Eintöpfe',
+      'ar': 'وجبات سهلة المضغ، الحساء، اليخنات',
+      'it': 'Pasti più facili da masticare, zuppe, stufati',
+      'pt': 'Refeições fáceis de mastigar, sopas, ensopados',
+      'ru': 'Легко пережевываемые блюда, супы, тушеные блюда',
+    },
+    'bone_health': {
+      'tr': 'Kemik Sağlığı',
+      'en': 'Bone health',
+      'es': 'Salud ósea',
+      'fr': 'Santé osseuse',
+      'de': 'Knochengesundheit',
+      'ar': 'صحة العظام',
+      'it': 'Salute delle ossa',
+      'pt': 'Saúde óssea',
+      'ru': 'Здоровье костей',
+    },
+    'bone_health_desc': {
+      'tr': 'Kalsiyum+D3, süt ürünleri/güçlendirilmiş alternatifler',
+      'en': 'Calcium+D3, dairy/fortified alternatives',
+      'es': 'Calcio+D3, lácteos/alternativas fortificadas',
+      'fr': 'Calcium+D3, produits laitiers/alternatives enrichies',
+      'de': 'Kalzium+D3, Milchprodukte/angereicherte Alternativen',
+      'ar': 'الكالسيوم+D3، منتجات الألبان/البدائل المدعمة',
+      'it': 'Calcio+D3, latticini/alternative fortificate',
+      'pt': 'Cálcio+D3, laticínios/alternativas fortificadas',
+      'ru': 'Кальций+D3, молочные продукты/обогащенные альтернативы',
+    },
+    // Language Settings Screen
+    'dynamic_text_translation': {
+      'tr': 'Dinamik Metin Çevirisi',
+      'en': 'Dynamic Text Translation',
+      'es': 'Traducción Dinámica de Texto',
+      'fr': 'Traduction Dynamique de Texte',
+      'de': 'Dynamische Textübersetzung',
+      'ar': 'ترجمة النص الديناميكية',
+      'it': 'Traduzione Dinamica del Testo',
+      'pt': 'Tradução Dinâmica de Texto',
+      'ru': 'Динамический перевод текста',
+    },
+    'dynamic_text_translation_desc': {
+      'tr': 'Tüm arayüz öğeleri seçilen dile uyum sağlar',
+      'en': 'All interface elements adapt to selected language',
+      'es':
+          'Todos los elementos de la interfaz se adaptan al idioma seleccionado',
+      'fr':
+          'Tous les éléments de l\'interface s\'adaptent à la langue sélectionnée',
+      'de':
+          'Alle Benutzeroberflächenelemente passen sich der ausgewählten Sprache an',
+      'ar': 'جميع عناصر الواجهة تتكيف مع اللغة المحددة',
+      'it':
+          'Tutti gli elementi dell\'interfaccia si adattano alla lingua selezionata',
+      'pt': 'Todos os elementos da interface se adaptam ao idioma selecionado',
+      'ru': 'Все элементы интерфейса адаптируются к выбранному языку',
+    },
+    'rtl_support': {
+      'tr': 'RTL Desteği',
+      'en': 'RTL Support',
+      'es': 'Soporte RTL',
+      'fr': 'Support RTL',
+      'de': 'RTL-Unterstützung',
+      'ar': 'دعم RTL',
+      'it': 'Supporto RTL',
+      'pt': 'Suporte RTL',
+      'ru': 'Поддержка RTL',
+    },
+    'rtl_support_desc': {
+      'tr': 'Arapça dili için sağdan sola düzen',
+      'en': 'Right-to-left layout for Arabic language',
+      'es': 'Diseño de derecha a izquierda para el idioma árabe',
+      'fr': 'Mise en page de droite à gauche pour la langue arabe',
+      'de': 'Layout von rechts nach links für die arabische Sprache',
+      'ar': 'تخطيط من اليمين إلى اليسار للغة العربية',
+      'it': 'Layout da destra a sinistra per la lingua araba',
+      'pt': 'Layout da direita para a esquerda para o idioma árabe',
+      'ru': 'Макет справа налево для арабского языка',
+    },
+    'localized_formatting': {
+      'tr': 'Yerelleştirilmiş Biçimlendirme',
+      'en': 'Localized Formatting',
+      'es': 'Formato Localizado',
+      'fr': 'Formatage Localisé',
+      'de': 'Lokalisierte Formatierung',
+      'ar': 'التنسيق المترجم',
+      'it': 'Formattazione Localizzata',
+      'pt': 'Formatação Localizada',
+      'ru': 'Локализованное форматирование',
+    },
+    'localized_formatting_desc': {
+      'tr': 'Tarih, saat ve sayı formatları yerel ayarlarla eşleşir',
+      'en': 'Date, time and number formats match locale',
+      'es':
+          'Los formatos de fecha, hora y número coinciden con la configuración regional',
+      'fr': 'Les formats de date, heure et nombre correspondent à la locale',
+      'de': 'Datums-, Zeit- und Zahlenformate entsprechen der Gebietsschema',
+      'ar': 'تنسيقات التاريخ والوقت والأرقام تطابق الإعدادات المحلية',
+      'it':
+          'I formati di data, ora e numero corrispondono alle impostazioni locali',
+      'pt': 'Formatos de data, hora e número correspondem à localidade',
+      'ru': 'Форматы даты, времени и чисел соответствуют локали',
+    },
+    'medical_terminology': {
+      'tr': 'Tıbbi Terminoloji',
+      'en': 'Medical Terminology',
+      'es': 'Terminología Médica',
+      'fr': 'Terminologie Médicale',
+      'de': 'Medizinische Terminologie',
+      'ar': 'المصطلحات الطبية',
+      'it': 'Terminologia Medica',
+      'pt': 'Terminologia Médica',
+      'ru': 'Медицинская терминология',
+    },
+    'medical_terminology_desc': {
+      'tr': 'Hemogram parametreleri ana dilde',
+      'en': 'Hemogram parameters in native language',
+      'es': 'Parámetros del hemograma en idioma nativo',
+      'fr': 'Paramètres d\'hémogramme dans la langue maternelle',
+      'de': 'Hämogramm-Parameter in der Muttersprache',
+      'ar': 'معاملات تعداد الدم باللغة الأم',
+      'it': 'Parametri dell\'emocromo nella lingua nativa',
+      'pt': 'Parâmetros do hemograma no idioma nativo',
+      'ru': 'Параметры гемограммы на родном языке',
+    },
+    // Premium Screen
+    'restore_purchases': {
+      'tr': 'Satın Alımları Geri Yükle',
+      'en': 'Restore Purchases',
+      'es': 'Restaurar Compras',
+      'fr': 'Restaurer les Achats',
+      'de': 'Käufe wiederherstellen',
+      'ar': 'استعادة المشتريات',
+      'it': 'Ripristina Acquisti',
+      'pt': 'Restaurar Compras',
+      'ru': 'Восстановить покупки',
+    },
+    // Export/Import
+    'json_pdf_export': {
+      'tr': 'JSON/PDF dışa aktarma • Self-servis veri taşınabilirliği',
+      'en': 'JSON/PDF export • Self-service data portability',
+      'es': 'Exportación JSON/PDF • Portabilidad de datos de autoservicio',
+      'fr': 'Export JSON/PDF • Portabilité des données en libre-service',
+      'de': 'JSON/PDF-Export • Self-Service-Datenportabilität',
+      'ar': 'تصدير JSON/PDF • قابلية نقل البيانات ذاتية الخدمة',
+      'it': 'Esportazione JSON/PDF • Portabilità dei dati self-service',
+      'pt': 'Exportação JSON/PDF • Portabilidade de dados self-service',
+      'ru': 'Экспорт JSON/PDF • Портативность данных самообслуживания',
+    },
+    // Premium Features
+    'unlimited_tests': {
+      'tr': 'Sınırsız Test',
+      'en': 'Unlimited Tests',
+      'es': 'Pruebas Ilimitadas',
+      'fr': 'Tests Illimités',
+      'de': 'Unbegrenzte Tests',
+      'ar': 'اختبارات غير محدودة',
+      'it': 'Test Illimitati',
+      'pt': 'Testes Ilimitados',
+      'ru': 'Неограниченные тесты',
+    },
+    'cloud_backup': {
+      'tr': 'Bulut Yedekleme',
+      'en': 'Cloud Backup',
+      'es': 'Copia de Seguridad en la Nube',
+      'fr': 'Sauvegarde Cloud',
+      'de': 'Cloud-Backup',
+      'ar': 'النسخ الاحتياطي السحابي',
+      'it': 'Backup Cloud',
+      'pt': 'Backup na Nuvem',
+      'ru': 'Облачное резервное копирование',
+    },
+    'advanced_ai': {
+      'tr': 'Gelişmiş AI',
+      'en': 'Advanced AI',
+      'es': 'IA Avanzada',
+      'fr': 'IA Avancée',
+      'de': 'Erweiterte KI',
+      'ar': 'ذكاء اصطناعي متقدم',
+      'it': 'IA Avanzata',
+      'pt': 'IA Avançada',
+      'ru': 'Продвинутый ИИ',
+    },
+    'unlimited_family': {
+      'tr': 'Sınırsız Aile',
+      'en': 'Unlimited Family',
+      'es': 'Familia Ilimitada',
+      'fr': 'Famille Illimitée',
+      'de': 'Unbegrenzte Familie',
+      'ar': 'عائلة غير محدودة',
+      'it': 'Famiglia Illimitata',
+      'pt': 'Família Ilimitada',
+      'ru': 'Неограниченная семья',
+    },
+    'unlimited_diets': {
+      'tr': 'Sınırsız Diyet',
+      'en': 'Unlimited Diets',
+      'es': 'Dietas Ilimitadas',
+      'fr': 'Régimes Illimités',
+      'de': 'Unbegrenzte Diäten',
+      'ar': 'أنظمة غذائية غير محدودة',
+      'it': 'Diete Illimitate',
+      'pt': 'Dietas Ilimitadas',
+      'ru': 'Неограниченные диеты',
+    },
+    'advanced_analytics': {
+      'tr': 'Gelişmiş Analitik',
+      'en': 'Advanced Analytics',
+      'es': 'Analítica Avanzada',
+      'fr': 'Analyses Avancées',
+      'de': 'Erweiterte Analysen',
+      'ar': 'تحليلات متقدمة',
+      'it': 'Analisi Avanzate',
+      'pt': 'Análises Avançadas',
+      'ru': 'Продвинутая аналитика',
+    },
+    'expert_doctor_consultation': {
+      'tr': 'Uzman Doktor Görüşü',
+      'en': 'Expert Doctor Consultation',
+      'es': 'Consulta con Médico Experto',
+      'fr': 'Consultation avec Médecin Expert',
+      'de': 'Beratung durch Expertenarzt',
+      'ar': 'استشارة طبيب خبير',
+      'it': 'Consulenza Medico Esperto',
+      'pt': 'Consulta com Médico Especialista',
+      'ru': 'Консультация врача-эксперта',
+    },
+    'video_consultation': {
+      'tr': 'Video Konsültasyon',
+      'en': 'Video Consultation',
+      'es': 'Consulta por Video',
+      'fr': 'Consultation Vidéo',
+      'de': 'Video-Beratung',
+      'ar': 'استشارة فيديو',
+      'it': 'Consulenza Video',
+      'pt': 'Consulta por Vídeo',
+      'ru': 'Видеоконсультация',
+    },
+    'second_opinion': {
+      'tr': 'İkinci Görüş',
+      'en': 'Second Opinion',
+      'es': 'Segunda Opinión',
+      'fr': 'Deuxième Avis',
+      'de': 'Zweite Meinung',
+      'ar': 'الرأي الثاني',
+      'it': 'Seconda Opinione',
+      'pt': 'Segunda Opinião',
+      'ru': 'Второе мнение',
+    },
+    'one_time': {
+      'tr': 'Tek Seferlik',
+      'en': 'One-time',
+      'es': 'Única vez',
+      'fr': 'Unique',
+      'de': 'Einmalig',
+      'ar': 'مرة واحدة',
+      'it': 'Una tantum',
+      'pt': 'Única vez',
+      'ru': 'Одноразовый',
+    },
+    // Performance Screen
+    'image_cache': {
+      'tr': 'Görüntü Önbelleği',
+      'en': 'Image Cache',
+      'es': 'Caché de Imágenes',
+      'fr': 'Cache d\'Images',
+      'de': 'Bild-Cache',
+      'ar': 'ذاكرة التخزين المؤقت للصور',
+      'it': 'Cache Immagini',
+      'pt': 'Cache de Imagens',
+      'ru': 'Кэш изображений',
+    },
+    'max_image_cache': {
+      'tr': 'Maksimum Görüntü Önbelleği',
+      'en': 'Max Image Cache',
+      'es': 'Caché Máximo de Imágenes',
+      'fr': 'Cache d\'Images Max',
+      'de': 'Max. Bild-Cache',
+      'ar': 'الحد الأقصى لذاكرة التخزين المؤقت للصور',
+      'it': 'Cache Immagini Massimo',
+      'pt': 'Cache Máximo de Imagens',
+      'ru': 'Макс. кэш изображений',
+    },
+    'hemoai_cache': {
+      'tr': 'HemoAI Önbelleği',
+      'en': 'HemoAI Cache',
+      'es': 'Caché HemoAI',
+      'fr': 'Cache HemoAI',
+      'de': 'HemoAI-Cache',
+      'ar': 'ذاكرة التخزين المؤقت HemoAI',
+      'it': 'Cache HemoAI',
+      'pt': 'Cache HemoAI',
+      'ru': 'Кэш HemoAI',
+    },
+    'last_updated': {
+      'tr': 'Son Güncelleme',
+      'en': 'Last Updated',
+      'es': 'Última Actualización',
+      'fr': 'Dernière Mise à Jour',
+      'de': 'Zuletzt Aktualisiert',
+      'ar': 'آخر تحديث',
+      'it': 'Ultimo Aggiornamento',
+      'pt': 'Última Atualização',
+      'ru': 'Последнее обновление',
+    },
+    'no_cache_information_available': {
+      'tr': 'Önbellek bilgisi mevcut değil',
+      'en': 'No cache information available',
+      'es': 'No hay información de caché disponible',
+      'fr': 'Aucune information de cache disponible',
+      'de': 'Keine Cache-Informationen verfügbar',
+      'ar': 'لا توجد معلومات ذاكرة تخزين مؤقت متاحة',
+      'it': 'Nessuna informazione sulla cache disponibile',
+      'pt': 'Nenhuma informação de cache disponível',
+      'ru': 'Информация о кэше недоступна',
+    },
+    'debug_information': {
+      'tr': 'Hata Ayıklama Bilgileri',
+      'en': 'Debug Information',
+      'es': 'Información de Depuración',
+      'fr': 'Informations de Débogage',
+      'de': 'Debug-Informationen',
+      'ar': 'معلومات التصحيح',
+      'it': 'Informazioni di Debug',
+      'pt': 'Informações de Depuração',
+      'ru': 'Отладочная информация',
+    },
+    'debug_mode': {
+      'tr': 'Hata Ayıklama Modu',
+      'en': 'Debug Mode',
+      'es': 'Modo de Depuración',
+      'fr': 'Mode Débogage',
+      'de': 'Debug-Modus',
+      'ar': 'وضع التصحيح',
+      'it': 'Modalità Debug',
+      'pt': 'Modo de Depuração',
+      'ru': 'Режим отладки',
+    },
+    'profile_mode': {
+      'tr': 'Profil Modu',
+      'en': 'Profile Mode',
+      'es': 'Modo de Perfil',
+      'fr': 'Mode Profil',
+      'de': 'Profil-Modus',
+      'ar': 'وضع الملف الشخصي',
+      'it': 'Modalità Profilo',
+      'pt': 'Modo de Perfil',
+      'ru': 'Режим профиля',
+    },
+    'release_mode': {
+      'tr': 'Yayın Modu',
+      'en': 'Release Mode',
+      'es': 'Modo de Lanzamiento',
+      'fr': 'Mode Release',
+      'de': 'Release-Modus',
+      'ar': 'وضع الإصدار',
+      'it': 'Modalità Release',
+      'pt': 'Modo de Lançamento',
+      'ru': 'Режим релиза',
+    },
+    'is_web': {
+      'tr': 'Web',
+      'en': 'Is Web',
+      'es': 'Es Web',
+      'fr': 'Est Web',
+      'de': 'Ist Web',
+      'ar': 'ويب',
+      'it': 'È Web',
+      'pt': 'É Web',
+      'ru': 'Веб',
+    },
+    // Family Member Detail
+    'next_test_suggested': {
+      'tr': 'Önerilen sonraki test:',
+      'en': 'Next test suggested:',
+      'es': 'Próxima prueba sugerida:',
+      'fr': 'Prochain test suggéré:',
+      'de': 'Nächster Test vorgeschlagen:',
+      'ar': 'الاختبار التالي المقترح:',
+      'it': 'Prossimo test suggerito:',
+      'pt': 'Próximo teste sugerido:',
+      'ru': 'Следующий тест предложен:',
+    },
+    'no_tests': {
+      'tr': 'Test yok',
+      'en': 'No tests',
+      'es': 'Sin pruebas',
+      'fr': 'Aucun test',
+      'de': 'Keine Tests',
+      'ar': 'لا توجد اختبارات',
+      'it': 'Nessun test',
+      'pt': 'Sem testes',
+      'ru': 'Нет тестов',
+    },
+    'no_reminders': {
+      'tr': 'Hatırlatıcı yok',
+      'en': 'No reminders',
+      'es': 'Sin recordatorios',
+      'fr': 'Aucun rappel',
+      'de': 'Keine Erinnerungen',
+      'ar': 'لا توجد تذكيرات',
+      'it': 'Nessun promemoria',
+      'pt': 'Sem lembretes',
+      'ru': 'Нет напоминаний',
+    },
+    // Settings Screen
+    'could_not_open_privacy_policy': {
+      'tr': 'Gizlilik Politikası açılamadı',
+      'en': 'Could not open Privacy Policy',
+      'es': 'No se pudo abrir la Política de Privacidad',
+      'fr': 'Impossible d\'ouvrir la Politique de Confidentialité',
+      'de': 'Datenschutzrichtlinie konnte nicht geöffnet werden',
+      'ar': 'تعذر فتح سياسة الخصوصية',
+      'it': 'Impossibile aprire l\'Informativa sulla Privacy',
+      'pt': 'Não foi possível abrir a Política de Privacidade',
+      'ru': 'Не удалось открыть Политику конфиденциальности',
+    },
+    'error_opening_privacy_policy': {
+      'tr': 'Gizlilik Politikası açılırken hata: {error}',
+      'en': 'Error opening Privacy Policy: {error}',
+      'es': 'Error al abrir la Política de Privacidad: {error}',
+      'fr':
+          'Erreur lors de l\'ouverture de la Politique de Confidentialité: {error}',
+      'de': 'Fehler beim Öffnen der Datenschutzrichtlinie: {error}',
+      'ar': 'خطأ في فتح سياسة الخصوصية: {error}',
+      'it': 'Errore nell\'apertura dell\'Informativa sulla Privacy: {error}',
+      'pt': 'Erro ao abrir a Política de Privacidade: {error}',
+      'ru': 'Ошибка при открытии Политики конфиденциальности: {error}',
+    },
+    'could_not_open_terms_of_use': {
+      'tr': 'Kullanım Şartları açılamadı',
+      'en': 'Could not open Terms of Use',
+      'es': 'No se pudo abrir los Términos de Uso',
+      'fr': 'Impossible d\'ouvrir les Conditions d\'Utilisation',
+      'de': 'Nutzungsbedingungen konnten nicht geöffnet werden',
+      'ar': 'تعذر فتح شروط الاستخدام',
+      'it': 'Impossibile aprire i Termini di Utilizzo',
+      'pt': 'Não foi possível abrir os Termos de Uso',
+      'ru': 'Не удалось открыть Условия использования',
+    },
+    'error_opening_terms_of_use': {
+      'tr': 'Kullanım Şartları açılırken hata: {error}',
+      'en': 'Error opening Terms of Use: {error}',
+      'es': 'Error al abrir los Términos de Uso: {error}',
+      'fr':
+          'Erreur lors de l\'ouverture des Conditions d\'Utilisation: {error}',
+      'de': 'Fehler beim Öffnen der Nutzungsbedingungen: {error}',
+      'ar': 'خطأ في فتح شروط الاستخدام: {error}',
+      'it': 'Errore nell\'apertura dei Termini di Utilizzo: {error}',
+      'pt': 'Erro ao abrir os Termos de Uso: {error}',
+      'ru': 'Ошибка при открытии Условий использования: {error}',
+    },
+    // Family Panel
+    'family_tree': {
+      'tr': 'Aile Ağacı',
+      'en': 'Family Tree',
+      'es': 'Árbol Genealógico',
+      'fr': 'Arbre Généalogique',
+      'de': 'Stammbaum',
+      'ar': 'شجرة العائلة',
+      'it': 'Albero Genealogico',
+      'pt': 'Árvore Genealógica',
+      'ru': 'Семейное древо',
+    },
+    'connections': {
+      'tr': 'Bağlantılar',
+      'en': 'Connections',
+      'es': 'Conexiones',
+      'fr': 'Connexions',
+      'de': 'Verbindungen',
+      'ar': 'الاتصالات',
+      'it': 'Connessioni',
+      'pt': 'Conexões',
+      'ru': 'Соединения',
+    },
+    // Notification Screen
+    'notification_permissions': {
+      'tr': 'Bildirim İzinleri',
+      'en': 'Notification Permissions',
+      'es': 'Permisos de Notificación',
+      'fr': 'Autorisations de Notification',
+      'de': 'Benachrichtigungsberechtigungen',
+      'ar': 'أذونات الإشعارات',
+      'it': 'Autorizzazioni Notifiche',
+      'pt': 'Permissões de Notificação',
+      'ru': 'Разрешения на уведомления',
+    },
+    'critical_alerts': {
+      'tr': 'Kritik Uyarılar',
+      'en': 'Critical Alerts',
+      'es': 'Alertas Críticas',
+      'fr': 'Alertes Critiques',
+      'de': 'Kritische Warnungen',
+      'ar': 'تنبيهات حرجة',
+      'it': 'Avvisi Critici',
+      'pt': 'Alertas Críticas',
+      'ru': 'Критические предупреждения',
+    },
+    'health_wellness': {
+      'tr': 'Sağlık ve Wellness',
+      'en': 'Health & Wellness',
+      'es': 'Salud y Bienestar',
+      'fr': 'Santé et Bien-être',
+      'de': 'Gesundheit & Wellness',
+      'ar': 'الصحة والعافية',
+      'it': 'Salute e Benessere',
+      'pt': 'Saúde e Bem-estar',
+      'ru': 'Здоровье и благополучие',
+    },
+    'nutrition_diet': {
+      'tr': 'Beslenme ve Diyet',
+      'en': 'Nutrition & Diet',
+      'es': 'Nutrición y Dieta',
+      'fr': 'Nutrition et Régime',
+      'de': 'Ernährung & Diät',
+      'ar': 'التغذية والنظام الغذائي',
+      'it': 'Nutrizione e Dieta',
+      'pt': 'Nutrição e Dieta',
+      'ru': 'Питание и диета',
+    },
+    'motivation_tips': {
+      'tr': 'Motivasyon ve İpuçları',
+      'en': 'Motivation & Tips',
+      'es': 'Motivación y Consejos',
+      'fr': 'Motivation et Conseils',
+      'de': 'Motivation & Tipps',
+      'ar': 'الدافع والنصائح',
+      'it': 'Motivazione e Consigli',
+      'pt': 'Motivação e Dicas',
+      'ru': 'Мотивация и советы',
+    },
+    'save_settings': {
+      'tr': 'Ayarları Kaydet',
+      'en': 'Save Settings',
+      'es': 'Guardar Configuración',
+      'fr': 'Enregistrer les Paramètres',
+      'de': 'Einstellungen Speichern',
+      'ar': 'حفظ الإعدادات',
+      'it': 'Salva Impostazioni',
+      'pt': 'Salvar Configurações',
+      'ru': 'Сохранить настройки',
+    },
+    // Analysis Screen
+    'needs_attention': {
+      'tr': 'Dikkat Gerekiyor',
+      'en': 'Needs Attention',
+      'es': 'Requiere Atención',
+      'fr': 'Nécessite une Attention',
+      'de': 'Benötigt Aufmerksamkeit',
+      'ar': 'يحتاج إلى انتباه',
+      'it': 'Richiede Attenzione',
+      'pt': 'Precisa de Atenção',
+      'ru': 'Требует внимания',
+    },
+    'health_score': {
+      'tr': 'Sağlık Skoru',
+      'en': 'Health Score',
+      'es': 'Puntuación de Salud',
+      'fr': 'Score de Santé',
+      'de': 'Gesundheitswert',
+      'ar': 'نقاط الصحة',
+      'it': 'Punteggio Salute',
+      'pt': 'Pontuação de Saúde',
+      'ru': 'Оценка здоровья',
+    },
+    'good': {
+      'tr': 'İyi',
+      'en': 'Good',
+      'es': 'Bueno',
+      'fr': 'Bon',
+      'de': 'Gut',
+      'ar': 'جيد',
+      'it': 'Buono',
+      'pt': 'Bom',
+      'ru': 'Хорошо',
+    },
+    'excellent': {
+      'tr': 'Mükemmel',
+      'en': 'Excellent',
+      'es': 'Excelente',
+      'fr': 'Excellent',
+      'de': 'Ausgezeichnet',
+      'ar': 'ممتاز',
+      'it': 'Eccellente',
+      'pt': 'Excelente',
+      'ru': 'Отлично',
+    },
+    'items': {
+      'tr': 'öğe',
+      'en': 'items',
+      'es': 'elementos',
+      'fr': 'éléments',
+      'de': 'Elemente',
+      'ar': 'عناصر',
+      'it': 'elementi',
+      'pt': 'itens',
+      'ru': 'элементы',
+    },
+    'entries': {
+      'tr': 'giriş',
+      'en': 'entries',
+      'es': 'entradas',
+      'fr': 'entrées',
+      'de': 'Einträge',
+      'ar': 'إدخالات',
+      'it': 'voci',
+      'pt': 'entradas',
+      'ru': 'записи',
+    },
+    'lifetime': {
+      'tr': 'Yaşam Boyu',
+      'en': 'Lifetime',
+      'es': 'De por Vida',
+      'fr': 'À Vie',
+      'de': 'Lebenslang',
+      'ar': 'مدى الحياة',
+      'it': 'A Vita',
+      'pt': 'Vitalício',
+      'ru': 'Пожизненно',
+    },
+    'platform': {
+      'tr': 'Platform',
+      'en': 'Platform',
+      'es': 'Plataforma',
+      'fr': 'Plateforme',
+      'de': 'Plattform',
+      'ar': 'المنصة',
+      'it': 'Piattaforma',
+      'pt': 'Plataforma',
+      'ru': 'Платформа',
+    },
+    'native': {
+      'tr': 'Yerel',
+      'en': 'Native',
+      'es': 'Nativo',
+      'fr': 'Natif',
+      'de': 'Nativ',
+      'ar': 'أصلي',
+      'it': 'Nativo',
+      'pt': 'Nativo',
+      'ru': 'Нативный',
+    },
+    'other': {
+      'tr': 'Diğer',
+      'en': 'Other',
+      'es': 'Otro',
+      'fr': 'Autre',
+      'de': 'Andere',
+      'ar': 'آخر',
+      'it': 'Altro',
+      'pt': 'Outro',
+      'ru': 'Другое',
+    },
+    'test_user': {
+      'tr': 'Test Kullanıcısı',
+      'en': 'Test User',
+      'es': 'Usuario de Prueba',
+      'fr': 'Utilisateur de Test',
+      'de': 'Testbenutzer',
+      'ar': 'مستخدم تجريبي',
+      'it': 'Utente di Test',
+      'pt': 'Usuário de Teste',
+      'ru': 'Тестовый пользователь',
+    },
+    'loading_ocr': {
+      'tr': 'OCR yükleniyor...',
+      'en': 'Loading OCR...',
+      'es': 'Cargando OCR...',
+      'fr': 'Chargement OCR...',
+      'de': 'OCR wird geladen...',
+      'ar': 'جارٍ تحميل OCR...',
+      'it': 'Caricamento OCR...',
+      'pt': 'Carregando OCR...',
+      'ru': 'Загрузка OCR...',
     },
   };
 
@@ -13709,29 +18092,30 @@ class LocalizationService extends ChangeNotifier {
   String getString(String key, {String? defaultValue}) {
     // First check localizedStrings, then hemogramStrings
     Map<String, String>? languageStrings = _localizedStrings[key];
-    
+
     if (languageStrings == null) {
       languageStrings = _hemogramStrings[key];
     }
-    
+
     if (languageStrings != null) {
-      return languageStrings[currentLanguageCode] ?? 
-             languageStrings['en'] ?? 
-             defaultValue ?? 
-             key;
+      return languageStrings[currentLanguageCode] ??
+          languageStrings['en'] ??
+          defaultValue ??
+          key;
     }
-    
+
     return defaultValue ?? key;
   }
 
   // Get localized string with parameters
-  String getStringWithParams(String key, Map<String, String> params, {String? defaultValue}) {
+  String getStringWithParams(String key, Map<String, String> params,
+      {String? defaultValue}) {
     String result = getString(key, defaultValue: defaultValue);
-    
+
     params.forEach((paramKey, paramValue) {
       result = result.replaceAll('{$paramKey}', paramValue);
     });
-    
+
     return result;
   }
 
@@ -13758,11 +18142,12 @@ class LocalizationService extends ChangeNotifier {
   String formatTime(DateTime time) {
     final hour = time.hour.toString().padLeft(2, '0');
     final minute = time.minute.toString().padLeft(2, '0');
-    
+
     switch (currentLanguageCode) {
       case 'en':
         final period = time.hour >= 12 ? 'PM' : 'AM';
-        final hour12 = time.hour > 12 ? time.hour - 12 : (time.hour == 0 ? 12 : time.hour);
+        final hour12 =
+            time.hour > 12 ? time.hour - 12 : (time.hour == 0 ? 12 : time.hour);
         return '${hour12.toString().padLeft(2, '0')}:$minute $period';
       default:
         return '$hour:$minute';

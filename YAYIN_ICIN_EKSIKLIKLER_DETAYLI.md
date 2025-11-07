@@ -58,7 +58,7 @@
 
 **Mevcut URL'ler:**
 - Privacy Policy: `https://meloshemo.github.io`
-- Terms of Use: `https://meloshemo.github.io/HemoAI`
+- Terms of Use: `https://meloshemo.github.io/hemoai-support/terms-of-use.html`
 - Support: `https://meloshemo.github.io/hemoai-support` ✅
 
 **Kontrol Edilmesi Gerekenler:**

@@ -20,25 +20,9 @@ class TurkishPaymentService implements IPaymentService {
   TurkishPaymentService._internal();
 
   // Backend servisi URL'i (İyzico entegrasyonu için)
-  // Production'da bu URL'leri kendi backend servisinizle değiştirin
-  // Environment variable veya config dosyasından okunabilir
-  static String get _backendPaymentUrl {
-    // Production'da environment variable'dan oku
-    const String? envUrl = String.fromEnvironment('BACKEND_PAYMENT_URL');
-    if (envUrl != null && envUrl.isNotEmpty) {
-      return envUrl;
-    }
-    // Fallback: Config dosyasından okunabilir (gelecek)
-    return 'https://your-backend.com/api/payment/create';
-  }
-  
-  static String get _backendWebhookUrl {
-    const String? envUrl = String.fromEnvironment('BACKEND_WEBHOOK_URL');
-    if (envUrl != null && envUrl.isNotEmpty) {
-      return envUrl;
-    }
-    return 'https://your-backend.com/api/webhook/iyzico';
-  }
+  // TODO: Kendi backend servisinizin URL'ini buraya ekleyin
+  static const String _backendPaymentUrl = 'https://your-backend.com/api/payment/create';
+  static const String _backendWebhookUrl = 'https://your-backend.com/api/webhook/iyzico';
 
   // In-App Purchase product IDs (Google Play ve App Store için)
   static const String _productIdMonthly = 'hemoai_premium_monthly';
@@ -191,18 +175,24 @@ class TurkishPaymentService implements IPaymentService {
       // Backend, İyzico'ya istek gönderir ve ödeme sayfası URL'i döner
       if (kDebugMode && _backendPaymentUrl.contains('your-backend')) {
         // Test modunda, backend yoksa bilgilendirme göster
-        final loc = LocalizationService();
         showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: Text(loc.getString('iyzico_integration_required')),
-            content: Text(
-              loc.getString('iyzico_backend_config_details'),
+            title: const Text('İyzico Entegrasyonu Gerekli'),
+            content: const Text(
+              'Web ödemeleri için backend servisi kurulumu gereklidir:\n\n'
+              '1. İyzico hesabı oluşturun (iyzico.com)\n'
+              '2. Backend servisi kurun (Node.js/Python/Dart)\n'
+              '3. İyzico API entegrasyonu yapın\n'
+              '4. Backend URL\'ini TurkishPaymentService\'e ekleyin\n'
+              '5. Webhook endpoint oluşturun\n\n'
+              'Detaylı bilgi için: docs/TURKISH_PAYMENT_INTEGRATION.md\n\n'
+              'Şimdilik test modunda premium aktifleştiriliyor.',
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: Text(loc.getString('ok')),
+                child: const Text('Tamam'),
               ),
             ],
           ),

@@ -45,6 +45,11 @@ class ErrorHandler {
   String _getErrorMessage(dynamic error) {
     final loc = LocalizationService();
     if (error is NetworkException) {
+      // Check if the error message contains VPN or connection details
+      final errorMsg = error.message.toLowerCase();
+      if (errorMsg.contains('vpn') || errorMsg.contains('connection failed')) {
+        return error.message; // Use the detailed message from NetworkException
+      }
       return loc.getString('no_internet_connection');
     }
 
@@ -54,6 +59,13 @@ class ErrorHandler {
 
     if (error is TimeoutException) {
       return loc.getString('request_timed_out');
+    }
+    
+    // Check for connection-related error strings
+    final errorString = error.toString().toLowerCase();
+    if (errorString.contains('connection') && 
+        (errorString.contains('failed') || errorString.contains('error'))) {
+      return 'Connection failed. Please check your internet connection or VPN settings.';
     }
 
     if (error is ValidationException) {
@@ -155,7 +167,7 @@ class ErrorHandler {
                 },
               ),
             TextButton(
-              child: Text(LocalizationService().getString('ok')),
+              child: Text(LocalizationService().getString('close')),
               onPressed: () {
                 Navigator.of(context).pop();
               },

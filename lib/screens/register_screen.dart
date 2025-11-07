@@ -9,7 +9,6 @@ import 'dart:async';
 import '../services/localization_service.dart';
 import '../services/database_helper.dart';
 import '../services/preferences_service.dart';
-import '../utils/validators.dart';
 
 class RegisterScreen extends StatefulWidget {
   final String initialMethod; // 'phone' | 'email'
@@ -54,12 +53,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  String? _validatePhone(String? value) {
-    return Validators.validatePhone(value, isTurkish: true, customError: 'Please enter a valid Turkish phone number');
+  bool _validatePhone(String value) {
+    final digits = value.replaceAll(RegExp(r'\D'), '');
+    return digits.length >= 10 && digits.length <= 11;
   }
 
-  String? _validateEmail(String? value) {
-    return Validators.validateEmail(value, customError: 'Please enter a valid email address');
+  bool _validateEmail(String value) {
+    final email = value.trim();
+    final regex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+    return regex.hasMatch(email);
   }
 
   String _hashPassword(String password) {
@@ -317,7 +319,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   TextFormField(
                     controller: nameController,
                     decoration: InputDecoration(labelText: loc.getString('name_label')),
-                    validator: (v) => Validators.validateName(v, customError: loc.getString('name_required')),
+                    validator: (v) => (v == null || v.trim().isEmpty) ? loc.getString('name_required') : null,
                   ),
                   const SizedBox(height: 16),
 
@@ -352,7 +354,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               labelText: loc.getString('phone_number_label'),
                             ),
                             keyboardType: TextInputType.phone,
-                            validator: (v) => _validatePhone(v),
+                            validator: (v) {
+                              final value = v?.trim() ?? '';
+                              if (value.isEmpty) return loc.getString('phone_required');
+                              if (!_validatePhone(value)) return loc.getString('phone_invalid');
+                              return null;
+                            },
                           ),
                         ),
                       ],
@@ -362,7 +369,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       controller: emailController,
                       decoration: InputDecoration(labelText: loc.getString('enter_email_label')),
                       keyboardType: TextInputType.emailAddress,
-                      validator: (v) => _validateEmail(v),
+                      validator: (v) {
+                        final value = v?.trim() ?? '';
+                        if (value.isEmpty) return loc.getString('email_required');
+                        if (!_validateEmail(value)) return loc.getString('email_invalid');
+                        return null;
+                      },
                     ),
                   ],
 
@@ -371,26 +383,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     controller: passwordController,
                     decoration: InputDecoration(labelText: loc.getString('password_label')),
                     obscureText: true,
-                    validator: (v) => Validators.validatePassword(
-                      v,
-                      minLength: 8,
-                      requireUppercase: false,
-                      requireNumbers: false,
-                      customError: v?.trim().isEmpty ?? true 
-                          ? loc.getString('password_required')
-                          : loc.getString('password_min_length'),
-                    ),
+                    validator: (v) {
+                      final value = v?.trim() ?? '';
+                      if (value.isEmpty) return loc.getString('password_required');
+                      if (value.length < 4) return loc.getString('password_min_length');
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: confirmController,
                     decoration: InputDecoration(labelText: loc.getString('password_confirm_label')),
                     obscureText: true,
-                    validator: (v) => Validators.validatePasswordConfirmation(
-                      v,
-                      passwordController.text.trim(),
-                      customError: loc.getString('password_mismatch'),
-                    ),
+                    validator: (v) => (v?.trim() ?? '') != (passwordController.text.trim())
+                        ? loc.getString('password_mismatch')
+                        : null,
                   ),
 
                   const SizedBox(height: 24),

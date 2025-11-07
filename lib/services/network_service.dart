@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'dart:io' show HttpClient;
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
+import 'package:http/http.dart' as http;
 
 /// Professional network connectivity service with real-time monitoring
 /// Handles network state changes and provides reliable connectivity checks
@@ -13,54 +13,87 @@ class NetworkService extends ChangeNotifier {
 
   final Logger _logger = Logger();
   final Connectivity _connectivity = Connectivity();
-  
-  List<ConnectivityResult> _currentStatus = [ConnectivityResult.none];
-  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
-  
+  static const List<ConnectivityResult> _statusPriority = <ConnectivityResult>[
+    ConnectivityResult.wifi,
+    ConnectivityResult.ethernet,
+    ConnectivityResult.mobile,
+    ConnectivityResult.bluetooth,
+    ConnectivityResult.vpn,
+    ConnectivityResult.other,
+    ConnectivityResult.none,
+  ];
+
+  ConnectivityResult _currentStatus = ConnectivityResult.none;
+  StreamSubscription<dynamic>? _connectivitySubscription;
+
   bool _isInitialized = false;
   bool get isInitialized => _isInitialized;
-  
-  List<ConnectivityResult> get currentStatus => _currentStatus;
-  bool get isConnected => !_currentStatus.contains(ConnectivityResult.none);
-  
+
+  ConnectivityResult get currentStatus => _currentStatus;
+  bool get isConnected => _currentStatus != ConnectivityResult.none;
+
   /// Initialize network monitoring
   Future<void> initialize() async {
     if (_isInitialized) return;
-    
+
     try {
       // Get initial connectivity status
-      _currentStatus = await _connectivity.checkConnectivity();
-      
+      final initialResults = await _connectivity.checkConnectivity();
+      _currentStatus = _normalizeStatus(initialResults);
+
       // Listen to connectivity changes
       _connectivitySubscription = _connectivity.onConnectivityChanged.listen(
-        (List<ConnectivityResult> results) {
-          _handleConnectivityChange(results);
+        (dynamic value) {
+          final status = _normalizeStatus(value);
+          _handleConnectivityChange(status);
         },
         onError: (error) {
           _logger.e('Connectivity stream error: $error');
         },
       );
-      
+
       _isInitialized = true;
       _logger.i('NetworkService initialized. Current status: $_currentStatus');
       notifyListeners();
     } catch (e, stackTrace) {
-      _logger.e('Failed to initialize NetworkService: $e', 
-                error: e, stackTrace: stackTrace);
+      _logger.e('Failed to initialize NetworkService: $e',
+          error: e, stackTrace: stackTrace);
       rethrow;
     }
   }
-  
-  void _handleConnectivityChange(List<ConnectivityResult> results) {
-    if (_currentStatus.toString() != results.toString()) {
-      _currentStatus = results;
-      _logger.i('Network connectivity changed: $results');
+
+  ConnectivityResult _reduceResults(List<ConnectivityResult> results) {
+    if (results.isEmpty) {
+      return ConnectivityResult.none;
+    }
+
+    for (final status in _statusPriority) {
+      if (results.contains(status)) {
+        return status;
+      }
+    }
+    return ConnectivityResult.none;
+  }
+
+  ConnectivityResult _normalizeStatus(dynamic value) {
+    if (value is ConnectivityResult) {
+      return value;
+    }
+    if (value is List<ConnectivityResult>) {
+      return _reduceResults(value);
+    }
+    return ConnectivityResult.none;
+  }
+
+  void _handleConnectivityChange(ConnectivityResult result) {
+    if (_currentStatus != result) {
+      _currentStatus = result;
+      _logger.i('Network connectivity changed: $result');
       notifyListeners();
-      
+
       // Log network type for debugging
       if (kDebugMode) {
-        final primary = results.isNotEmpty ? results.first : ConnectivityResult.none;
-        switch (primary) {
+        switch (_currentStatus) {
           case ConnectivityResult.wifi:
             _logger.d('Connected via WiFi');
             break;
@@ -76,70 +109,64 @@ class NetworkService extends ChangeNotifier {
           case ConnectivityResult.bluetooth:
           case ConnectivityResult.vpn:
           case ConnectivityResult.other:
-            _logger.d('Connected via ${primary.name}');
+            _logger.d('Connected via ${_currentStatus.name}');
             break;
         }
       }
     }
   }
-  
+
   /// Check current connectivity status
-  Future<List<ConnectivityResult>> checkConnectivity() async {
+  Future<ConnectivityResult> checkConnectivity() async {
     try {
       final results = await _connectivity.checkConnectivity();
-      if (_currentStatus.toString() != results.toString()) {
-        _handleConnectivityChange(results);
+      final status = _normalizeStatus(results);
+      if (_currentStatus != status) {
+        _handleConnectivityChange(status);
       }
-      return results;
+      return status;
     } catch (e) {
       _logger.e('Error checking connectivity: $e');
-      return [ConnectivityResult.none];
+      return ConnectivityResult.none;
     }
   }
-  
+
   /// Check if device has internet connection (not just network interface)
   /// This performs an actual network request to verify internet access
   /// Note: For production, consider using a lightweight endpoint or DNS lookup
   Future<bool> hasInternetAccess({
     Duration timeout = const Duration(seconds: 5),
     List<String> testUrls = const [
-      'https://www.google.com',
-      'https://www.cloudflare.com',
+      'https://www.gstatic.com/generate_204',
+      'https://1.1.1.1',
     ],
   }) async {
     if (!isConnected) {
       return false;
     }
-    
+
     // For web platform, connectivity check is usually sufficient
     if (kIsWeb) {
       return isConnected;
     }
-    
-    // For mobile platforms, perform actual network test
-    // Note: HttpClient is imported from dart:io
+
+    // For non-web platforms, perform a lightweight HTTP GET
     try {
-      final client = HttpClient();
-      client.connectionTimeout = timeout;
-      
+      final client = http.Client();
       for (final url in testUrls) {
         try {
           final uri = Uri.parse(url);
-          final request = await client.getUrl(uri).timeout(timeout);
-          final response = await request.close().timeout(timeout);
-          
-          if (response.statusCode >= 200 && response.statusCode < 300) {
+          final response = await client.get(uri).timeout(timeout);
+          if (response.statusCode >= 200 && response.statusCode < 400) {
             client.close();
             return true;
           }
-        } catch (e) {
+        } catch (_) {
           // Try next URL
           continue;
-        } finally {
-          client.close();
         }
       }
-      
+      client.close();
       return false;
     } catch (e) {
       _logger.w('Internet access check failed: $e');
@@ -147,15 +174,14 @@ class NetworkService extends ChangeNotifier {
       return isConnected;
     }
   }
-  
+
   /// Get human-readable network status
   String getNetworkStatusText() {
-    if (_currentStatus.isEmpty || _currentStatus.contains(ConnectivityResult.none)) {
+    if (_currentStatus == ConnectivityResult.none) {
       return 'No Connection';
     }
-    
-    final primary = _currentStatus.first;
-    switch (primary) {
+
+    switch (_currentStatus) {
       case ConnectivityResult.wifi:
         return 'WiFi';
       case ConnectivityResult.mobile:
@@ -172,7 +198,7 @@ class NetworkService extends ChangeNotifier {
         return 'Other';
     }
   }
-  
+
   /// Dispose resources
   @override
   void dispose() {
@@ -190,14 +216,14 @@ extension NetworkAwareFuture<T> on Future<T> {
     if (!networkService.isInitialized) {
       await networkService.initialize();
     }
-    
+
     if (!networkService.isConnected) {
       throw NetworkException('No network connection available');
     }
-    
+
     return this;
   }
-  
+
   /// Execute with network check, returning null if offline
   Future<T?> withNetworkFallback() async {
     try {
@@ -212,8 +238,7 @@ extension NetworkAwareFuture<T> on Future<T> {
 class NetworkException implements Exception {
   final String message;
   NetworkException(this.message);
-  
+
   @override
   String toString() => 'NetworkException: $message';
 }
-

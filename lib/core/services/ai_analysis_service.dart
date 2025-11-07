@@ -383,10 +383,10 @@ class AIAnalysisService {
     } catch (e, stackTrace) {
       _logger.e('Error in trend analysis: $e', error: e, stackTrace: stackTrace);
       // Fallback to stable trend on error
-      return TrendAnalysis(
-        overallTrend: 'stable',
+    return TrendAnalysis(
+      overallTrend: 'stable',
         improvingParameters: [],
-        decliningParameters: [],
+      decliningParameters: [],
         stableParameters: [],
         trendConfidence: 0.5,
       );

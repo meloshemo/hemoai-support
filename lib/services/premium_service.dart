@@ -238,10 +238,12 @@ class PremiumService extends ChangeNotifier {
     }
   }
 
-  /// Upgrade to premium - Called by PaymentService after successful purchase
-  /// This method is called automatically when purchase is verified
+  /// Upgrade to premium (simulated - integrate with payment gateway)
   Future<bool> upgradeToPremium({bool isYearly = false, bool lifetime = false}) async {
     try {
+      // TODO: Integrate with in-app purchase or payment gateway
+      // For now, simulate successful upgrade
+      
       if (lifetime) {
         await setTier(SubscriptionTier.lifetime, isLifetime: true);
       } else {
@@ -259,49 +261,14 @@ class PremiumService extends ChangeNotifier {
   }
 
   /// Restore purchases (for iOS/Android)
-  /// This is called by PaymentService.restorePurchases() after in-app purchase restore
-  /// The actual restore is handled by PaymentService, this just reloads the state
   Future<bool> restorePurchases() async {
     try {
-      // Reload state from SharedPreferences
-      // Purchase restoration is handled by PaymentService which calls setTier()
-      await initialize();
+      // TODO: Integrate with in-app purchase restore
+      await initialize(); // Reload state
       return true;
     } catch (e) {
       debugPrint('[PremiumService] Restore error: $e');
       return false;
-    }
-  }
-  
-  /// Activate premium from restored purchase
-  /// Called by PaymentService when a purchase is restored
-  Future<void> activateFromRestoredPurchase({
-    required String productId,
-    required String purchaseId,
-  }) async {
-    try {
-      // Determine tier from product ID
-      if (productId.contains('lifetime')) {
-        await setTier(SubscriptionTier.lifetime, isLifetime: true);
-      } else if (productId.contains('yearly')) {
-        await setTier(SubscriptionTier.premium);
-        final expiry = DateTime.now().add(const Duration(days: 365));
-        await setSubscriptionExpiry(expiry);
-      } else if (productId.contains('monthly')) {
-        await setTier(SubscriptionTier.premium);
-        final expiry = DateTime.now().add(const Duration(days: 30));
-        await setSubscriptionExpiry(expiry);
-      }
-      
-      // Store purchase info
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('last_purchase_id', purchaseId);
-      await prefs.setString('last_purchase_product_id', productId);
-      
-      debugPrint('[PremiumService] Premium activated from restored purchase: $productId');
-      notifyListeners();
-    } catch (e) {
-      debugPrint('[PremiumService] Activate from restored purchase error: $e');
     }
   }
 

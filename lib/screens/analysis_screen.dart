@@ -210,7 +210,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
           ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
-            tooltip: localizationService.getString('refresh'),
+            tooltip: 'Refresh',
             onPressed: () {
               _loadTestHistory();
               _runAnalysis();
@@ -262,7 +262,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
                         ElevatedButton.icon(
                           onPressed: _runAnalysis,
                           icon: const Icon(Icons.refresh),
-                          label: Text(localizationService.getString('retry')),
+                          label: const Text('Retry'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFE53E3E),
                             foregroundColor: Colors.white,

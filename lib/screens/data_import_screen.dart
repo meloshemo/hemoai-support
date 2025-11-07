@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/color_compat.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import '../services/data_import_service.dart';
@@ -402,7 +403,7 @@ class _DataImportScreenState extends State<DataImportScreen> with TickerProvider
                       child: OutlinedButton.icon(
                         onPressed: _isImporting ? null : () => _mapAndSaveFromPastedText(loc),
                         icon: const Icon(Icons.auto_fix_high),
-                        label: Text(loc.getString('match_and_save')),
+                        label: const Text('Eşle ve Kaydet'),
                       ),
                     ),
                     const SizedBox(width: 12),

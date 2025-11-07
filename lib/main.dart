@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
@@ -38,11 +37,6 @@ import 'screens/add_reminder_screen.dart';
 import 'services/preferences_service.dart';
 import 'services/email_service.dart';
 import 'services/auto_backup_service.dart';
-import 'services/network_service.dart';
-import 'services/security_service.dart';
-import 'services/offline_service.dart';
-import 'services/background_task_service.dart';
-import 'utils/error_handler.dart';
 import 'screens/settings_screen.dart';
 import 'screens/premium_screen.dart';
 import 'screens/performance_screen.dart';
@@ -80,49 +74,11 @@ void main() async {
   // Best-effort security migration: move PII to secure storage on startup
   PreferencesService.getInstance().then((p) => p.ensurePiiSecured());
   
-  // Initialize network service for connectivity monitoring
-  await NetworkService().initialize();
-  
-  // Initialize security service
-  await SecurityService().initialize();
-  
-  // Initialize offline service
-  await OfflineService().loadQueue();
-  
-  // Initialize background tasks
-  await BackgroundTaskService().initialize();
-  
   // Initialize email service (automatically uses config or test mode)
   await EmailService().initialize(); // Will use EmailConfig or test mode
   
   // Initialize auto backup service
   await AutoBackupService().setEnabled(true); // Default: enabled
-
-  // Set up global error handling
-  FlutterError.onError = (FlutterErrorDetails details) {
-    FlutterError.presentError(details);
-    ErrorHandler().handleError(
-      null,
-      details.exception,
-      stackTrace: details.stack,
-      showSnackBar: false,
-    );
-  };
-
-  // Handle unhandled async errors (outside Flutter framework)
-  PlatformDispatcher.instance.onError = (error, stack) {
-    ErrorHandler().handleError(
-      null,
-      error,
-      stackTrace: stack,
-      showSnackBar: false,
-    );
-    return true; // Error was handled
-  };
-
-  // Handle deep links on app start (if launched from link)
-  // Note: This is handled by the platform-specific code
-  // For runtime deep links, use DeepLinkHandler in the app
 
   runApp(
     MultiProvider(
@@ -139,10 +95,6 @@ void main() async {
         ChangeNotifierProvider(create: (_) => PremiumService()..initialize()),
         ChangeNotifierProvider(create: (_) => ChallengeService()..initialize()),
         ChangeNotifierProvider(create: (_) => SocialChallengeService()..initialize()),
-        ChangeNotifierProvider(create: (_) => NetworkService()..initialize()),
-        ChangeNotifierProvider(create: (_) => OfflineService()..loadQueue()),
-        // Enhanced Analytics (optional, privacy-first)
-        // ChangeNotifierProvider(create: (_) => EnhancedAnalyticsService()..initialize()),
         // Provide repositories as app-wide singletons via Provider (stateless, no ChangeNotifier)
         Provider<UserRepository>(create: (_) => UserRepository()),
         Provider<HemogramRepository>(create: (_) => HemogramRepository()),

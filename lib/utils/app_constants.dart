@@ -7,11 +7,11 @@ class AppConstants {
   static const String termsOfUseUrl = 'https://meloshemo.github.io/HemoAI';
 
   // Support & Contact
-  static const String supportEmail = 'support@hemoai.com';
-  static const String supportUrl = 'https://meloshemo.github.io/hemoai-support';
-  
+  static const String supportEmail = 'support@meloshemo.com';
+  static const String supportUrl =
+      'https://meloshemo.github.io/hemoai-support/';
+
   // App Information
   static const String appName = 'HemoAI';
   static const String appWebsite = 'https://hemoai.com';
 }
-

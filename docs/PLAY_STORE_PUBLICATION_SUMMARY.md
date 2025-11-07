@@ -57,26 +57,18 @@
 
 ### Immediate Actions (Before Upload)
 
-#### 1. Host Privacy Policy ✅
-**Action:** Privacy Policy hosted on GitHub Pages
+#### 1. Host Privacy Policy ⏳
+**Action:** Upload `docs/privacy-policy.html` to a public URL
 
-**Status:** ✅ COMPLETED
+**Options:**
+- GitHub Pages (free): `https://[username].github.io/hemoai/privacy-policy.html`
+- Firebase Hosting (free tier available)
+- Your own domain
 
-**Privacy Policy URL:**
+**Required URL format:**
 ```
-https://meloshemo.github.io
+https://yourdomain.com/privacy-policy.html
 ```
-
-**Terms of Use URL:**
-```
-https://meloshemo.github.io/HemoAI
-```
-
-**Next Steps:**
-- ✅ Privacy Policy URL'i Play Store metadata'ya ekle (store submission sırasında)
-- ✅ Privacy Policy URL'i App Store metadata'ya ekle (store submission sırasında)
-- ✅ Terms of Use URL'i Play Store metadata'ya ekle (store submission sırasında)
-- ✅ Terms of Use URL'i App Store metadata'ya ekle (store submission sırasında)
 
 #### 2. Prepare Screenshots 📸
 **Action:** Take 2-8 high-quality screenshots

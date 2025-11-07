@@ -19,7 +19,7 @@
 - **RU:** Добро пожаловать на страницу поддержки HemoAI. Вы можете связаться с нами, заполнив форму ниже.
 
 **Privacy Policy URL:** https://meloshemo.github.io  
-**Terms of Use URL:** https://meloshemo.github.io/HemoAI
+**Terms of Use URL:** https://meloshemo.github.io/hemoai-support/terms-of-use.html
 
 ---
 
@@ -154,7 +154,7 @@ Device: [Cihaz]
 
 **E-posta:** support@hemoai.com  
 **Privacy Policy:** https://meloshemo.github.io  
-**Terms of Use:** https://meloshemo.github.io/HemoAI
+**Terms of Use:** https://meloshemo.github.io/hemoai-support/terms-of-use.html
 
 ---
 
