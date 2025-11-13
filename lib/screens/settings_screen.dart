@@ -30,13 +30,12 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer2<LocalizationService, ThemeService>(
       builder: (context, loc, themeService, _) {
-        final canPop = Navigator.of(context).canPop();
         final isDark = themeService.isDarkMode;
-        final isRTL = loc.isRTL;
         final supportEmail = AppConstants.supportEmail;
         final supportUrl = AppConstants.supportUrl;
         final supportHost = Uri.parse(supportUrl).host;
-        const bool compact = true; // Condensed, modern settings layout
+        final bool compact =
+            MediaQuery.of(context).size.width < 1024; // responsive breakpoint
 
         if (compact) {
           return Directionality(
@@ -89,26 +88,21 @@ class SettingsScreen extends StatelessWidget {
                     // Privacy & Data
                     _Section(
                       icon: Icons.privacy_tip,
-                      title: 'Privacy & Data',
+                      title: loc.getString('settings_privacy'),
                       isDark: isDark,
                       children: [
                         _Tile(
                           icon: Icons.download_outlined,
-                          title: loc.getString('export_data') == 'export_data'
-                              ? 'Export Data'
-                              : loc.getString('export_data'),
-                          subtitle:
-                              'JSON/PDF export • Self-service data portability',
+                          title: loc.getString('export_data'),
+                          subtitle: loc.getString('export_options_subtitle'),
                           isDark: isDark,
                           onTap: () =>
                               Navigator.pushNamed(context, '/export_options'),
                         ),
                         _Tile(
                           icon: Icons.upload_outlined,
-                          title: loc.getString('import_data') == 'import_data'
-                              ? 'Import Data'
-                              : loc.getString('import_data'),
-                          subtitle: 'Restore from backup',
+                          title: loc.getString('import_data'),
+                          subtitle: loc.getString('restore_from_backup'),
                           isDark: isDark,
                           onTap: () =>
                               Navigator.pushNamed(context, '/data_import'),
@@ -122,14 +116,8 @@ class SettingsScreen extends StatelessWidget {
                         ),
                         _Tile(
                           icon: Icons.policy,
-                          title: loc.getString('privacy_policy') ==
-                                  'privacy_policy'
-                              ? 'Privacy Policy'
-                              : loc.getString('privacy_policy'),
-                          subtitle: loc.getString('privacy_policy_desc') ==
-                                  'privacy_policy_desc'
-                              ? 'View our privacy policy'
-                              : loc.getString('privacy_policy_desc'),
+                          title: loc.getString('privacy_policy'),
+                          subtitle: loc.getString('privacy_policy_desc'),
                           isDark: isDark,
                           onTap: () async {
                             try {
@@ -141,9 +129,9 @@ class SettingsScreen extends StatelessWidget {
                               } else {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text(
-                                            'Could not open Privacy Policy')),
+                                    SnackBar(
+                                        content: Text(loc.getString(
+                                            'could_not_open_privacy_policy'))),
                                   );
                                 }
                               }
@@ -152,7 +140,7 @@ class SettingsScreen extends StatelessWidget {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                       content: Text(
-                                          'Error opening Privacy Policy: $e')),
+                                          '${loc.getString('error_opening_privacy_policy')}: $e')),
                                 );
                               }
                             }
@@ -160,13 +148,8 @@ class SettingsScreen extends StatelessWidget {
                         ),
                         _Tile(
                           icon: Icons.gavel,
-                          title: loc.getString('terms_of_use') == 'terms_of_use'
-                              ? 'Terms of Use'
-                              : loc.getString('terms_of_use'),
-                          subtitle: loc.getString('terms_of_use_desc') ==
-                                  'terms_of_use_desc'
-                              ? 'View terms and conditions'
-                              : loc.getString('terms_of_use_desc'),
+                          title: loc.getString('terms_of_use'),
+                          subtitle: loc.getString('terms_of_use_desc'),
                           isDark: isDark,
                           onTap: () async {
                             try {
@@ -177,9 +160,9 @@ class SettingsScreen extends StatelessWidget {
                               } else {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text(
-                                            'Could not open Terms of Use')),
+                                    SnackBar(
+                                        content: Text(loc.getString(
+                                            'could_not_open_terms_of_use'))),
                                   );
                                 }
                               }
@@ -188,7 +171,7 @@ class SettingsScreen extends StatelessWidget {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                       content: Text(
-                                          'Error opening Terms of Use: $e')),
+                                          '${loc.getString('error_opening_terms_of_use')}: $e')),
                                 );
                               }
                             }
@@ -200,21 +183,22 @@ class SettingsScreen extends StatelessWidget {
                     // Motivation & Challenges
                     _Section(
                       icon: Icons.emoji_events_outlined,
-                      title: 'Motivation & Challenges',
+                      title: loc.getString('motivation_challenges_title'),
                       isDark: isDark,
                       children: [
                         _Tile(
                           icon: Icons.workspace_premium,
-                          title: 'Open Challenges',
-                          subtitle: 'Progress, badges, shared diets',
+                          title: loc.getString('open_challenges'),
+                          subtitle:
+                              loc.getString('progress_badges_shared_diets'),
                           isDark: isDark,
                           onTap: () =>
                               Navigator.pushNamed(context, '/challenges'),
                         ),
                         _ChallengeSwitchTile(
                           icon: Icons.directions_walk,
-                          title: 'Weekly Steps Challenge',
-                          subtitle: 'Join weekly step goal challenge',
+                          title: loc.getString('weekly_steps_challenge'),
+                          subtitle: loc.getString('join_weekly_step_goal'),
                           isDark: isDark,
                           getValue: () async {
                             final prefs =
@@ -222,23 +206,34 @@ class SettingsScreen extends StatelessWidget {
                             return prefs.getChallengeSteps();
                           },
                           setValue: (v) async {
+                            final messenger = ScaffoldMessenger.of(context);
                             final prefs =
                                 await PreferencesService.getInstance();
                             await prefs.setChallengeEnabled(steps: v);
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: Text(v
-                                        ? 'Steps challenge enabled'
-                                        : 'Steps challenge disabled')),
-                              );
-                            }
+                            if (!context.mounted) return;
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  v
+                                      ? loc.getString(
+                                          'steps_challenge_enabled',
+                                          defaultValue:
+                                              'Steps challenge enabled',
+                                        )
+                                      : loc.getString(
+                                          'steps_challenge_disabled',
+                                          defaultValue:
+                                              'Steps challenge disabled',
+                                        ),
+                                ),
+                              ),
+                            );
                           },
                         ),
                         _ChallengeSwitchTile(
                           icon: Icons.water_drop,
-                          title: 'Weekly Water Challenge',
-                          subtitle: 'Hydration streak & badges',
+                          title: loc.getString('weekly_water_challenge'),
+                          subtitle: loc.getString('hydration_streak_badges'),
                           isDark: isDark,
                           getValue: () async {
                             final prefs =
@@ -246,23 +241,34 @@ class SettingsScreen extends StatelessWidget {
                             return prefs.getChallengeWater();
                           },
                           setValue: (v) async {
+                            final messenger = ScaffoldMessenger.of(context);
                             final prefs =
                                 await PreferencesService.getInstance();
                             await prefs.setChallengeEnabled(water: v);
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: Text(v
-                                        ? 'Water challenge enabled'
-                                        : 'Water challenge disabled')),
-                              );
-                            }
+                            if (!context.mounted) return;
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  v
+                                      ? loc.getString(
+                                          'water_challenge_enabled',
+                                          defaultValue:
+                                              'Water challenge enabled',
+                                        )
+                                      : loc.getString(
+                                          'water_challenge_disabled',
+                                          defaultValue:
+                                              'Water challenge disabled',
+                                        ),
+                                ),
+                              ),
+                            );
                           },
                         ),
                         _ChallengeSwitchTile(
                           icon: Icons.nightlight_round,
-                          title: 'Weekly Sleep Challenge',
-                          subtitle: 'Consistent sleep schedule',
+                          title: loc.getString('weekly_sleep_challenge'),
+                          subtitle: loc.getString('consistent_sleep_schedule'),
                           isDark: isDark,
                           getValue: () async {
                             final prefs =
@@ -270,86 +276,131 @@ class SettingsScreen extends StatelessWidget {
                             return prefs.getChallengeSleep();
                           },
                           setValue: (v) async {
+                            final messenger = ScaffoldMessenger.of(context);
                             final prefs =
                                 await PreferencesService.getInstance();
                             await prefs.setChallengeEnabled(sleep: v);
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: Text(v
-                                        ? 'Sleep challenge enabled'
-                                        : 'Sleep challenge disabled')),
-                              );
-                            }
+                            if (!context.mounted) return;
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  v
+                                      ? loc.getString(
+                                          'sleep_challenge_enabled',
+                                          defaultValue:
+                                              'Sleep challenge enabled',
+                                        )
+                                      : loc.getString(
+                                          'sleep_challenge_disabled',
+                                          defaultValue:
+                                              'Sleep challenge disabled',
+                                        ),
+                                ),
+                              ),
+                            );
                           },
                         ),
                         _Tile(
                           icon: Icons.speaker_notes,
-                          title: 'Motivation Tone',
-                          subtitle: 'Select message style (Gentle / Active)',
+                          title: loc.getString('motivation_tone_title'),
+                          subtitle: loc.getString('motivation_tone_subtitle'),
                           isDark: isDark,
                           onTap: () async {
+                            final messenger = ScaffoldMessenger.of(context);
                             final prefs =
                                 await PreferencesService.getInstance();
+                            if (!context.mounted) return;
                             final tone = await showDialog<String>(
                               context: context,
                               builder: (ctx) => SimpleDialog(
-                                title: const Text('Motivation Tone'),
+                                title: Text(
+                                  loc.getString('motivation_tone_title'),
+                                ),
                                 children: [
                                   SimpleDialogOption(
-                                      onPressed: () =>
-                                          Navigator.pop(ctx, 'gentle'),
-                                      child: const Text('Gentle')),
+                                    onPressed: () =>
+                                        Navigator.pop(ctx, 'gentle'),
+                                    child: Text(loc.getString(
+                                        'motivation_tone_option_gentle')),
+                                  ),
                                   SimpleDialogOption(
-                                      onPressed: () =>
-                                          Navigator.pop(ctx, 'active'),
-                                      child: const Text('Active')),
+                                    onPressed: () =>
+                                        Navigator.pop(ctx, 'active'),
+                                    child: Text(loc.getString(
+                                        'motivation_tone_option_active')),
+                                  ),
                                 ],
                               ),
                             );
-                            if (tone != null) {
-                              await prefs.setMotivationTone(tone);
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                        content: Text('Tone set to $tone')));
-                              }
-                            }
+                            if (!context.mounted || tone == null) return;
+                            await prefs.setMotivationTone(tone);
+                            if (!context.mounted) return;
+                            final toneLabel = tone == 'gentle'
+                                ? loc.getString('motivation_tone_option_gentle')
+                                : loc
+                                    .getString('motivation_tone_option_active');
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  loc.getStringWithParams(
+                                    'motivation_tone_set',
+                                    {'tone': toneLabel},
+                                  ),
+                                ),
+                              ),
+                            );
                           },
                         ),
                         _Tile(
                           icon: Icons.schedule,
-                          title: 'Daily Summary Time',
-                          subtitle: 'Set a daily notification summary time',
+                          title: loc.getString('daily_summary_time'),
+                          subtitle:
+                              loc.getString('set_daily_notification_summary'),
                           isDark: isDark,
                           onTap: () async {
+                            final messenger = ScaffoldMessenger.of(context);
+                            final materialLoc =
+                                MaterialLocalizations.of(context);
                             final prefs =
                                 await PreferencesService.getInstance();
                             final initial = TimeOfDay(
-                                hour: prefs.getDailySummaryHour(),
-                                minute: prefs.getDailySummaryMinute());
+                              hour: prefs.getDailySummaryHour(),
+                              minute: prefs.getDailySummaryMinute(),
+                            );
+                            if (!context.mounted) return;
                             final picked = await showTimePicker(
-                                context: context, initialTime: initial);
-                            if (picked != null) {
-                              await prefs.setDailySummaryTime(
-                                  picked.hour, picked.minute);
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                    content: Text(
-                                        'Daily summary set: ${picked.format(context)}')));
-                              }
-                            }
+                              context: context,
+                              initialTime: initial,
+                            );
+                            if (!context.mounted || picked == null) return;
+                            await prefs.setDailySummaryTime(
+                              picked.hour,
+                              picked.minute,
+                            );
+                            if (!context.mounted) return;
+                            final formatted =
+                                materialLoc.formatTimeOfDay(picked);
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  loc.getStringWithParams(
+                                    'daily_summary_set',
+                                    {'time': formatted},
+                                  ),
+                                ),
+                              ),
+                            );
                           },
                         ),
                         _Tile(
                           icon: Icons.share,
-                          title: 'Share Weekly Progress',
-                          subtitle: 'Badges and streaks summary',
+                          title: loc.getString('share_weekly_progress'),
+                          subtitle: loc.getString('badges_streaks_summary'),
                           isDark: isDark,
                           onTap: () async {
                             // Simple share payload; integrate with real stats if available
                             final text =
-                                'My HemoAI weekly progress: hydration streak on track, tests up to date! #HemoAI';
+                                loc.getString('share_weekly_progress_message');
                             await Share.share(text);
                           },
                         ),
@@ -359,18 +410,14 @@ class SettingsScreen extends StatelessWidget {
                     // Premium
                     _Section(
                       icon: Icons.star,
-                      title: loc.getString('premium') == 'premium'
-                          ? 'Premium'
-                          : loc.getString('premium'),
+                      title: loc.getString('premium'),
                       isDark: isDark,
                       children: [
                         Consumer<PremiumService>(
                           builder: (context, premiumService, _) {
                             return _Tile(
                               icon: Icons.star_outline,
-                              title: loc.getString('premium') == 'premium'
-                                  ? 'Premium Features'
-                                  : loc.getString('premium'),
+                              title: loc.getString('premium_features'),
                               subtitle: premiumService.getStatusText(loc),
                               isDark: isDark,
                               onTap: () =>
@@ -384,28 +431,37 @@ class SettingsScreen extends StatelessWidget {
                     // About & Legal
                     _Section(
                       icon: Icons.info_outline,
-                      title: 'About HemoAI',
+                      title: loc.getString('about_hemoai'),
                       isDark: isDark,
                       children: [
                         _Tile(
                           icon: Icons.approval_outlined,
-                          title: 'Medical Disclaimer',
-                          subtitle:
-                              'Educational insights only; not a medical diagnosis.',
+                          title: loc.getString('medical_disclaimer'),
+                          subtitle: loc.getString('medical_disclaimer_desc'),
                           isDark: isDark,
-                          onTap: () => _showInfo(context, 'Medical Disclaimer',
-                              'HemoAI provides educational insights and is not a substitute for professional medical diagnosis or treatment. Always consult a physician for medical decisions.'),
+                          onTap: () => _openDocument(
+                            context,
+                            url: AppConstants.medicalDisclaimerUrl,
+                            title: loc.getString('medical_disclaimer'),
+                            fallbackBody: [
+                              loc.getString('medical_disclaimer_body'),
+                              loc.getString('medical_consult_prompt'),
+                              loc.getString('medical_emergency_cta'),
+                            ].join('\n\n'),
+                          ),
                         ),
                         _Tile(
                           icon: Icons.policy_outlined,
-                          title: 'KVKK/GDPR & Data Protection',
-                          subtitle:
-                              'Encryption, consent, purpose limitation, retention control.',
+                          title: loc.getString('kvkk_gdpr_data_protection'),
+                          subtitle: loc.getString('encryption_consent_purpose'),
                           isDark: isDark,
-                          onTap: () => _showInfo(
-                              context,
-                              'KVKK/GDPR & Data Protection',
-                              'Your data is encrypted at rest and in transit, processed with explicit consent and purpose limitation. You may export or delete data at any time.'),
+                          onTap: () => _openDocument(
+                            context,
+                            url: AppConstants.dataProtectionUrl,
+                            title: loc.getString('kvkk_gdpr_data_protection'),
+                            fallbackBody:
+                                loc.getString('data_protection_details'),
+                          ),
                         ),
                         FutureBuilder<PackageInfo>(
                           future: PackageInfo.fromPlatform(),
@@ -519,18 +575,14 @@ class SettingsScreen extends StatelessWidget {
                   // Premium & Subscription
                   _Section(
                     icon: Icons.star,
-                    title: loc.getString('premium') == 'premium'
-                        ? 'Premium'
-                        : loc.getString('premium'),
+                    title: loc.getString('premium'),
                     isDark: isDark,
                     children: [
                       Consumer<PremiumService>(
                         builder: (context, premiumService, _) {
                           return _Tile(
                             icon: Icons.star_outline,
-                            title: loc.getString('premium') == 'premium'
-                                ? 'Premium Özellikler'
-                                : loc.getString('premium'),
+                            title: loc.getString('premium_features'),
                             subtitle: premiumService.getStatusText(loc),
                             isDark: isDark,
                             onTap: () =>
@@ -719,13 +771,13 @@ class SettingsScreen extends StatelessWidget {
                       // Motivation & Challenges
                       _Section(
                         icon: Icons.emoji_events_outlined,
-                        title: 'Motivation & Challenges',
+                        title: loc.getString('motivation_challenges_title'),
                         isDark: isDark,
                         children: [
                           _SwitchTile(
                             icon: Icons.directions_walk,
-                            title: 'Weekly Steps Challenge',
-                            subtitle: 'Join weekly step goal challenge',
+                            title: loc.getString('weekly_steps_challenge'),
+                            subtitle: loc.getString('join_weekly_step_goal'),
                             prefKey: 'challenge_steps',
                             isDark: isDark,
                             onChanged: (v) async {
@@ -735,17 +787,21 @@ class SettingsScreen extends StatelessWidget {
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                      content: Text(v
-                                          ? 'Steps challenge enabled'
-                                          : 'Steps challenge disabled')),
+                                      content: Text(
+                                    v
+                                        ? loc.getString(
+                                            'steps_challenge_enabled')
+                                        : loc.getString(
+                                            'steps_challenge_disabled'),
+                                  )),
                                 );
                               }
                             },
                           ),
                           _SwitchTile(
                             icon: Icons.water_drop,
-                            title: 'Weekly Water Challenge',
-                            subtitle: 'Hydration streak & badges',
+                            title: loc.getString('weekly_water_challenge'),
+                            subtitle: loc.getString('hydration_streak_badges'),
                             prefKey: 'challenge_water',
                             isDark: isDark,
                             onChanged: (v) async {
@@ -755,17 +811,22 @@ class SettingsScreen extends StatelessWidget {
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                      content: Text(v
-                                          ? 'Water challenge enabled'
-                                          : 'Water challenge disabled')),
+                                      content: Text(
+                                    v
+                                        ? loc.getString(
+                                            'water_challenge_enabled')
+                                        : loc.getString(
+                                            'water_challenge_disabled'),
+                                  )),
                                 );
                               }
                             },
                           ),
                           _SwitchTile(
                             icon: Icons.nightlight_round,
-                            title: 'Weekly Sleep Challenge',
-                            subtitle: 'Consistent sleep schedule',
+                            title: loc.getString('weekly_sleep_challenge'),
+                            subtitle:
+                                loc.getString('consistent_sleep_schedule'),
                             prefKey: 'challenge_sleep',
                             isDark: isDark,
                             onChanged: (v) async {
@@ -775,34 +836,42 @@ class SettingsScreen extends StatelessWidget {
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                      content: Text(v
-                                          ? 'Sleep challenge enabled'
-                                          : 'Sleep challenge disabled')),
+                                      content: Text(
+                                    v
+                                        ? loc.getString(
+                                            'sleep_challenge_enabled')
+                                        : loc.getString(
+                                            'sleep_challenge_disabled'),
+                                  )),
                                 );
                               }
                             },
                           ),
                           _Tile(
                             icon: Icons.speaker_notes,
-                            title: 'Motivation Tone',
-                            subtitle: 'Select message style (Gentle / Active)',
+                            title: loc.getString('motivation_tone_title'),
+                            subtitle: loc.getString('motivation_tone_subtitle'),
                             isDark: isDark,
                             onTap: () async {
                               final prefs =
                                   await PreferencesService.getInstance();
+                              if (!context.mounted) return;
                               final tone = await showDialog<String>(
                                 context: context,
                                 builder: (ctx) => SimpleDialog(
-                                  title: const Text('Motivation Tone'),
+                                  title: Text(
+                                      loc.getString('motivation_tone_title')),
                                   children: [
                                     SimpleDialogOption(
                                         onPressed: () =>
                                             Navigator.pop(ctx, 'gentle'),
-                                        child: const Text('Gentle')),
+                                        child: Text(loc.getString(
+                                            'motivation_tone_option_gentle'))),
                                     SimpleDialogOption(
                                         onPressed: () =>
                                             Navigator.pop(ctx, 'active'),
-                                        child: const Text('Active')),
+                                        child: Text(loc.getString(
+                                            'motivation_tone_option_active'))),
                                   ],
                                 ),
                               );
@@ -810,20 +879,31 @@ class SettingsScreen extends StatelessWidget {
                                 await prefs.setMotivationTone(tone);
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                          content: Text('Tone set to $tone')));
+                                    SnackBar(
+                                      content: Text(
+                                        Provider.of<LocalizationService>(
+                                                context,
+                                                listen: false)
+                                            .getStringWithParams(
+                                                'motivation_tone_set',
+                                                {'tone': tone}),
+                                      ),
+                                    ),
+                                  );
                                 }
                               }
                             },
                           ),
                           _Tile(
                             icon: Icons.schedule,
-                            title: 'Daily Summary Time',
-                            subtitle: 'Set a daily notification summary time',
+                            title: loc.getString('daily_summary_time'),
+                            subtitle:
+                                loc.getString('set_daily_notification_summary'),
                             isDark: isDark,
                             onTap: () async {
                               final prefs =
                                   await PreferencesService.getInstance();
+                              if (!context.mounted) return;
                               final initial = TimeOfDay(
                                   hour: prefs.getDailySummaryHour(),
                                   minute: prefs.getDailySummaryMinute());
@@ -834,22 +914,31 @@ class SettingsScreen extends StatelessWidget {
                                     picked.hour, picked.minute);
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                          content: Text(
-                                              'Daily summary set: ${picked.format(context)}')));
+                                    SnackBar(
+                                      content: Text(
+                                        Provider.of<LocalizationService>(
+                                                context,
+                                                listen: false)
+                                            .getStringWithParams(
+                                                'daily_summary_set', {
+                                          'time': picked.format(context),
+                                        }),
+                                      ),
+                                    ),
+                                  );
                                 }
                               }
                             },
                           ),
                           _Tile(
                             icon: Icons.share,
-                            title: 'Share Weekly Progress',
-                            subtitle: 'Badges and streaks summary',
+                            title: loc.getString('share_weekly_progress'),
+                            subtitle: loc.getString('badges_streaks_summary'),
                             isDark: isDark,
                             onTap: () async {
                               // Simple share payload; integrate with real stats if available
-                              final text =
-                                  'My HemoAI weekly progress: hydration streak on track, tests up to date! #HemoAI';
+                              final text = loc
+                                  .getString('share_weekly_progress_message');
                               await Share.share(text);
                             },
                           ),
@@ -999,7 +1088,7 @@ class SettingsScreen extends StatelessWidget {
                         onTap: () => _showInfo(
                             context,
                             loc.getString('health_medical_history'),
-                            '${loc.getString('health_medical_history_desc')} Özellik geliştiriliyor...'),
+                            '${loc.getString('health_medical_history_desc')} ${loc.getString('coming_soon')}'),
                       ),
                       _Tile(
                         icon: Icons.bloodtype,
@@ -1039,7 +1128,7 @@ class SettingsScreen extends StatelessWidget {
                         onTap: () => _showInfo(
                             context,
                             loc.getString('health_reminder_sound'),
-                            '${loc.getString('health_reminder_sound_desc')} Özellik geliştiriliyor...'),
+                            '${loc.getString('health_reminder_sound_desc')} ${loc.getString('coming_soon')}'),
                       ),
                       _SwitchTile(
                         icon: Icons.backup_outlined,
@@ -1806,10 +1895,15 @@ class SettingsScreen extends StatelessWidget {
                         title: loc.getString('medical_disclaimer'),
                         subtitle: loc.getString('medical_disclaimer_desc'),
                         isDark: isDark,
-                        onTap: () => _showInfo(
+                        onTap: () => _openDocument(
                           context,
-                          loc.getString('medical_disclaimer'),
-                          loc.getString('medical_disclaimer_body'),
+                          url: AppConstants.medicalDisclaimerUrl,
+                          title: loc.getString('medical_disclaimer'),
+                          fallbackBody: [
+                            loc.getString('medical_disclaimer_body'),
+                            loc.getString('medical_consult_prompt'),
+                            loc.getString('medical_emergency_cta'),
+                          ].join('\n\n'),
                         ),
                       ),
                       _Tile(
@@ -1817,11 +1911,7 @@ class SettingsScreen extends StatelessWidget {
                         title: loc.getString('help_support'),
                         subtitle: loc.getString('help_support_desc'),
                         isDark: isDark,
-                        onTap: () => _showInfo(
-                          context,
-                          loc.getString('help_support'),
-                          loc.getString('help_support_body'),
-                        ),
+                        onTap: () => _openSupportPortal(context),
                       ),
                     ],
                   ),
@@ -1921,6 +2011,24 @@ class SettingsScreen extends StatelessWidget {
             .showSnackBar(SnackBar(content: Text(AppConstants.supportEmail)));
       }
     }
+  }
+
+  Future<void> _openDocument(
+    BuildContext context, {
+    required String url,
+    required String title,
+    required String fallbackBody,
+  }) async {
+    try {
+      final uri = Uri.parse(url);
+      final launched =
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (launched) return;
+    } catch (_) {
+      // Ignore and fallback
+    }
+    if (!context.mounted) return;
+    _showInfo(context, title, fallbackBody);
   }
 
   void _showErrorDetails(BuildContext context, String title, String details) {
@@ -2221,7 +2329,7 @@ class SettingsScreen extends StatelessWidget {
     _showInfo(
       context,
       loc.getString('health_sharing'),
-      'Bu özellik yakında eklenecek. Doktorlarınız ve aile üyelerinizle veri paylaşımı için hazırlıklarımız devam ediyor.',
+      loc.getString('coming_soon'),
     );
   }
 
@@ -2230,7 +2338,7 @@ class SettingsScreen extends StatelessWidget {
     _showInfo(
       context,
       loc.getString('health_reference_ranges'),
-      'Referans aralıkları özelleştirmesi yakında kullanıma sunulacak.',
+      loc.getString('coming_soon'),
     );
   }
 
