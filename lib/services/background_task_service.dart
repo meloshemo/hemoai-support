@@ -1,14 +1,13 @@
-import 'package:flutter/foundation.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:logger/logger.dart';
 import 'network_service.dart';
 import 'offline_service.dart';
-import 'cloud_sync_service.dart';
 
 /// Professional background task service
 /// Handles background sync, notifications, and scheduled tasks
 class BackgroundTaskService {
-  static final BackgroundTaskService _instance = BackgroundTaskService._internal();
+  static final BackgroundTaskService _instance =
+      BackgroundTaskService._internal();
   factory BackgroundTaskService() => _instance;
   BackgroundTaskService._internal();
 
@@ -19,10 +18,7 @@ class BackgroundTaskService {
   /// Initialize background tasks
   Future<void> initialize() async {
     try {
-      await Workmanager().initialize(
-        callbackDispatcher,
-        isInDebugMode: kDebugMode,
-      );
+      await Workmanager().initialize(callbackDispatcher);
       _logger.i('BackgroundTaskService initialized');
     } catch (e) {
       _logger.e('Failed to initialize BackgroundTaskService: $e');
@@ -64,9 +60,7 @@ class BackgroundTaskService {
         taskName,
         initialDelay: delay,
         inputData: inputData,
-        constraints: Constraints(
-          networkType: NetworkType.connected,
-        ),
+        constraints: Constraints(networkType: NetworkType.connected),
       );
       _logger.i('One-time task registered: $taskName');
     } catch (e) {
@@ -102,9 +96,9 @@ void callbackDispatcher() {
     final logger = Logger();
     try {
       switch (task) {
-        case 'backgroundSync':
+        case BackgroundTaskService._syncTaskName:
           return await _performBackgroundSync();
-        case 'backgroundNotification':
+        case BackgroundTaskService._notificationTaskName:
           return await _performBackgroundNotification();
         default:
           logger.w('Unknown background task: $task');
@@ -136,7 +130,7 @@ Future<bool> _performBackgroundSync() async {
     await offlineService.syncQueue();
 
     // Sync cloud data
-    final cloudSyncService = CloudSyncService();
+    // final cloudSyncService = CloudSyncService();
     // Note: Requires user ID from secure storage
     // await cloudSyncService.syncTables(userId: userId);
 
@@ -161,4 +155,3 @@ Future<bool> _performBackgroundNotification() async {
     return false;
   }
 }
-

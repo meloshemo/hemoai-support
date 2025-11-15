@@ -205,7 +205,6 @@ class NotificationService extends ChangeNotifier {
       final db = DatabaseHelper.instance;
       final meds = await db.getMedications(userId);
       final todayDate = DateTime.now();
-      final todayStr = todayDate.toIso8601String().split('T')[0];
       for (final m in meds) {
         final name = (m['name'] ?? '').toString();
         if (name.isEmpty) continue;
@@ -253,7 +252,7 @@ class NotificationService extends ChangeNotifier {
           when = _nextAtTodayOrTomorrow(hour: h, minute: mm);
         }
         await addNotification(NotificationItem(
-          title: LocalizationService().getString('medication_reminder_title') + ': ' + name,
+          title: '${LocalizationService().getString('medication_reminder_title')}: $name',
           description: LocalizationService().getStringWithParams('medication_reminder_body', {
             'medication': name,
             'dosage_text': '',

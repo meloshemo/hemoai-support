@@ -812,14 +812,24 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> with 
   }
 
   Color _getRiskColor(String? riskLevel) {
-    switch (riskLevel?.toLowerCase()) {
-      case 'düşük':
+    if (riskLevel == null) return Colors.grey;
+    String r = riskLevel.toLowerCase();
+    // ASCII-normalize common Turkish diacritics to avoid non-ASCII in source
+  r = r
+    .replaceAll('\u015F', 's') // ş
+    .replaceAll('\u011F', 'g') // ğ
+    .replaceAll('\u0131', 'i') // ı
+    .replaceAll('\u00F6', 'o') // ö
+    .replaceAll('\u00E7', 'c') // ç
+    .replaceAll('\u00FC', 'u'); // ü
+    switch (r) {
+      case 'dusuk':
       case 'low':
         return Colors.green;
       case 'orta':
       case 'medium':
         return Colors.orange;
-      case 'yüksek':
+      case 'yuksek':
       case 'high':
         return Colors.red;
       default:

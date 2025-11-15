@@ -249,7 +249,7 @@ Expand after initial release.
 - [ ] Content rating submitted
 - [ ] All medical disclaimers visible in app
 - [ ] No placeholder text or images
-- [ ] Contact email valid (support@meloshemo.com or your email)
+- [ ] Contact email valid (support@hemoai.org or your email)
 - [ ] Version name and code correct (4.0.0 / 400)
 
 ---
@@ -351,7 +351,7 @@ Expand after initial release.
 - Checklist: `docs/PLAY_STORE_CHECKLIST.md`
 
 ### Contact
-- **Email:** support@meloshemo.com (or your email)
+- **Email:** support@hemoai.org (or your email)
 - **Play Console:** In-app → Settings → Contact Support
 
 ---

@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hemoai/services/offline_service.dart';
-import 'package:hemoai/services/network_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -12,10 +11,6 @@ void main() {
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
       offlineService = OfflineService();
-    });
-
-    tearDown(() {
-      offlineService.dispose();
     });
 
     test('should create singleton instance', () {

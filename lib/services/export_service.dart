@@ -10,7 +10,6 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 // Conditional import for web HTML support
 import 'export_service_web_stub.dart' if (dart.library.html) 'export_service_web_impl.dart';
-import 'dart:typed_data';
 import 'package:open_filex/open_filex.dart';
 import '../services/diet_menu_service.dart';
 

@@ -53,9 +53,15 @@ class UserRepository {
 
   // ---- Stats ----
   Future<Map<String, dynamic>> getUserStats(int userId) async {
-    if (kIsWeb) {
-      return await _web.getUserStats(userId);
-    }
-    return await _db.getUserStats(userId);
+    final raw = kIsWeb
+        ? await _web.getUserStats(userId)
+        : await _db.getUserStats(userId);
+    // Normalize keys to a consistent camelCase shape for consumers/tests
+    return {
+      'totalTests': raw['totalTests'] ?? raw['total_tests'] ?? 0,
+      'familyMembers': raw['familyMembers'] ?? raw['family_members'] ?? 0,
+      'activeMedications': raw['activeMedications'] ?? raw['active_medications'] ?? 0,
+      'unreadNotifications': raw['unreadNotifications'] ?? raw['unread_notifications'] ?? 0,
+    };
   }
 }

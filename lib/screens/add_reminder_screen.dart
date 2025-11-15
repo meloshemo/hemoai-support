@@ -131,6 +131,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     final navigator = Navigator.of(context);
     final loc = Provider.of<LocalizationService>(context, listen: false);
     final notificationService = Provider.of<NotificationService>(context, listen: false);
+    final reminderRepository = Provider.of<ReminderRepository>(context, listen: false);
 
     setState(() {
       _isLoading = true;
@@ -150,8 +151,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
       final prefs = await PreferencesService.getInstance();
       final userId = prefs.getCurrentUserId();
       if (userId != null) {
-        final repo = Provider.of<ReminderRepository>(context, listen: false);
-        newId = await repo.createReminder({
+        newId = await reminderRepository.createReminder({
           'user_id': userId,
           'title': _titleController.text.trim(),
           'description': _descriptionController.text.trim(),

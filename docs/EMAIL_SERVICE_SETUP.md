@@ -34,7 +34,7 @@ HemoAI uses **SendGrid** for professional transactional email delivery. The emai
 3. Fill in:
    - **From Email:** `noreply@hemoai.com` (or your domain)
    - **From Name:** `HemoAI`
-   - **Reply To:** `support@hemoai.com`
+   - **Reply To:** `support@hemoai.org`
 4. Verify the email address (check inbox)
 
 ### Step 4: Configure in HemoAI

@@ -16,7 +16,7 @@ class DevAutoRestoreScreen extends StatefulWidget {
 }
 
 class _DevAutoRestoreScreenState extends State<DevAutoRestoreScreen> {
-  String _status = 'Locating backup...';
+  String _status = LocalizationService().getString('auto_restore_locating_backup');
   bool _done = false;
 
   @override
@@ -30,7 +30,7 @@ class _DevAutoRestoreScreenState extends State<DevAutoRestoreScreen> {
     try {
       // Skip auto-restore on web/mobile; jump to dashboard
       if (kIsWeb || Platform.isAndroid || Platform.isIOS) {
-        setState(() => _status = 'Restore not supported on this platform');
+        setState(() => _status = loc.getString('auto_restore_not_supported'));
         await Future.delayed(const Duration(milliseconds: 300));
         if (!mounted) return;
         Navigator.of(context).pushReplacementNamed('/dashboard');
@@ -43,7 +43,7 @@ class _DevAutoRestoreScreenState extends State<DevAutoRestoreScreen> {
         Platform.isWindows ? '$home${Platform.pathSeparator}Downloads' : '$home${Platform.pathSeparator}Downloads',
       );
       if (!await downloads.exists()) {
-        setState(() => _status = 'Downloads folder not found');
+        setState(() => _status = loc.getString('auto_restore_downloads_missing'));
         return;
       }
 
@@ -55,7 +55,7 @@ class _DevAutoRestoreScreenState extends State<DevAutoRestoreScreen> {
       .toList();
 
       if (files.isEmpty) {
-        setState(() => _status = 'No backup file found in Downloads');
+        setState(() => _status = loc.getString('auto_restore_no_backup'));
         await Future.delayed(const Duration(milliseconds: 300));
         if (!mounted) return;
         Navigator.of(context).pushReplacementNamed('/dashboard');
@@ -64,7 +64,7 @@ class _DevAutoRestoreScreenState extends State<DevAutoRestoreScreen> {
 
       files.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
       final latest = files.first;
-      setState(() => _status = 'Reading ${latest.path}');
+      setState(() => _status = loc.getString('auto_restore_reading_file').replaceAll('{path}', latest.path));
 
       final bytes = await latest.readAsBytes();
 
@@ -73,7 +73,7 @@ class _DevAutoRestoreScreenState extends State<DevAutoRestoreScreen> {
         await BackupService().summarize(bytes.toList());
       } catch (_) {}
 
-      setState(() => _status = 'Restoring backup (replace)...');
+      setState(() => _status = loc.getString('auto_restore_restoring_replace'));
       final ok = await BackupService().restoreWithStrategy(bytes.toList(), strategy: 'replace');
       if (!mounted) return;
       setState(() => _status = ok ? loc.getString('export_success') : loc.getString('export_failed'));

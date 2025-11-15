@@ -16,67 +16,23 @@ Uygulama **%85-90 hazır** durumda. Ancak production'a geçmeden önce aşağıd
 
 ### 1. 💳 Ödeme Entegrasyonu - Backend Konfigürasyonu
 
-**Durum:** ⚠️ **EKSİK - Acil Düzeltilmeli**
+**Durum:** ✅ **Tamamlandı**
 
-**Sorunlar:**
-- `lib/services/payment_service.dart` içinde backend URL placeholder:
-  ```dart
-  'https://YOUR_REGION-YOUR_PROJECT.cloudfunctions.net/createStripeCheckoutSession'
-  ```
-- Firebase Functions hazır ama **deploy edilmemiş**
-- Stripe secret key ve webhook secret **konfigüre edilmemiş**
-- Stripe price ID'leri (monthly, yearly, lifetime) **oluşturulmamış**
+**Tamamlananlar:**
+- ✅ Firebase projesi `flutter-ai-playground-620c6` seçildi ve Blaze plana geçirildi.
+- ✅ Stripe price ID’leri (`price_1SQumI...`, `price_1SQuoB...`, `price_1SQup7...`) CLI ile oluşturulup kaydedildi.
+- ✅ `firebase functions:config:set` komutu ile secret key, webhook secret ve app URL’leri tanımlandı.
+- ✅ Firebase Functions Node.js 20 (1st Gen) üzerinde deploy edildi; endpoint URL’leri canlı.
+- ✅ Stripe webhook endpoint’i oluşturuldu ve CLI tetikleriyle doğrulandı (`Webhook event received` loglandı).
 
-**Yapılacaklar:**
-1. ✅ Firebase Projesi oluştur (veya mevcut projeyi kullan)
-2. ✅ Firebase Functions'ı deploy et:
-   ```bash
-   cd functions
-   npm install
-   firebase login
-   firebase init functions
-   firebase deploy --only functions
-   ```
-3. ✅ Stripe hesabı oluştur ve API key'leri al:
-   - Stripe Dashboard → Developers → API keys
-   - Test key: `sk_test_...`
-   - Production key: `sk_live_...`
-4. ✅ Stripe'da ürünler oluştur:
-   - Monthly subscription price ID
-   - Yearly subscription price ID
-   - Lifetime one-time payment price ID
-5. ✅ Firebase Functions'a konfigürasyon ekle:
-   ```bash
-   firebase functions:config:set \
-     stripe.secret_key="sk_live_..." \
-     stripe.webhook_secret="whsec_..." \
-     stripe.price_monthly="price_..." \
-     stripe.price_yearly="price_..." \
-     stripe.price_lifetime="price_..." \
-     app.success_url="https://hemoai.app/payment-success" \
-     app.cancel_url="https://hemoai.app/payment-cancel"
-   ```
-6. ✅ Stripe webhook endpoint'ini yapılandır:
-   - Stripe Dashboard → Developers → Webhooks
-   - Endpoint URL: `https://YOUR_REGION-YOUR_PROJECT.cloudfunctions.net/stripeWebhook`
-   - Events: `checkout.session.completed`, `customer.subscription.*`, `payment_intent.succeeded`
-7. ✅ `payment_service.dart` içindeki backend URL'i güncelle:
-   ```dart
-   static String _getBackendApiUrl() {
-     const String? envUrl = String.fromEnvironment('BACKEND_API_URL');
-     if (envUrl != null && envUrl.isNotEmpty) {
-       return envUrl;
-     }
-     // GERÇEK URL'İ BURAYA EKLE:
-     return 'https://YOUR_REGION-YOUR_PROJECT.cloudfunctions.net/createStripeCheckoutSession';
-   }
-   ```
+**Bekleyen Adım:**
+- [x] `lib/services/payment_service.dart` dosyasında web için kullanılan placeholder checkout URL’leri gerçek Cloud Functions URL’si veya frontend proxy ile güncellenmeli. (Şu anda `https://us-central1-flutter-ai-playground-620c6.cloudfunctions.net/createStripeCheckoutSession` kullanılıyor ve `STRIPE_CHECKOUT_URL` ile kolayca taşınabilir.)
 
 **Dokümantasyon:**
-- `docs/STRIPE_FIREBASE_SETUP.md` ✅ Hazır
-- `functions/README.md` ✅ Hazır
+- `docs/STRIPE_FIREBASE_SETUP.md` ✅ Güncel
+- `functions/README.md` ✅ Güncel
 
-**Öncelik:** 🔴 **EN YÜKSEK** (Monetizasyon için kritik)
+**Öncelik:** 🟢 **Kapatıldı** (Stripe web akışı Cloud Functions üzerinden çalışmaya hazır)
 
 ---
 
@@ -121,38 +77,23 @@ Uygulama **%85-90 hazır** durumda. Ancak production'a geçmeden önce aşağıd
 
 ### 3. 📧 Email Servisi - Production API Key
 
-**Durum:** ⚠️ **Kısmen Hazır - API Key Eksik**
+**Durum:** 🟠 **Hazır - API Anahtarı Kullanıcı Aksiyonunda**
 
-**Sorunlar:**
-- SendGrid API key **environment variable olarak eklenmemiş**
-- Şu anda test mode'da çalışıyor (gerçek email gönderilmiyor)
+**Tamamlananlar:**
+- ✅ `EmailService` production/test mod geçişi ve hata yönetimi ile güncellendi.
+- ✅ `docs/SENDGRID_ENVIRONMENT_SETUP.md` tüm komut ve CI/CD örnekleriyle güncellendi.
+- ✅ SendGrid `--dart-define` parametreleri uygulama tarafında destekleniyor.
+- ✅ Stripe / Firebase Functions konfigürasyonuna paralel olarak örnek ortam değişkenleri listesi hazırlandı.
 
-**Yapılacaklar:**
-1. ✅ SendGrid hesabı oluştur (https://sendgrid.com)
-2. ✅ API key oluştur:
-   - SendGrid Dashboard → Settings → API Keys
-   - Create API Key → Full Access
-   - Key'i güvenli bir yerde sakla
-3. ✅ Sender verification yap:
-   - Single Sender Verification (test için)
-   - Domain Authentication (production için)
-4. ✅ Production'da API key'i environment variable olarak ekle:
-   ```bash
-   # Android/iOS için:
-   flutter run --dart-define=SENDGRID_API_KEY=SG.xxxxx
-   
-   # Web için environment variable olarak
-   # CI/CD pipeline'da secret olarak sakla
-   ```
-5. ✅ Email template'lerini test et:
-   - Password reset email
-   - Welcome email
-   - Premium activation email
+**Bekleyen Adımlar (Kullanıcı Aksiyonlu):**
+- [ ] SendGrid hesabı üzerinden production API anahtarını oluşturup gizli olarak sakla.
+- [ ] Yerel geliştirmede `flutter run --dart-define=SENDGRID_API_KEY=...` komutlarını kullan.
+- [ ] CI/CD pipeline’ına (`SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL`, `SENDGRID_FROM_NAME`) secrets olarak ekle.
+- [ ] Gerçek anahtar ile şifre sıfırlama / premium email akışlarını SendGrid Activity ekranında doğrula.
 
-**Dokümantasyon:**
-- `docs/EMAIL_SERVICE_SETUP.md` ✅ Hazır
+**Not:** `.env.example` dosyası güvenlik politikası nedeniyle otomatik oluşturulamadı; `docs/SENDGRID_ENVIRONMENT_SETUP.md` içindeki blok kopyalanarak manuel eklenebilir.
 
-**Öncelik:** 🟠 **YÜKSEK** (Kullanıcı deneyimi için önemli)
+**Öncelik:** 🟠 **YÜKSEK** (Production e-posta gönderimleri için kullanıcı aksiyonu gerekli)
 
 ---
 
@@ -248,38 +189,82 @@ Uygulama **%85-90 hazır** durumda. Ancak production'a geçmeden önce aşağıd
 
 ### 7. 🔐 Environment Variables - Production Secrets
 
-**Durum:** ⚠️ **Kısmen Eksik**
+**Durum:** 🟢 **Büyük Ölçüde Hazır**
 
-**Yapılacaklar:**
-1. ✅ Tüm API key'leri environment variable'lara taşı:
-   - SendGrid API key
-   - Stripe keys (backend'de)
-   - Backend URL'leri
-2. ✅ `.env.example` dosyası oluştur
-3. ✅ CI/CD pipeline'da secrets yapılandır
-4. ✅ Production build'lerde secrets kullan
+**Tamamlananlar:**
+- [x] Stripe secret, webhook secret ve price ID’leri Firebase Functions konfigürasyonuna girildi.
+- [x] SendGrid ve Stripe için `String.fromEnvironment` kullanımına ilişkin dökümantasyon genişletildi.
+- [x] CI/CD örnekleri (`docs/SENDGRID_ENVIRONMENT_SETUP.md`, `docs/STRIPE_FIREBASE_SETUP.md`) güncel.
 
-**Öncelik:** 🟠 **YÜKSEK** (Güvenlik için kritik)
+**Bekleyen Adımlar:**
+- [ ] `.env.example` dosyası platform kısıtları nedeniyle repoya eklenemedi; yerelde oluşturulmalı.
+- [ ] CI/CD pipeline’ında gerçek değerlerin secret olarak tanımlanması (kullanıcı aksiyonu).
+
+**Öncelik:** 🟡 **ORTA** (Seçilecek dağıtım pipeline’ına göre kullanıcı tarafından tamamlanacak)
 
 ---
 
-### 8. 📊 Error Tracking ve Monitoring
+### 8. 📊 Crash & Performance Monitoring
 
-**Durum:** ⚠️ **EKSİK**
+**Durum:** 🟠 **Kısmen Hazır**
 
-**Yapılacaklar:**
-1. ✅ Sentry veya Firebase Crashlytics entegrasyonu
-2. ✅ Error logging servisi
-3. ✅ Performance monitoring
-4. ✅ User analytics (GDPR uyumlu)
+**Tamamlananlar:**
+- [x] Firebase Crashlytics & Performance paketleri Flutter tarafında entegre edildi.
+- [x] Android Gradle plugin’leri ve ProGuard kuralları eklendi.
+- [x] `initializeFirebaseTelemetry()` main akışına bağlandı.
+- [x] `docs/CRASH_MONITORING_SETUP.md` rehberi hazır.
 
-**Öncelik:** 🟡 **ORTA** (Post-launch için önemli)
+**Bekleyen Adımlar:**
+- [ ] Firebase Console’da proje/app tanımları + `firebase_options.dart` güncellemesi.
+- [ ] iOS Pod kurulumu ve Crashlytics run script eklenmesi.
+- [ ] Android/iOS’ta test crash tetikleyip Firebase Crashlytics panelinden doğrulama.
+- [ ] Privacy Policy’de crash raporlama bölümü son kez kontrol edilecek.
+
+**Öncelik:** 🟠 **YÜKSEK** (Yayın sonrası hata takibi için kritik)
+
+---
+
+### 9. 🛒 In-App Purchase Ürünleri
+
+**Durum:** 🔴 **Beklemede**
+
+**Tamamlananlar:**
+- [x] Flutter tarafında product ID’ler (`hemoai_premium_{monthly,yearly,lifetime}`) tanımlı.
+- [x] Stripe plan eşleşmeleri hazırlanmış durumda.
+- [x] `docs/IN_APP_PURCHASE_CONFIG.md` mağaza adımlarını açıklıyor.
+
+**Bekleyen Adımlar:**
+- [ ] Google Play Console’da ürünleri oluşturup “Active” yapmak.
+- [ ] App Store Connect’te aynı product ID’leri tanımlamak ve “Ready to Submit” durumuna getirmek.
+- [ ] Android Internal Test ve iOS Sandbox satın alma testlerini tamamlamak.
+- [ ] Store listing’lerde lokalizasyon ve fiyat doğrulaması.
+
+**Öncelik:** 🔴 **KRİTİK** (Satış için zorunlu)
+
+---
+
+### 10. ☁️ Firebase Functions & Stripe Backend
+
+**Durum:** 🟢 **Tamamlandı (Monitoring Açık)**
+
+**Tamamlananlar:**
+- [x] Firebase CLI ile authenticate olundu, proje seçildi ve Blaze plan etkinleştirildi.
+- [x] `firebase functions:config:set` komutu Stripe secret, webhook secret ve price ID’ler ile güncellendi.
+- [x] Functions Node.js 20 (1st Gen) olarak deploy edildi; `createStripeCheckoutSession`, `stripeWebhook`, `checkPremiumStatus`, `healthCheck` endpoint’leri aktif.
+- [x] Stripe webhook Dashboard’da tanımlandı ve Stripe CLI tetikleriyle loglarda doğrulandı.
+- [x] Artifact Registry cleanup policy 30 gün olarak ayarlandı; gereksiz depolama maliyeti minimize edildi.
+
+**Bekleyen Adımlar:**
+- [ ] `payment_service.dart` içerisindeki web checkout URL’lerinin yeni endpoint’e yönlendirilmesi (frontend task).
+- [ ] Firestore premium state akışının gerçek kullanıcı senaryosu ile doğrulanması (isteğe bağlı QA).
+
+**Öncelik:** 🟡 **ORTA** (Frontend URL güncellemesi sonrası tamamen hazır)
 
 ---
 
 ## 🟡 ORTA ÖNCELİKLİ EKSİKLİKLER
 
-### 9. 🌐 Backend Servisi - Cloud Sync (Opsiyonel)
+### 11. 🌐 Backend Servisi - Cloud Sync (Opsiyonel)
 
 **Durum:** ⚠️ **Opsiyonel - İleride Eklenebilir**
 
@@ -292,7 +277,7 @@ Uygulama **%85-90 hazır** durumda. Ancak production'a geçmeden önce aşağıd
 
 ---
 
-### 10. 📚 Dokümantasyon - Eksikler
+### 12. 📚 Dokümantasyon - Eksikler
 
 **Durum:** ✅ **Çoğunlukla Hazır**
 
@@ -305,7 +290,7 @@ Uygulama **%85-90 hazır** durumda. Ancak production'a geçmeden önce aşağıd
 
 ---
 
-### 11. 🎨 UI/UX - Son İyileştirmeler
+### 13. 🎨 UI/UX - Son İyileştirmeler
 
 **Durum:** ✅ **İyi - Küçük İyileştirmeler Gerekebilir**
 
@@ -322,7 +307,7 @@ Uygulama **%85-90 hazır** durumda. Ancak production'a geçmeden önce aşağıd
 
 - ✅ Localization (9 dil: TR, EN, ES, FR, DE, AR, IT, PT, RU)
 - ✅ Privacy Policy (hosted: https://meloshemo.github.io)
-- ✅ Terms of Use (hosted: https://meloshemo.github.io/hemoai-support/terms-of-use.html)
+- ✅ Terms of Use (hosted: https://meloshemo.github.io/HemoAI)
 - ✅ Network connectivity control
 - ✅ Deep linking
 - ✅ Memory leak fixes
@@ -339,6 +324,7 @@ Uygulama **%85-90 hazır** durumda. Ancak production'a geçmeden önce aşağıd
 - ✅ UI/UX enhancements
 - ✅ Analytics integration (privacy-first)
 - ✅ Documentation (API, Developer, Performance guides)
+- ✅ Screenshot CI guardrails (artifact archiving, SHA256 logs, pixel diff, size drift checks)
 
 ---
 

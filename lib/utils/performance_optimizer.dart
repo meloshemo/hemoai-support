@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import '../services/cache_service.dart';
 import '../services/preferences_service.dart';
+import '../services/localization_service.dart';
 
 /// Performance optimization utilities for HemoAI
 class PerformanceOptimizer {
@@ -129,6 +130,7 @@ class PerformanceOptimizer {
   /// Get performance recommendations based on current state
   Future<List<String>> getPerformanceRecommendations() async {
     final recommendations = <String>[];
+    final loc = LocalizationService();
     
     try {
       final cacheInfo = await getCacheInfo();
@@ -136,25 +138,25 @@ class PerformanceOptimizer {
       
       // Check cache size
       if (cacheInfo['hemoaiCacheSize'] != null && cacheInfo['hemoaiCacheSize'] > 100) {
-        recommendations.add('Consider clearing cache to free up memory');
+        recommendations.add(loc.getString('performance_rec_clear_cache'));
       }
       
       // Check animations
       if (animationsEnabled && kDebugMode) {
-        recommendations.add('Disable animations for faster debugging');
+        recommendations.add(loc.getString('performance_rec_disable_animations'));
       }
       
       // Platform-specific recommendations
       if (kIsWeb) {
-        recommendations.add('Use Chrome or Edge for best web performance');
+        recommendations.add(loc.getString('performance_rec_use_chrome_edge'));
       }
       
       if (recommendations.isEmpty) {
-        recommendations.add('Performance is optimized');
+        recommendations.add(loc.getString('performance_rec_optimized'));
       }
       
     } catch (e) {
-      recommendations.add('Error analyzing performance: $e');
+      recommendations.add(loc.getStringWithParams('performance_rec_error_analyzing', {'error': e.toString()}));
     }
     
     return recommendations;

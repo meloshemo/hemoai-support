@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../utils/color_compat.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeService extends ChangeNotifier {

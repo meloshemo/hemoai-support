@@ -342,7 +342,7 @@ Before submitting Data Safety form:
 ## Contact for Data Requests
 
 If users request data exports or deletions:
-- Email: support@meloshemo.com
+- Email: support@hemoai.org
 - Response time: Within 30 days (GDPR requirement)
 - Format: JSON, PDF, or Excel based on request
 

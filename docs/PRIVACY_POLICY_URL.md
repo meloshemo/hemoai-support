@@ -60,7 +60,7 @@ https://meloshemo.github.io
 
 ✅ Privacy Policy is accessible at: https://meloshemo.github.io  
 ✅ Last updated: November 04, 2025  
-✅ Contact email: HemoAI@hotmail.com  
+✅ Contact email: privacy@hemoai.org
 ✅ GDPR/KVKK compliant content
 
 ---

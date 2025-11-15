@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 /// Image with semantics label enabled by default and graceful errorBuilder.
 class AccessibleImage extends StatelessWidget {
@@ -32,10 +32,10 @@ class AccessibleImage extends StatelessWidget {
         height: height,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.15),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.15),
           borderRadius: borderRadius ?? BorderRadius.circular(8),
         ),
-        child: Icon(Icons.broken_image_outlined, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
+        child: Icon(Icons.broken_image_outlined, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)),
       ),
     );
 
@@ -50,3 +50,4 @@ class AccessibleImage extends StatelessWidget {
     );
   }
 }
+

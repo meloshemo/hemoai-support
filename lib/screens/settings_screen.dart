@@ -21,6 +21,7 @@ import 'dart:typed_data';
 import 'restore_preview_screen.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'emergency_contact_screen.dart';
+import 'medical_disclaimer_screen.dart';
 import '../utils/app_constants.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -109,8 +110,8 @@ class SettingsScreen extends StatelessWidget {
                         ),
                         _Tile(
                           icon: Icons.delete_forever_outlined,
-                          title: 'Delete Account & Data',
-                          subtitle: 'KVKK/GDPR compliant right to erasure',
+                          title: loc.getString('delete_account_and_data_title'),
+                          subtitle: loc.getString('kvkk_gdpr_compliant'),
                           isDark: isDark,
                           onTap: () => _confirmDeleteAccount(context),
                         ),
@@ -439,15 +440,11 @@ class SettingsScreen extends StatelessWidget {
                           title: loc.getString('medical_disclaimer'),
                           subtitle: loc.getString('medical_disclaimer_desc'),
                           isDark: isDark,
-                          onTap: () => _openDocument(
+                          onTap: () => Navigator.push(
                             context,
-                            url: AppConstants.medicalDisclaimerUrl,
-                            title: loc.getString('medical_disclaimer'),
-                            fallbackBody: [
-                              loc.getString('medical_disclaimer_body'),
-                              loc.getString('medical_consult_prompt'),
-                              loc.getString('medical_emergency_cta'),
-                            ].join('\n\n'),
+                            MaterialPageRoute(
+                              builder: (context) => const MedicalDisclaimerScreen(),
+                            ),
                           ),
                         ),
                         _Tile(
@@ -471,7 +468,7 @@ class SettingsScreen extends StatelessWidget {
                                 : '—';
                             return _Tile(
                               icon: Icons.new_releases_outlined,
-                              title: 'Version',
+                              title: loc.getString('app_version'),
                               subtitle: ver,
                               isDark: isDark,
                               onTap: () {},
@@ -480,7 +477,7 @@ class SettingsScreen extends StatelessWidget {
                         ),
                         _Tile(
                           icon: Icons.support_agent_outlined,
-                          title: 'Support & Contact',
+                          title: loc.getString('help_support'),
                           subtitle: '$supportEmail • $supportHost',
                           isDark: isDark,
                           onTap: () => _openSupportPortal(context),
@@ -752,20 +749,23 @@ class SettingsScreen extends StatelessWidget {
                     ],
                   ),
 
-                  // About HemoAI (Professional health app info)
+                  // About & Legal (localized)
                   _Section(
                     icon: Icons.info_outline,
-                    title: 'About HemoAI',
+                    title: loc.getString('about_hemoai'),
                     isDark: isDark,
                     children: [
                       _Tile(
                         icon: Icons.approval_outlined,
-                        title: 'Medical Disclaimer',
-                        subtitle:
-                            'HemoAI provides educational health insights and is not a substitute for professional medical diagnosis or treatment. Always consult a qualified physician for medical decisions.',
+                        title: loc.getString('medical_disclaimer'),
+                        subtitle: loc.getString('medical_disclaimer_desc'),
                         isDark: isDark,
-                        onTap: () => _showInfo(context, 'Medical Disclaimer',
-                            'HemoAI does not provide medical services. The insights and recommendations are generated for educational purposes based on your self-reported or synchronized health data. In urgent or severe cases, contact emergency services or your physician. Use of HemoAI constitutes acceptance of this disclaimer.'),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const MedicalDisclaimerScreen(),
+                          ),
+                        ),
                       ),
 
                       // Motivation & Challenges
@@ -963,7 +963,7 @@ class SettingsScreen extends StatelessWidget {
                               : '—';
                           return _Tile(
                             icon: Icons.new_releases_outlined,
-                            title: 'Version',
+                            title: loc.getString('app_version'),
                             subtitle: ver,
                             isDark: isDark,
                             onTap: () {},
@@ -972,7 +972,7 @@ class SettingsScreen extends StatelessWidget {
                       ),
                       _Tile(
                         icon: Icons.support_agent_outlined,
-                        title: 'Support & Contact',
+                        title: loc.getString('help_support'),
                         subtitle: '$supportEmail • $supportHost',
                         isDark: isDark,
                         onTap: () => _openSupportPortal(context),
@@ -1798,14 +1798,8 @@ class SettingsScreen extends StatelessWidget {
                     children: [
                       _Tile(
                         icon: Icons.policy,
-                        title:
-                            loc.getString('privacy_policy') == 'privacy_policy'
-                                ? 'Privacy Policy'
-                                : loc.getString('privacy_policy'),
-                        subtitle: loc.getString('privacy_policy_desc') ==
-                                'privacy_policy_desc'
-                            ? 'View our privacy policy'
-                            : loc.getString('privacy_policy_desc'),
+                        title: loc.getString('privacy_policy'),
+                        subtitle: loc.getString('privacy_policy_desc'),
                         isDark: isDark,
                         onTap: () async {
                           try {
@@ -1817,9 +1811,8 @@ class SettingsScreen extends StatelessWidget {
                             } else {
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text(
-                                          'Could not open Privacy Policy')),
+                                  SnackBar(
+                                      content: Text(loc.getString('could_not_open_privacy_policy'))),
                                 );
                               }
                             }
@@ -1827,8 +1820,7 @@ class SettingsScreen extends StatelessWidget {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                    content: Text(
-                                        'Error opening Privacy Policy: $e')),
+                                    content: Text('${loc.getString('error_opening_privacy_policy')}: $e')),
                               );
                             }
                           }
@@ -1836,13 +1828,8 @@ class SettingsScreen extends StatelessWidget {
                       ),
                       _Tile(
                         icon: Icons.gavel,
-                        title: loc.getString('terms_of_use') == 'terms_of_use'
-                            ? 'Terms of Use'
-                            : loc.getString('terms_of_use'),
-                        subtitle: loc.getString('terms_of_use_desc') ==
-                                'terms_of_use_desc'
-                            ? 'View terms and conditions'
-                            : loc.getString('terms_of_use_desc'),
+                        title: loc.getString('terms_of_use'),
+                        subtitle: loc.getString('terms_of_use_desc'),
                         isDark: isDark,
                         onTap: () async {
                           try {
@@ -1853,9 +1840,8 @@ class SettingsScreen extends StatelessWidget {
                             } else {
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content:
-                                          Text('Could not open Terms of Use')),
+                                  SnackBar(
+                                      content: Text(loc.getString('could_not_open_terms_of_use'))),
                                 );
                               }
                             }
@@ -1863,8 +1849,7 @@ class SettingsScreen extends StatelessWidget {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                    content:
-                                        Text('Error opening Terms of Use: $e')),
+                                    content: Text('${loc.getString('error_opening_terms_of_use')}: $e')),
                               );
                             }
                           }
@@ -1895,15 +1880,11 @@ class SettingsScreen extends StatelessWidget {
                         title: loc.getString('medical_disclaimer'),
                         subtitle: loc.getString('medical_disclaimer_desc'),
                         isDark: isDark,
-                        onTap: () => _openDocument(
+                        onTap: () => Navigator.push(
                           context,
-                          url: AppConstants.medicalDisclaimerUrl,
-                          title: loc.getString('medical_disclaimer'),
-                          fallbackBody: [
-                            loc.getString('medical_disclaimer_body'),
-                            loc.getString('medical_consult_prompt'),
-                            loc.getString('medical_emergency_cta'),
-                          ].join('\n\n'),
+                          MaterialPageRoute(
+                            builder: (context) => const MedicalDisclaimerScreen(),
+                          ),
                         ),
                       ),
                       _Tile(
@@ -1946,15 +1927,17 @@ class SettingsScreen extends StatelessWidget {
   void _confirmDeleteAccount(BuildContext context) async {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final loc = Provider.of<LocalizationService>(context, listen: false);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Account & Data'),
-        content: const Text(
-            'This will remove your account and all stored data on this device. This action cannot be undone.'),
+        title: Text(loc.getString('delete_account_and_data_title')),
+        content: Text(loc.getString('delete_account_and_data_body')),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(loc.getString('cancel')),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
                 backgroundColor: cs.error, foregroundColor: cs.onError),
@@ -1970,7 +1953,7 @@ class SettingsScreen extends StatelessWidget {
                     .pushNamedAndRemoveUntil('/login', (r) => false);
               }
             },
-            child: const Text('Delete'),
+            child: Text(loc.getString('delete')),
           ),
         ],
       ),
@@ -1999,11 +1982,8 @@ class SettingsScreen extends StatelessWidget {
     final messenger = ScaffoldMessenger.of(context);
     final supportUri = Uri.parse(AppConstants.supportUrl);
     try {
-      final launched =
-          await launchUrl(supportUri, mode: LaunchMode.externalApplication);
-      if (!launched) {
-        throw Exception('unable to launch support url');
-      }
+      await launchUrl(supportUri, mode: LaunchMode.externalApplication);
+      // If not launched, fall through to email fallback
     } catch (_) {
       final mailUri = Uri(scheme: 'mailto', path: AppConstants.supportEmail);
       if (!await launchUrl(mailUri)) {
@@ -2021,9 +2001,9 @@ class SettingsScreen extends StatelessWidget {
   }) async {
     try {
       final uri = Uri.parse(url);
-      final launched =
+      final success =
           await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (launched) return;
+      if (success) return;
     } catch (_) {
       // Ignore and fallback
     }
@@ -2471,7 +2451,7 @@ class SettingsScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              title: const Text('PDF'),
+              title: Text(loc.getString('format_pdf')),
               leading: const Icon(Icons.picture_as_pdf),
               onTap: () async {
                 final prefs = await PreferencesService.getInstance();
@@ -2485,7 +2465,7 @@ class SettingsScreen extends StatelessWidget {
               },
             ),
             ListTile(
-              title: const Text('Excel'),
+              title: Text(loc.getString('format_excel')),
               leading: const Icon(Icons.table_chart),
               onTap: () async {
                 final prefs = await PreferencesService.getInstance();
@@ -2499,7 +2479,7 @@ class SettingsScreen extends StatelessWidget {
               },
             ),
             ListTile(
-              title: const Text('JSON'),
+              title: Text(loc.getString('format_json')),
               leading: const Icon(Icons.code),
               onTap: () async {
                 final prefs = await PreferencesService.getInstance();
@@ -2529,7 +2509,7 @@ class SettingsScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              title: const Text('Every 1 hour'),
+              title: Text(loc.getString('backup_every_1_hour')),
               onTap: () async {
                 final autoBackup = AutoBackupService();
                 await autoBackup.setBackupInterval(1);
@@ -2542,7 +2522,7 @@ class SettingsScreen extends StatelessWidget {
               },
             ),
             ListTile(
-              title: const Text('Every 6 hours'),
+              title: Text(loc.getString('backup_every_6_hours')),
               onTap: () async {
                 final autoBackup = AutoBackupService();
                 await autoBackup.setBackupInterval(6);
@@ -2555,7 +2535,7 @@ class SettingsScreen extends StatelessWidget {
               },
             ),
             ListTile(
-              title: const Text('Every 12 hours'),
+              title: Text(loc.getString('backup_every_12_hours')),
               onTap: () async {
                 final autoBackup = AutoBackupService();
                 await autoBackup.setBackupInterval(12);
@@ -2568,7 +2548,7 @@ class SettingsScreen extends StatelessWidget {
               },
             ),
             ListTile(
-              title: const Text('Every 24 hours'),
+              title: Text(loc.getString('backup_every_24_hours')),
               onTap: () async {
                 final autoBackup = AutoBackupService();
                 await autoBackup.setBackupInterval(24);
@@ -2581,7 +2561,7 @@ class SettingsScreen extends StatelessWidget {
               },
             ),
             ListTile(
-              title: const Text('Every 7 days'),
+              title: Text(loc.getString('backup_every_7_days')),
               onTap: () async {
                 final autoBackup = AutoBackupService();
                 await autoBackup.setBackupInterval(168); // 7 days = 168 hours

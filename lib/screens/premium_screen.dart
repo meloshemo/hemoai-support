@@ -1,13 +1,15 @@
+﻿// ignore_for_file: use_build_context_synchronously
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/premium_service.dart';
 import '../services/payment_service.dart';
-import '../services/turkish_payment_service.dart';
 import '../services/localization_service.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/unified_app_bar.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PremiumScreen extends StatefulWidget {
   const PremiumScreen({super.key});
@@ -27,16 +29,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
   }
 
   void _initializePaymentService() {
-    // Türkiye için TurkishPaymentService, diğer ülkeler için PaymentService
-    final loc = LocalizationService();
-    final isTurkey = loc.currentLanguageCode == 'tr';
-    
-    if (isTurkey) {
-      _paymentService = TurkishPaymentService();
-    } else {
-      _paymentService = PaymentService();
-    }
-    
+    _paymentService = PaymentService();
     _paymentService?.initialize();
   }
 
@@ -57,7 +50,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
       backgroundColor: isDark ? const Color(0xFF0D1117) : const Color(0xFFF6F8FA),
       drawer: const AppDrawer(currentRoute: '/premium'),
       appBar: UnifiedAppBar(
-        title: loc.getString('premium') == 'premium' ? 'Premium' : loc.getString('premium'),
+        title: loc.getString('premium'),
         currentRoute: '/premium',
       ),
       body: SingleChildScrollView(
@@ -65,15 +58,40 @@ class _PremiumScreenState extends State<PremiumScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (!kIsWeb && _paymentService != null && !_paymentService!.isAvailable) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.15),
+                  border: Border.all(color: Colors.amber.withValues(alpha: 0.35)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.info_outline, color: Colors.amber),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        loc.getString('iap_not_available'),
+                        style: TextStyle(
+                          color: isDark ? Colors.white70 : Colors.black87,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             // Current Status Card
             _buildStatusCard(premiumService, loc, isDark),
             const SizedBox(height: 24),
 
             // Features Comparison
             Text(
-              loc.getString('premium_features') == 'premium_features' 
-                  ? 'Premium Özellikler' 
-                  : loc.getString('premium_features'),
+              loc.getString('premium_features'),
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -88,9 +106,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
 
             // Pricing Plans
             Text(
-              loc.getString('pricing_plans') == 'pricing_plans' 
-                  ? 'Fiyatlandırma' 
-                  : loc.getString('pricing_plans'),
+              loc.getString('pricing_plans'),
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -103,19 +119,32 @@ class _PremiumScreenState extends State<PremiumScreen> {
             _buildPricingPlans(premiumService, loc, isDark),
             const SizedBox(height: 24),
 
-            // Restore Purchases Button (Mobile only)
-            if (!kIsWeb)
+            // Restore & Manage buttons (Mobile only)
+            if (!kIsWeb) ...[
               Center(
-                child: TextButton.icon(
-                  onPressed: _isProcessing ? null : () => _restorePurchases(context, loc),
-                  icon: const Icon(Icons.restore),
-                  label: Text(
-                    loc.currentLanguageCode == 'tr' 
-                        ? 'Satın Alımları Geri Yükle' 
-                        : 'Restore Purchases'
-                  ),
+                child: Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 12,
+                  runSpacing: 8,
+                  children: [
+                    TextButton.icon(
+                      onPressed: _isProcessing ? null : () => _restorePurchases(context, loc),
+                      icon: const Icon(Icons.restore),
+                      label: Text(loc.getString('restore_purchases')),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _isProcessing ? null : _openManageSubscription,
+                      icon: const Icon(Icons.manage_accounts_outlined),
+                      label: Text(loc.getString('manage_subscription')),
+                    ),
+                  ],
                 ),
               ),
+            ],
+            const SizedBox(height: 16),
+
+            // Subscription Terms / Auto-renewal disclaimer
+            _buildSubscriptionTerms(loc, isDark),
           ],
         ),
       ),
@@ -177,7 +206,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              '${premiumService.remainingTrialDays} ${loc.getString("days") == "days" ? "gün" : loc.getString("days")} kaldı',
+              '${premiumService.remainingTrialDays} ${loc.getString("days")}',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 14,
@@ -191,29 +220,58 @@ class _PremiumScreenState extends State<PremiumScreen> {
 
   List<Widget> _buildFeatureList(PremiumService premiumService, LocalizationService loc, bool isDark) {
     final features = [
-      {'icon': Icons.cloud, 'name': 'Unlimited Tests', 'tr': 'Sınırsız Test'},
-      {'icon': Icons.backup, 'name': 'Cloud Backup', 'tr': 'Bulut Yedekleme'},
-      {'icon': Icons.psychology, 'name': 'Advanced AI', 'tr': 'Gelişmiş AI'},
-      {'icon': Icons.family_restroom, 'name': 'Unlimited Family', 'tr': 'Sınırsız Aile'},
-      {'icon': Icons.restaurant_menu, 'name': 'Unlimited Diets', 'tr': 'Sınırsız Diyet'},
-      {'icon': Icons.analytics, 'name': 'Advanced Analytics', 'tr': 'Gelişmiş Analitik'},
-      {'icon': Icons.medical_services, 'name': 'Expert Doctor Consultation', 'tr': 'Uzman Doktor Görüşü', 'highlight': true},
-      {'icon': Icons.video_call, 'name': 'Video Consultation', 'tr': 'Video Konsültasyon', 'highlight': true},
-      {'icon': Icons.rate_review, 'name': 'Second Opinion', 'tr': 'İkinci Görüş', 'highlight': true},
+      {
+        'icon': Icons.cloud,
+        'key': 'unlimited_tests',
+        'feature': PremiumFeature.unlimitedTests,
+      },
+      {
+        'icon': Icons.backup,
+        'key': 'cloud_backup',
+        'feature': PremiumFeature.cloudBackup,
+      },
+      {
+        'icon': Icons.psychology,
+        'key': 'advanced_ai',
+        'feature': PremiumFeature.advancedAI,
+      },
+      {
+        'icon': Icons.family_restroom,
+        'key': 'unlimited_family',
+        'feature': PremiumFeature.unlimitedFamilyMembers,
+      },
+      {
+        'icon': Icons.restaurant_menu,
+        'key': 'unlimited_diets',
+        'feature': PremiumFeature.unlimitedDietPlans,
+      },
+      {
+        'icon': Icons.analytics,
+        'key': 'advanced_analytics',
+        'feature': PremiumFeature.predictiveAnalytics,
+      },
+      {
+        'icon': Icons.medical_services,
+        'key': 'expert_doctor_consultation',
+        'feature': PremiumFeature.expertDoctorConsultation,
+        'highlight': true,
+      },
+      {
+        'icon': Icons.video_call,
+        'key': 'video_consultation',
+        'feature': PremiumFeature.videoConsultation,
+        'highlight': true,
+      },
+      {
+        'icon': Icons.rate_review,
+        'key': 'second_opinion',
+        'feature': PremiumFeature.doctorSecondOpinion,
+        'highlight': true,
+      },
     ];
 
     return features.map((feature) {
-      PremiumFeature matchedFeature = PremiumFeature.cloudBackup;
-      try {
-        final nameStr = feature['name'] as String?;
-        if (nameStr != null) {
-          final searchTerm = nameStr.toLowerCase().split(' ').first;
-          matchedFeature = PremiumFeature.values.firstWhere((f) => 
-            f.name.toLowerCase().contains(searchTerm));
-        }
-      } catch (_) {
-        matchedFeature = PremiumFeature.cloudBackup;
-      }
+      final matchedFeature = feature['feature'] as PremiumFeature? ?? PremiumFeature.cloudBackup;
       final hasAccess = premiumService.hasAccessTo(matchedFeature);
 
       final isHighlighted = feature['highlight'] == true;
@@ -267,9 +325,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
             const SizedBox(width: 16),
             Expanded(
               child: Text(
-                loc.currentLanguageCode == 'tr' 
-                    ? (feature['tr'] as String)
-                    : (feature['name'] as String),
+                loc.getString(feature['key'] as String),
                 style: TextStyle(
                   color: isDark ? Colors.white : Colors.black87,
                   fontWeight: FontWeight.w500,
@@ -284,7 +340,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  loc.currentLanguageCode == 'tr' ? 'YAKINDA' : 'SOON',
+                  loc.getString('soon_badge'),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 10,
@@ -309,10 +365,10 @@ class _PremiumScreenState extends State<PremiumScreen> {
       children: [
         // Monthly
         _buildPlanCard(
-          title: loc.currentLanguageCode == 'tr' ? 'Aylık' : 'Monthly',
+          title: loc.getString('plan_monthly'),
           price: _paymentService?.getProductPrice(isYearly: false, isLifetime: false, languageCode: loc.currentLanguageCode) ?? 
-                 (loc.currentLanguageCode == 'tr' ? '₺49.99' : '\$4.99'),
-          period: loc.currentLanguageCode == 'tr' ? '/ay' : '/month',
+                 ('\$4.99'),
+          period: loc.getString('per_month'),
           isPopular: false,
           isDark: isDark,
           onTap: () => _handlePurchase(context, premiumService, loc, isYearly: false, isLifetime: false),
@@ -320,10 +376,10 @@ class _PremiumScreenState extends State<PremiumScreen> {
         const SizedBox(height: 12),
         // Yearly
         _buildPlanCard(
-          title: loc.currentLanguageCode == 'tr' ? 'Yıllık' : 'Yearly',
+          title: loc.getString('plan_yearly'),
           price: _paymentService?.getProductPrice(isYearly: true, isLifetime: false, languageCode: loc.currentLanguageCode) ?? 
-                 (loc.currentLanguageCode == 'tr' ? '₺399.99' : '\$39.99'),
-          period: loc.currentLanguageCode == 'tr' ? '/yıl' : '/year',
+                 ('\$39.99'),
+          period: loc.getString('per_year'),
           isPopular: true,
           isDark: isDark,
           onTap: () => _handlePurchase(context, premiumService, loc, isYearly: true, isLifetime: false),
@@ -331,10 +387,10 @@ class _PremiumScreenState extends State<PremiumScreen> {
         const SizedBox(height: 12),
         // Lifetime
         _buildPlanCard(
-          title: loc.currentLanguageCode == 'tr' ? 'Yaşam Boyu' : 'Lifetime',
+          title: loc.getString('plan_lifetime'),
           price: _paymentService?.getProductPrice(isYearly: false, isLifetime: true, languageCode: loc.currentLanguageCode) ?? 
-                 (loc.currentLanguageCode == 'tr' ? '₺999.99' : '\$99.99'),
-          period: loc.currentLanguageCode == 'tr' ? 'Tek Seferlik' : 'One-time',
+                 ('\$99.99'),
+          period: loc.getString('one_time'),
           isPopular: false,
           isDark: isDark,
           onTap: () => _handlePurchase(context, premiumService, loc, isYearly: false, isLifetime: true),
@@ -387,12 +443,14 @@ class _PremiumScreenState extends State<PremiumScreen> {
                           color: const Color(0xFFE53E3E),
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: const Text(
-                          'POPÜLER',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                        child: Consumer<LocalizationService>(
+                          builder: (_, loc, __) => Text(
+                            loc.getString('popular_badge'),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
@@ -450,7 +508,14 @@ class _PremiumScreenState extends State<PremiumScreen> {
       final userName = prefs.getString('current_user_name');
       
       if (_paymentService == null) {
-        throw Exception('Payment service not initialized');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.getString('payment_service_not_initialized')),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
       }
       
       final success = await _paymentService!.purchasePremium(
@@ -466,9 +531,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(loc.currentLanguageCode == 'tr' 
-                ? 'Premium aktifleştirildi!' 
-                : 'Premium activated!'),
+            content: Text(
+              loc.getString('premium_activated'),
+            ),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
           ),
@@ -476,9 +541,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
       } else if (_paymentService != null && !_paymentService!.purchasePending) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(loc.currentLanguageCode == 'tr'
-                ? 'Ödeme başlatılamadı. Lütfen tekrar deneyin.'
-                : 'Payment could not be initiated. Please try again.'),
+            content: Text(
+              loc.getString('payment_initiation_failed'),
+            ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -488,7 +553,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${loc.currentLanguageCode == 'tr' ? 'Hata' : 'Error'}: $e'),
+          content: Text('${loc.getString('error_label')}: $e'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -507,7 +572,14 @@ class _PremiumScreenState extends State<PremiumScreen> {
 
     try {
       if (_paymentService == null) {
-        throw Exception('Payment service not initialized');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.getString('payment_service_not_initialized')),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
       }
       
       final success = await _paymentService!.restorePurchases();
@@ -517,12 +589,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(success
-              ? (loc.currentLanguageCode == 'tr'
-                  ? 'Satın alımlar geri yüklendi'
-                  : 'Purchases restored')
-              : (loc.currentLanguageCode == 'tr'
-                  ? 'Geri yüklenecek satın alım bulunamadı'
-                  : 'No purchases found to restore')),
+              ? loc.getString('purchases_restored_success')
+              : loc.getString('no_purchases_to_restore')),
           backgroundColor: success ? Colors.green : Colors.orange,
           behavior: SnackBarBehavior.floating,
         ),
@@ -531,7 +599,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${loc.currentLanguageCode == 'tr' ? 'Hata' : 'Error'}: $e'),
+          content: Text('${loc.getString('error_label')}: $e'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -542,5 +610,56 @@ class _PremiumScreenState extends State<PremiumScreen> {
       }
     }
   }
+
+  Widget _buildSubscriptionTerms(LocalizationService loc, bool isDark) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF161B22) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            loc.getString('subscription_terms_title'),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            loc.getString('subscription_terms_disclaimer'),
+            style: TextStyle(
+              fontSize: 12,
+              color: isDark ? Colors.white70 : Colors.black87,
+              height: 1.35,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openManageSubscription() async {
+    final platform = Theme.of(context).platform;
+    Uri? uri;
+    if (platform == TargetPlatform.android) {
+      const packageName = 'com.meloshemo.hemoai';
+      uri = Uri.parse('https://play.google.com/store/account/subscriptions?package=$packageName');
+    } else if (platform == TargetPlatform.iOS) {
+      uri = Uri.parse('https://apps.apple.com/account/subscriptions');
+    }
+    if (uri != null) {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    }
+  }
 }
+
 

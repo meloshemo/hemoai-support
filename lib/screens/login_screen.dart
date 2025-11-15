@@ -5,158 +5,31 @@ import 'login_form_screen.dart';
 import '../services/localization_service.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).brightness == Brightness.dark 
-        ? const Color(0xFF0D1117) 
-        : Colors.white,
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFF0D1117)
+          : Colors.white,
       appBar: AppBar(
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: Icon(
-              Icons.menu,
-              color: Theme.of(context).brightness == Brightness.dark 
-                ? const Color(0xFFF0F6FC) 
-                : Colors.white,
-              size: 24,
-            ),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-            tooltip: LocalizationService.translate('menu'),
-          ),
-        ),
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF161B22)
+            : const Color(0xFFE53E3E),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
         title: const Text(
           'HEMOAI',
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: Colors.white,
           ),
-        ),
-        backgroundColor: Theme.of(context).brightness == Brightness.dark 
-          ? const Color(0xFF161B22) 
-          : const Color(0xFFE53E3E),
-        elevation: 0,
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFFE53E3E), Color(0xFFFF6B6B)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(30),
-                      child: Image.asset(
-                        'assets/hemoai pic 1.O.jpg',
-                        width: 60,
-                        height: 60,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Icon(Icons.bloodtype, color: Color(0xFFE53E3E), size: 30);
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'HemoAI',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    LocalizationService.translate('smart_health_assistant'),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.local_florist, color: Color(0xFFE53E3E)),
-              title: Text(LocalizationService.translate('alternative_medicine_methods')),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/alternative_medicine');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.analytics, color: Color(0xFFE53E3E)),
-              title: Text(LocalizationService.translate('hemogram_analysis')),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/analysis');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.restaurant_menu, color: Color(0xFFE53E3E)),
-              title: Text(LocalizationService.translate('personal_diet_program')),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/diet_program');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.family_restroom, color: Color(0xFFE53E3E)),
-              title: Text(LocalizationService.translate('family_health_panel')),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/family_panel');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.notifications, color: Color(0xFFE53E3E)),
-              title: Text(LocalizationService.translate('notifications_reminders')),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/notifications');
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.info, color: Color(0xFFE53E3E)),
-              title: Text(LocalizationService.translate('about')),
-              onTap: () {
-                Navigator.pop(context);
-                _showAboutDialog(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.help, color: Color(0xFFE53E3E)),
-              title: Text(LocalizationService.translate('help_support')),
-              onTap: () {
-                Navigator.pop(context);
-                _showHelpDialog(context);
-              },
-            ),
-          ],
         ),
       ),
       body: Center(
@@ -181,7 +54,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         decoration: BoxDecoration(
                           color: Colors.grey[200],
                           borderRadius: BorderRadius.circular(90),
-                          border: Border.all(color: const Color(0xFFE53E3E), width: 3),
+                          border: Border.all(
+                              color: const Color(0xFFE53E3E), width: 3),
                         ),
                         child: const Icon(
                           Icons.local_hospital,
@@ -205,7 +79,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const LoginFormScreen()),
+                              MaterialPageRoute(
+                                  builder: (context) =>
+                                      const LoginFormScreen()),
                             );
                           },
                           style: ElevatedButton.styleFrom(
@@ -234,7 +110,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                              MaterialPageRoute(
+                                  builder: (context) => const RegisterScreen()),
                             );
                           },
                           style: ElevatedButton.styleFrom(
@@ -242,7 +119,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             foregroundColor: const Color(0xFFE53E3E),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
-                              side: const BorderSide(color: Color(0xFFE53E3E), width: 2),
+                              side: const BorderSide(
+                                  color: Color(0xFFE53E3E), width: 2),
                             ),
                             elevation: 1,
                           ),
@@ -257,9 +135,26 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 12),
                       // E-posta ile Üye Ol Butonu (ikincil)
-                        // Removed separate "Register with Email"; single Register handles phone or email inside
+                      // Removed separate "Register with Email"; single Register handles phone or email inside
                     ],
                   ),
+                ),
+                const SizedBox(height: 24),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 16,
+                  runSpacing: 8,
+                  children: [
+                    TextButton(
+                      onPressed: () => _showAboutDialog(context),
+                      child: Text(LocalizationService.translate('about')),
+                    ),
+                    TextButton(
+                      onPressed: () => _showHelpDialog(context),
+                      child:
+                          Text(LocalizationService.translate('help_support')),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 40),
               ],
@@ -275,7 +170,8 @@ class _LoginScreenState extends State<LoginScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Consumer<LocalizationService>(
-          builder: (context, localization, child) => Text(localization.getString('about_hemoai')),
+          builder: (context, localization, child) =>
+              Text(localization.getString('about_hemoai')),
         ),
         content: Consumer<LocalizationService>(
           builder: (context, localization, child) => SingleChildScrollView(
@@ -294,17 +190,22 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 16),
                 Text('${localization.getString('version')}: 1.0.0'),
                 const SizedBox(height: 8),
-                Text('${localization.getString('development_date')}: ${localization.getString('september_2025')}'),
+                Text(
+                    '${localization.getString('development_date')}: ${localization.getString('september_2025')}'),
                 const SizedBox(height: 16),
                 Text(
                   localization.getString('features'),
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                Text('• ${localization.getString('ai_powered_hemogram_analysis')}'),
-                Text('• ${localization.getString('personalized_diet_recommendations')}'),
-                Text('• ${localization.getString('family_health_tracking_system')}'),
-                Text('• ${localization.getString('alternative_medicine_guide')}'),
+                Text(
+                    '• ${localization.getString('ai_powered_hemogram_analysis')}'),
+                Text(
+                    '• ${localization.getString('personalized_diet_recommendations')}'),
+                Text(
+                    '• ${localization.getString('family_health_tracking_system')}'),
+                Text(
+                    '• ${localization.getString('alternative_medicine_guide')}'),
                 Text('• ${localization.getString('smart_reminder_system')}'),
                 const SizedBox(height: 16),
                 Text(
@@ -371,9 +272,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 Text(localizationService.getString('send_feedback')),
                 Text(localizationService.getString('report_issues')),
                 Text(localizationService.getString('share_suggestions')),
-            ],
+              ],
+            ),
           ),
-        ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -384,13 +285,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(localizationService.getString('feedback_received')),
+                    content: Text(
+                        localizationService.getString('feedback_received')),
                     backgroundColor: const Color(0xFFE53E3E),
                   ),
                 );
               },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE53E3E)),
-              child: Text(localizationService.getString('send_feedback_button'), style: const TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE53E3E)),
+              child: Text(localizationService.getString('send_feedback_button'),
+                  style: const TextStyle(color: Colors.white)),
             ),
           ],
         ),

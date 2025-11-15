@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 /// Minimal FHIR R4 Observation Bundle export for a hemogram test
 class FhirService {
   /// Returns a JSON-encodable Map representing a FHIR Bundle with a single Observation

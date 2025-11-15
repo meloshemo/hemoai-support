@@ -1,0 +1,204 @@
+﻿Analyzing hemoai...                                             
+
+   info - Unnecessary use of string interpolation - lib\screens\about_screen.dart:131:15 - unnecessary_string_interpolations
+warning - The left operand can't be null, so the right operand is never executed - lib\screens\about_screen.dart:449:66 - dead_null_aware_expression
+warning - The left operand can't be null, so the right operand is never executed - lib\screens\about_screen.dart:449:120 - dead_null_aware_expression
+warning - The left operand can't be null, so the right operand is never executed - lib\screens\about_screen.dart:461:64 - dead_null_aware_expression
+warning - The left operand can't be null, so the right operand is never executed - lib\screens\about_screen.dart:461:118 - dead_null_aware_expression
+   info - Don't use 'BuildContext's across async gaps - lib\screens\add_reminder_screen.dart:153:54 - use_build_context_synchronously
+   info - Use interpolation to compose strings and values - lib\screens\alternative_medicine_screen.dart:1709:34 - prefer_interpolation_to_compose_strings
+   info - Use interpolation to compose strings and values - lib\screens\alternative_medicine_screen.dart:1711:34 - prefer_interpolation_to_compose_strings
+   info - The import of 'package:flutter/foundation.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart' - lib\screens\analysis_screen.dart:1:8 - unnecessary_import
+   info - Parameter 'key' could be a super parameter - lib\screens\analysis_screen.dart:20:9 - use_super_parameters
+warning - The left operand can't be null, so the right operand is never executed - lib\screens\analysis_screen.dart:244:67 - dead_null_aware_expression
+   info - Unnecessary use of 'toList' in a spread - lib\screens\analysis_screen.dart:836:18 - unnecessary_to_list_in_spreads
+   info - Use interpolation to compose strings and values - lib\screens\analysis_screen.dart:994:29 - prefer_interpolation_to_compose_strings
+   info - Unnecessary use of 'toList' in a spread - lib\screens\analysis_screen.dart:995:18 - unnecessary_to_list_in_spreads
+   info - Unnecessary use of 'toList' in a spread - lib\screens\analysis_screen.dart:1055:20 - unnecessary_to_list_in_spreads
+   info - Unnecessary use of 'toList' in a spread - lib\screens\analysis_screen.dart:1154:16 - unnecessary_to_list_in_spreads
+   info - Unnecessary use of 'toList' in a spread - lib\screens\analysis_screen.dart:1241:69 - unnecessary_to_list_in_spreads
+   info - Use interpolation to compose strings and values - lib\screens\analysis_screen.dart:1449:22 - prefer_interpolation_to_compose_strings
+   info - Use interpolation to compose strings and values - lib\screens\analysis_screen.dart:1450:22 - prefer_interpolation_to_compose_strings
+   info - Use interpolation to compose strings and values - lib\screens\analysis_screen.dart:1451:22 - prefer_interpolation_to_compose_strings
+   info - Use interpolation to compose strings and values - lib\screens\analysis_screen.dart:1452:22 - prefer_interpolation_to_compose_strings
+   info - Use interpolation to compose strings and values - lib\screens\analysis_screen.dart:1453:22 - prefer_interpolation_to_compose_strings
+   info - Use interpolation to compose strings and values - lib\screens\analysis_screen.dart:1459:22 - prefer_interpolation_to_compose_strings
+   info - Use interpolation to compose strings and values - lib\screens\analysis_screen.dart:1460:22 - prefer_interpolation_to_compose_strings
+   info - Use interpolation to compose strings and values - lib\screens\analysis_screen.dart:1461:22 - prefer_interpolation_to_compose_strings
+   info - Don't use 'BuildContext's across async gaps - lib\screens\analysis_screen.dart:1569:30 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\analysis_screen.dart:1575:55 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\analysis_screen.dart:1586:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\analysis_screen.dart:1588:58 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\analysis_screen.dart:1613:30 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\analysis_screen.dart:1619:55 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\analysis_screen.dart:1630:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\analysis_screen.dart:1632:58 - use_build_context_synchronously
+   info - Constructors for public widgets should have a named 'key' parameter - lib\screens\dashboard_screen.dart:16:7 - use_key_in_widget_constructors
+warning - The left operand can't be null, so the right operand is never executed - lib\screens\dashboard_screen.dart:748:55 - dead_null_aware_expression
+   info - Unnecessary braces in a string interpolation - lib\screens\dashboard_screen.dart:865:26 - unnecessary_brace_in_string_interps
+   info - Use interpolation to compose strings and values - lib\screens\dashboard_screen.dart:879:27 - prefer_interpolation_to_compose_strings
+   info - Use interpolation to compose strings and values - lib\screens\dashboard_screen.dart:879:72 - prefer_interpolation_to_compose_strings
+   info - Use interpolation to compose strings and values - lib\screens\dashboard_screen.dart:1084:31 - prefer_interpolation_to_compose_strings
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\screens\diet_program_screen.dart:216:40 - use_build_context_synchronously
+   info - Statements in an if should be enclosed in a block - lib\screens\diet_program_screen.dart:541:20 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\screens\diet_program_screen.dart:541:45 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\screens\diet_program_screen.dart:544:32 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\screens\diet_program_screen.dart:545:31 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\screens\diet_program_screen.dart:546:10 - curly_braces_in_flow_control_structures
+warning - The declaration '_premiumHero' isn't referenced - lib\screens\diet_program_screen.dart:641:10 - unused_element
+   info - Use interpolation to compose strings and values - lib\screens\diet_program_screen.dart:1473:30 - prefer_interpolation_to_compose_strings
+   info - The addition of multiple elements could be inlined - lib\screens\diet_program_screen.dart:1501:9 - prefer_spread_collections
+warning - The value of the local variable 'rootContext' isn't used - lib\screens\diet_program_screen.dart:1780:11 - unused_local_variable
+warning - The declaration '_defaultMealBase' isn't referenced - lib\screens\diet_program_screen.dart:2037:10 - unused_element
+warning - The declaration '_enrichmentLine' isn't referenced - lib\screens\diet_program_screen.dart:2051:10 - unused_element
+warning - The declaration '_buildSmartSuggestions' isn't referenced - lib\screens\diet_program_screen.dart:2083:10 - unused_element
+   info - The local variable '_chips' starts with an underscore - lib\screens\diet_program_screen.dart:2096:18 - no_leading_underscores_for_local_identifiers
+   info - Use interpolation to compose strings and values - lib\screens\diet_program_screen.dart:2265:17 - prefer_interpolation_to_compose_strings
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\screens\emergency_contact_screen.dart:126:30 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\enhanced_notification_screen.dart:88:66 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\enhanced_notification_screen.dart:89:56 - use_build_context_synchronously
+warning - The declaration '_showCustomSnoozePicker' isn't referenced - lib\screens\enhanced_notification_screen.dart:521:16 - unused_element
+   info - Unnecessary braces in a string interpolation - lib\screens\enhanced_notification_screen.dart:1609:60 - unnecessary_brace_in_string_interps
+   info - Unnecessary use of 'toList' in a spread - lib\screens\enhanced_notification_screen.dart:1721:103 - unnecessary_to_list_in_spreads
+   info - 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor or activeTrackColor instead. This feature was deprecated after v3.31.0-2.0.pre - lib\screens\enhanced_notification_screen.dart:1801:9 - deprecated_member_use
+   info - The private field _consentGranted could be 'final' - lib\screens\family_member_detail_screen.dart:30:8 - prefer_final_fields
+   info - Use 'isNotEmpty' instead of 'length' to test whether the collection is empty - lib\screens\family_member_detail_screen.dart:144:13 - prefer_is_empty
+   info - Parameter 'key' could be a super parameter - lib\screens\family_panel_screen.dart:15:9 - use_super_parameters
+warning - The value of the field '_familyService' isn't used - lib\screens\family_panel_screen.dart:24:23 - unused_field
+   info - Don't use 'BuildContext's across async gaps - lib\screens\family_panel_screen.dart:211:52 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\family_panel_screen.dart:224:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\family_panel_screen.dart:227:37 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\family_panel_screen.dart:242:81 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\family_panel_screen.dart:256:56 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\family_panel_screen.dart:257:32 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\family_panel_screen.dart:260:41 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\family_panel_screen.dart:264:56 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\family_panel_screen.dart:265:32 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\family_panel_screen.dart:273:54 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\family_panel_screen.dart:274:30 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\family_panel_screen.dart:277:39 - use_build_context_synchronously
+   info - Unnecessary use of 'toList' in a spread - lib\screens\family_panel_screen.dart:804:18 - unnecessary_to_list_in_spreads
+   info - Don't use 'BuildContext's across async gaps - lib\screens\family_panel_screen.dart:815:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\family_panel_screen.dart:829:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\family_panel_screen.dart:853:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\family_panel_screen.dart:856:37 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\family_panel_screen.dart:887:28 - use_build_context_synchronously
+warning - Unnecessary cast - lib\screens\family_panel_screen.dart:1495:71 - unnecessary_cast
+   info - Don't use 'BuildContext's across async gaps - lib\screens\login_form_screen.dart:400:35 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\login_form_screen.dart:428:30 - use_build_context_synchronously
+   info - 'groupValue' is deprecated and shouldn't be used. Use a RadioGroup ancestor to manage group value instead. This feature was deprecated after v3.32.0-0.0.pre - lib\screens\login_form_screen.dart:487:21 - deprecated_member_use
+   info - 'onChanged' is deprecated and shouldn't be used. Use RadioGroup to handle value change instead. This feature was deprecated after v3.32.0-0.0.pre - lib\screens\login_form_screen.dart:488:21 - deprecated_member_use
+   info - 'groupValue' is deprecated and shouldn't be used. Use a RadioGroup ancestor to manage group value instead. This feature was deprecated after v3.32.0-0.0.pre - lib\screens\login_form_screen.dart:493:21 - deprecated_member_use
+   info - 'onChanged' is deprecated and shouldn't be used. Use RadioGroup to handle value change instead. This feature was deprecated after v3.32.0-0.0.pre - lib\screens\login_form_screen.dart:494:21 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps - lib\screens\login_form_screen.dart:533:32 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\login_form_screen.dart:544:32 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\login_form_screen.dart:559:32 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\login_form_screen.dart:568:32 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\login_form_screen.dart:578:32 - use_build_context_synchronously
+   info - Parameter 'key' could be a super parameter - lib\screens\login_screen.dart:8:9 - use_super_parameters
+   info - Unnecessary braces in a string interpolation - lib\screens\notification_screen.dart:187:70 - unnecessary_brace_in_string_interps
+   info - Unnecessary braces in a string interpolation - lib\screens\notification_screen.dart:189:76 - unnecessary_brace_in_string_interps
+   info - Unnecessary braces in a string interpolation - lib\screens\notification_screen.dart:190:69 - unnecessary_brace_in_string_interps
+   info - Use interpolation to compose strings and values - lib\screens\ocr_reader_screen.dart:28:23 - prefer_interpolation_to_compose_strings
+   info - Unnecessary braces in a string interpolation - lib\screens\onboarding\goals_screen.dart:64:25 - unnecessary_brace_in_string_interps
+   info - The import of 'package:flutter/foundation.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart' - lib\screens\personal_info_screen_new.dart:1:8 - unnecessary_import
+   info - Don't use 'BuildContext's across async gaps - lib\screens\premium_screen.dart:508:9 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\screens\premium_screen.dart:518:30 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\screens\premium_screen.dart:530:30 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\screens\premium_screen.dart:544:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\screens\premium_screen.dart:572:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\screens\premium_screen.dart:587:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\register_screen.dart:294:52 - use_build_context_synchronously
+   info - Unnecessary braces in a string interpolation - lib\screens\register_screen.dart:379:59 - unnecessary_brace_in_string_interps
+   info - Unnecessary braces in a string interpolation - lib\screens\register_screen.dart:379:80 - unnecessary_brace_in_string_interps
+   info - Don't use 'BuildContext's across async gaps - lib\screens\reminder_list_screen.dart:315:52 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\reminder_list_screen.dart:319:49 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\reminder_list_screen.dart:341:52 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\reminder_list_screen.dart:345:49 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\reminder_list_screen.dart:366:52 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\reminder_list_screen.dart:370:49 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\reminder_list_screen.dart:488:47 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\reminder_list_screen.dart:513:53 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\reminder_list_screen.dart:568:47 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\reminder_list_screen.dart:610:55 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\reminder_list_screen.dart:649:53 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\reminder_list_screen.dart:677:47 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\reminder_list_screen.dart:690:51 - use_build_context_synchronously
+   info - Statements in an if should be enclosed in a block - lib\screens\reminder_list_screen.dart:931:31 - curly_braces_in_flow_control_structures
+warning - The value of the local variable 'canPop' isn't used - lib\screens\settings_screen.dart:37:15 - unused_local_variable
+warning - The value of the local variable 'isRTL' isn't used - lib\screens\settings_screen.dart:39:15 - unused_local_variable
+   info - Don't use 'BuildContext's across async gaps - lib\screens\settings_screen.dart:340:31 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\settings_screen.dart:399:33 - use_build_context_synchronously
+warning - Dead code - lib\screens\settings_screen.dart:515:9 - dead_code
+   info - Don't use 'BuildContext's across async gaps - lib\screens\settings_screen.dart:868:33 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\settings_screen.dart:905:35 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\settings_screen.dart:2056:29 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\settings_screen.dart:2115:31 - use_build_context_synchronously
+warning - The declaration '_openSupportPortal' isn't referenced - lib\screens\settings_screen.dart:2203:16 - unused_element
+   info - Don't use 'BuildContext's across async gaps - lib\screens\settings_screen.dart:3093:32 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\settings_screen.dart:3099:11 - use_build_context_synchronously
+warning - The value of the local variable 'prefs' isn't used - lib\screens\settings_screen.dart:3173:15 - unused_local_variable
+   info - Don't use 'BuildContext's across async gaps - lib\screens\settings_screen.dart:3174:45 - use_build_context_synchronously
+   info - Unnecessary use of 'toList' in a spread - lib\screens\support_screen.dart:87:22 - unnecessary_to_list_in_spreads
+   info - Dangling library doc comment - lib\services\ai_diet_menu_service.dart:1:1 - dangling_library_doc_comments
+   info - The local variable '_pickTopItems' starts with an underscore - lib\services\ai_diet_menu_service.dart:127:18 - no_leading_underscores_for_local_identifiers
+warning - The '!' will have no effect because the receiver can't be null - lib\services\ai_diet_menu_service.dart:330:19 - unnecessary_non_null_assertion
+warning - The '!' will have no effect because the receiver can't be null - lib\services\ai_diet_menu_service.dart:395:19 - unnecessary_non_null_assertion
+warning - The '!' will have no effect because the receiver can't be null - lib\services\ai_diet_menu_service.dart:460:21 - unnecessary_non_null_assertion
+warning - The '!' will have no effect because the receiver can't be null - lib\services\ai_diet_menu_service.dart:525:19 - unnecessary_non_null_assertion
+warning - The value of the field '_notificationTaskName' isn't used - lib\services\background_task_service.dart:17:23 - unused_field
+   info - 'isInDebugMode' is deprecated and shouldn't be used. Use WorkmanagerDebug handlers instead. This parameter has no effect - lib\services\background_task_service.dart:24:9 - deprecated_member_use
+warning - The value of the local variable 'cloudSyncService' isn't used - lib\services\background_task_service.dart:139:11 - unused_local_variable
+   info - The import of 'dart:typed_data' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/foundation.dart' - lib\services\cloud_sync_service.dart:3:8 - unnecessary_import
+   info - Use the 'is!' operator rather than negating the value of the 'is' operator - lib\services\cloud_sync_service.dart:91:31 - prefer_is_not_operator
+   info - Use the 'is!' operator rather than negating the value of the 'is' operator - lib\services\cloud_sync_service.dart:137:31 - prefer_is_not_operator
+   info - Use interpolation to compose strings and values - lib\services\cloud_sync_service.dart:200:44 - prefer_interpolation_to_compose_strings
+   info - Use interpolation to compose strings and values - lib\services\cloud_sync_service.dart:201:44 - prefer_interpolation_to_compose_strings
+warning - Unnecessary type check; the result is always 'true' - lib\services\cloud_sync_service.dart:368:11 - unnecessary_type_check
+warning - Unnecessary type check; the result is always 'false' - lib\services\cloud_sync_service.dart:495:11 - unnecessary_type_check
+warning - Unnecessary type check; the result is always 'false' - lib\services\cloud_sync_service.dart:606:11 - unnecessary_type_check
+warning - Unnecessary type check; the result is always 'false' - lib\services\cloud_sync_service.dart:708:11 - unnecessary_type_check
+warning - Unnecessary type check; the result is always 'false' - lib\services\cloud_sync_service.dart:808:11 - unnecessary_type_check
+   info - Dangling library doc comment - lib\services\email_config.dart:1:1 - dangling_library_doc_comments
+   info - The private field _firebaseEnabled could be 'final' - lib\services\enhanced_analytics_service.dart:18:8 - prefer_final_fields
+warning - The value of the field '_firebaseEnabled' isn't used - lib\services\enhanced_analytics_service.dart:18:8 - unused_field
+   info - The private field _localOnlyEnabled could be 'final' - lib\services\enhanced_analytics_service.dart:19:8 - prefer_final_fields
+   info - The import of 'dart:typed_data' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/foundation.dart' - lib\services\export_service.dart:13:8 - unnecessary_import
+   info - 'dart:html' is deprecated and shouldn't be used. Use package:web and dart:js_interop instead - lib\services\export_service_web_impl.dart:2:1 - deprecated_member_use
+   info - Don't use web-only libraries outside Flutter web plugins - lib\services\export_service_web_impl.dart:2:1 - avoid_web_libraries_in_flutter
+warning - Unused import: 'dart:typed_data' - lib\services\export_service_web_impl.dart:3:8 - unused_import
+warning - The value of the local variable 'anchor' isn't used - lib\services\export_service_web_impl.dart:12:9 - unused_local_variable
+warning - The value of the local variable 'anchor' isn't used - lib\services\export_service_web_impl.dart:25:9 - unused_local_variable
+warning - Unused import: 'dart:convert' - lib\services\fhir_service.dart:1:8 - unused_import
+   info - The import of 'package:flutter/material.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/foundation.dart' - lib\services\messaging_service.dart:3:8 - unnecessary_import
+warning - The value of the local variable 'todayStr' isn't used - lib\services\notification_service.dart:208:13 - unused_local_variable
+   info - Use interpolation to compose strings and values - lib\services\notification_service.dart:256:18 - prefer_interpolation_to_compose_strings
+warning - The left operand can't be null, so the right operand is never executed - lib\services\payment_service.dart:145:69 - dead_null_aware_expression
+   info - Don't use 'BuildContext's across async gaps - lib\services\payment_service.dart:261:15 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\services\payment_service.dart:277:11 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\services\payment_service.dart:289:11 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\services\payment_service.dart:298:9 - use_build_context_synchronously
+warning - The value of the field '_apiKeyStorageKey' isn't used - lib\services\security_service.dart:20:23 - unused_field
+   info - Unnecessary braces in a string interpolation - lib\services\web_database_helper.dart:538:30 - unnecessary_brace_in_string_interps
+   info - 'opacity' is deprecated and shouldn't be used. Use .a - lib\utils\color_compat.dart:7:25 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps - lib\utils\error_handler.dart:229:7 - use_build_context_synchronously
+   info - The import of 'dart:typed_data' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/foundation.dart' - lib\utils\firestore_encryption.dart:2:8 - unnecessary_import
+   info - Angle brackets will be interpreted as HTML - lib\utils\firestore_encryption.dart:13:42 - unintended_html_in_doc_comment
+   info - Angle brackets will be interpreted as HTML - lib\utils\firestore_encryption.dart:13:54 - unintended_html_in_doc_comment
+warning - The value of the local variable 'loc' isn't used - lib\utils\localization_extensions.dart:32:11 - unused_local_variable
+warning - The value of the local variable 'loc' isn't used - lib\utils\localization_extensions.dart:40:11 - unused_local_variable
+warning - The value of the local variable 'loc' isn't used - lib\utils\localization_extensions.dart:47:11 - unused_local_variable
+warning - The value of the local variable 'timer' isn't used - lib\utils\performance_utils.dart:20:12 - unused_local_variable
+   info - Use the null-aware operator '?.' rather than an explicit 'null' comparison - lib\utils\performance_utils.dart:56:19 - prefer_null_aware_operators
+   info - Use the null-aware operator '?.' rather than an explicit 'null' comparison - lib\utils\performance_utils.dart:57:20 - prefer_null_aware_operators
+   info - Dangling library doc comment - lib\utils\validators.dart:1:1 - dangling_library_doc_comments
+warning - The value of the field '_phoneRegex' isn't used - lib\utils\validators.dart:13:23 - unused_field
+warning - The value of the field '_turkishPhoneRegex' isn't used - lib\utils\validators.dart:18:23 - unused_field
+   info - Parameter 'key' could be a super parameter - lib\widgets\app_drawer.dart:21:9 - use_super_parameters
+warning - The value of the local variable 'loc' isn't used - lib\widgets\empty_state.dart:30:11 - unused_local_variable
+   info - The 'child' argument should be last in widget constructor invocations - lib\widgets\ui_enhancements.dart:157:7 - sort_child_properties_last
+warning - Unused import: 'app_drawer.dart' - lib\widgets\unified_app_bar.dart:5:8 - unused_import
+warning - The left operand can't be null, so the right operand is never executed - lib\widgets\unified_app_bar.dart:63:47 - dead_null_aware_expression
+   info - Angle brackets will be interpreted as HTML - tool\migrate_to_firestore.dart:9:73 - unintended_html_in_doc_comment
+   info - Use interpolation to compose strings and values - tool\validate_localization.dart:239:10 - prefer_interpolation_to_compose_strings
+

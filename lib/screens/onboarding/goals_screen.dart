@@ -61,7 +61,7 @@ class _OnboardingGoalsScreenState extends State<OnboardingGoalsScreen> {
                       onChanged: (v) => setState(() => _waterGoal = v.round()),
                     ),
                   ),
-                  Text('${_waterGoal}')
+                  Text('$_waterGoal')
                 ],
               ),
               const SizedBox(height: 16),

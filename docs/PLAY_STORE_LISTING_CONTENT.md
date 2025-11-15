@@ -148,7 +148,7 @@ Version 4.0.0 - Major Update
 
 ## Contact Details (Fill in your information)
 - **Developer:** [Your Name or Company]
-- **Email:** support@meloshemo.com (or your contact email)
+- **Email:** support@hemoai.org (or your contact email)
 - **Website:** (if available)
 - **Address:** (optional, for business)
 

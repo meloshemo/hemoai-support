@@ -27,51 +27,57 @@ class EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final loc = Provider.of<LocalizationService>(context, listen: false);
-    final iconColorFinal = iconColor ?? theme.colorScheme.primary.withOpacity(0.5);
+    final iconColorFinal =
+        iconColor ?? theme.colorScheme.primary.withValues(alpha: 0.5);
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (customIcon != null)
-              customIcon!
-            else
-              Icon(
-                icon,
-                size: 80,
-                color: iconColorFinal,
-              ),
-            const SizedBox(height: 24),
-            Text(
-              title,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onSurface,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            if (message != null) ...[
-              const SizedBox(height: 12),
+    return Semantics(
+      container: true,
+      label: title,
+      value: message,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (customIcon != null)
+                customIcon!
+              else
+                Icon(
+                  icon,
+                  size: 80,
+                  color: iconColorFinal,
+                  semanticLabel: title,
+                ),
+              const SizedBox(height: 24),
               Text(
-                message!,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                title,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.onSurface,
                 ),
                 textAlign: TextAlign.center,
               ),
+              if (message != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  message!,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.85),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+              if (onAction != null && actionLabel != null) ...[
+                const SizedBox(height: 32),
+                ElevatedButton.icon(
+                  onPressed: onAction,
+                  icon: const Icon(Icons.add),
+                  label: Text(actionLabel!),
+                ),
+              ],
             ],
-            if (onAction != null && actionLabel != null) ...[
-              const SizedBox(height: 32),
-              ElevatedButton.icon(
-                onPressed: onAction,
-                icon: const Icon(Icons.add),
-                label: Text(actionLabel!),
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );
@@ -160,4 +166,3 @@ class ErrorState extends StatelessWidget {
     );
   }
 }
-

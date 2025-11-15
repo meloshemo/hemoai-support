@@ -5,6 +5,8 @@ import '../widgets/app_drawer.dart';
 // import '../services/web_database_helper.dart';
 import '../services/localization_service.dart';
 import '../services/preferences_service.dart';
+import '../services/ai_diet_menu_service.dart';
+import '../widgets/medical_disclaimer_banner.dart';
 
 class AlternativeMedicineScreen extends StatefulWidget {
   const AlternativeMedicineScreen({super.key});
@@ -23,6 +25,8 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
   int? userAge;
   String? userGender;
   bool isLoading = true;
+  final AIDietMenuService _aiMenuService = AIDietMenuService();
+  DietPlanSafetyReport? _safetyReport;
   
   // Search and filter functionality
   String _searchQuery = '';
@@ -781,16 +785,24 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
   Future<void> _loadRecommendations() async {
     try {
       final prefs = await PreferencesService.getInstance();
-      final last = prefs.getLastHemogramValues() ?? {};
-      final rec = _computeRecommendations(last);
+      Map<String, double>? last = prefs.getLastHemogramValues();
+      if (last == null || last.isEmpty) {
+        last = await prefs.loadActiveHemogramValues();
+      }
+      final values = last ?? <String, double>{};
+      final rec = _computeRecommendations(values);
       final info = prefs.getUserInfo();
+      final safety = _aiMenuService.evaluatePlanSafety(
+        hemogramValues: values,
+      );
       if (!mounted) return;
       setState(() {
-        userValues = Map<String, double>.from(last);
+        userValues = Map<String, double>.from(values);
         recommendedCategories = rec;
         userAge = (info?['age'] as int?)?.toInt();
         userGender = (info?['gender'] as String?);
         isLoading = false;
+        _safetyReport = safety;
       });
     } catch (_) {
       if (!mounted) return;
@@ -798,6 +810,7 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
         userValues = {};
         recommendedCategories = [];
         isLoading = false;
+        _safetyReport = null;
       });
     }
   }
@@ -980,10 +993,6 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
     return filtered;
   }
 
-  String _fb(LocalizationService loc, String key, String en) {
-    final v = loc.getString(key);
-    return v == key ? en : v;
-  }
   
   Widget _buildSearchAndFilters(LocalizationService localizationService, ThemeData theme, ColorScheme scheme) {
     return FadeTransition(
@@ -1000,7 +1009,7 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: _fb(localizationService, 'search_herbs_placeholder', 'Search herbs and solutions...'),
+                hintText: localizationService.getString('search_herbs_placeholder'),
                 prefixIcon: Icon(Icons.search, color: scheme.primary),
                 suffixIcon: _searchQuery.isNotEmpty 
                   ? IconButton(
@@ -1042,7 +1051,7 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        _fb(localizationService, 'favorites', 'Favorites'),
+                        localizationService.getString('favorites'),
                         style: TextStyle(
                           color: _showOnlyFavorites ? Colors.white : scheme.primary,
                         ),
@@ -1084,7 +1093,7 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
                 // "All" filter
                 FilterChip(
                   label: Text(
-                    _fb(localizationService, 'all_categories', 'All'),
+                    localizationService.getString('all_categories'),
                     style: TextStyle(
                       color: _selectedCategory == 'all' ? Colors.white : scheme.primary,
                     ),
@@ -1535,11 +1544,18 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
   Widget _buildGeneralAdvice() {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final loc = Provider.of<LocalizationService>(context, listen: false);
+    final safety = _safetyReport ??
+        _aiMenuService.evaluatePlanSafety(
+          hemogramValues: userValues,
+        );
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // General warning (localized)
+          const MedicalDisclaimerBanner(),
+          DietPlanSafetyAlert(report: safety),
+          const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -1551,7 +1567,7 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
                 Icon(Icons.health_and_safety, color: scheme.onErrorContainer, size: 32),
                 const SizedBox(height: 12),
                 Text(
-                  Provider.of<LocalizationService>(context, listen: false).getString('important_reminder_title'),
+                  loc.getString('important_reminder_title'),
                   style: TextStyle(
                     color: scheme.onErrorContainer,
                     fontSize: 20,
@@ -1560,19 +1576,16 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  Provider.of<LocalizationService>(context, listen: false).getString('important_reminder_body'),
+                  loc.getString('important_reminder_body'),
                   textAlign: TextAlign.center,
                   style: TextStyle(color: scheme.onErrorContainer, fontSize: 14),
                 ),
               ],
             ),
           ),
-          
           const SizedBox(height: 24),
-          
-          // Basic rules (localized)
           Text(
-            Provider.of<LocalizationService>(context, listen: false).getString('basic_rules_title'),
+            loc.getString('basic_rules_title'),
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -1580,35 +1593,33 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
             ),
           ),
           const SizedBox(height: 16),
-          
-          ...Provider.of<LocalizationService>(context, listen: false)
+          ...loc
               .getString('basic_rules_list')
               .split('\n')
-              .map((rule) => Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: theme.cardColor,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: theme.colorScheme.outline),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.check_circle, color: scheme.primary, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    rule,
-                    style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14),
+              .map(
+                (rule) => Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.cardColor,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: theme.colorScheme.outline),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.check_circle, color: scheme.primary, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          rule,
+                          style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          )),
-          
+              ),
           const SizedBox(height: 24),
-          
-          // Expert support (localized)
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -1624,7 +1635,7 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
                     Icon(Icons.medical_services, color: scheme.primary, size: 24),
                     const SizedBox(width: 12),
                     Text(
-                      Provider.of<LocalizationService>(context, listen: false).getString('expert_support_title'),
+                      loc.getString('expert_support_title'),
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -1635,7 +1646,7 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  Provider.of<LocalizationService>(context, listen: false).getString('expert_support_body'),
+                  loc.getString('expert_support_body'),
                   style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14, height: 1.4),
                 ),
               ],
@@ -1652,6 +1663,10 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final canPop = Navigator.of(context).canPop();
+    final safetyReport = _safetyReport ??
+        _aiMenuService.evaluatePlanSafety(
+          hemogramValues: userValues,
+        );
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       drawer: canPop ? null : const AppDrawer(currentRoute: '/alternative_medicine'),
@@ -1691,9 +1706,9 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
               buffer.writeln();
               for (final key in favs) {
                 try {
-                  buffer.writeln('• ' + localizationService.getString(key));
+                  buffer.writeln('• ${localizationService.getString(key)}');
                 } catch (_) {
-                  buffer.writeln('• ' + key);
+                  buffer.writeln('• $key');
                 }
               }
               Share.share(buffer.toString());
@@ -1721,6 +1736,9 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const MedicalDisclaimerBanner(),
+                DietPlanSafetyAlert(report: safetyReport),
+                const SizedBox(height: 16),
                 Text(
                   localizationService.getString('herbal_solutions_for_hemogram'),
                   style: TextStyle(
@@ -1757,7 +1775,7 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
                             padding: const EdgeInsets.symmetric(vertical: 24),
                             child: Center(
                               child: Text(
-                                _fb(localizationService, 'no_results', 'No results'),
+                                localizationService.getString('no_results'),
                                 style: theme.textTheme.bodyMedium,
                               ),
                             ),
@@ -1785,7 +1803,7 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              _fb(localizationService, 'personalized_recommendations', 'Personalized recommendations based on your last test'),
+                              localizationService.getString('personalized_recommendations'),
                               style: theme.textTheme.bodyMedium,
                             ),
                           ),
@@ -1794,7 +1812,7 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      _fb(localizationService, 'recommended_for_you', 'Recommended for you'),
+                      localizationService.getString('recommended_for_you'),
                       style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
@@ -1805,7 +1823,7 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
                     Divider(color: theme.dividerColor),
                     const SizedBox(height: 12),
                     Text(
-                      _fb(localizationService, 'other_solutions', 'Other herbal supports'),
+                      localizationService.getString('other_solutions'),
                       style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
@@ -1828,6 +1846,9 @@ class _AlternativeMedicineScreenState extends State<AlternativeMedicineScreen> w
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const MedicalDisclaimerBanner(),
+                DietPlanSafetyAlert(report: safetyReport),
+                const SizedBox(height: 16),
                 Text(
                   localizationService.getString('traditional_treatments_title'),
                   style: TextStyle(

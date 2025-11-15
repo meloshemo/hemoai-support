@@ -3,6 +3,7 @@ import 'dart:math';
 import '../models/user_model.dart';
 import '../database/app_database.dart';
 import '../../services/database_helper.dart';
+import '../../services/localization_service.dart';
 
 class AIAnalysisService {
   static final AIAnalysisService _instance = AIAnalysisService._internal();
@@ -20,7 +21,7 @@ class AIAnalysisService {
       await _initializeModels();
       
       _isInitialized = true;
-      _logger.i('AI Analysis service initialized successfully');
+      _logger.i(LocalizationService().getString('ai_init_success'));
       
     } catch (e, stackTrace) {
       _logger.e('Failed to initialize AI Analysis service: $e', 
@@ -38,7 +39,7 @@ class AIAnalysisService {
     // Google ML Kit is already used for OCR in data_import_service.dart
     // For health analysis, we use statistical methods and pattern recognition
     
-    _logger.i('AI models initialized - using statistical analysis and linear regression');
+    _logger.i(LocalizationService().getString('ai_models_initialized'));
   }
   
   /// Future: Load TensorFlow Lite model for health prediction
@@ -135,8 +136,8 @@ class AIAnalysisService {
         riskFactors.add(RiskFactor(
           type: 'anemia',
           severity: hemoglobin < 10.0 ? 'high' : 'moderate',
-          description: 'Low hemoglobin levels indicate potential anemia',
-          recommendation: 'Consider iron supplementation and dietary changes',
+          description: LocalizationService().getString('ai_risk_low_hemoglobin'),
+          recommendation: LocalizationService().getString('ai_rec_consider_iron'),
         ));
       }
     }
@@ -148,8 +149,8 @@ class AIAnalysisService {
         riskFactors.add(RiskFactor(
           type: 'cardiovascular',
           severity: cholesterol > 240.0 ? 'high' : 'moderate',
-          description: 'Elevated cholesterol levels increase cardiovascular risk',
-          recommendation: 'Focus on heart-healthy diet and regular exercise',
+          description: LocalizationService().getString('ai_risk_elevated_cholesterol'),
+          recommendation: LocalizationService().getString('ai_rec_heart_diet_exercise'),
         ));
       }
     }
@@ -161,8 +162,8 @@ class AIAnalysisService {
         riskFactors.add(RiskFactor(
           type: 'diabetes',
           severity: glucose > 126.0 ? 'high' : 'moderate',
-          description: 'Elevated glucose levels indicate diabetes risk',
-          recommendation: 'Monitor blood sugar and consider dietary modifications',
+          description: LocalizationService().getString('ai_risk_elevated_glucose'),
+          recommendation: LocalizationService().getString('ai_rec_monitor_glucose_diet'),
         ));
       }
     }
@@ -176,8 +177,8 @@ class AIAnalysisService {
         riskFactors.add(RiskFactor(
           type: 'liver',
           severity: (alt > 100 || ast > 100) ? 'high' : 'moderate',
-          description: 'Elevated liver enzymes may indicate liver stress',
-          recommendation: 'Reduce alcohol consumption and consult a hepatologist',
+          description: LocalizationService().getString('ai_risk_elevated_liver_enzymes'),
+          recommendation: LocalizationService().getString('ai_rec_reduce_alcohol_consult'),
         ));
       }
     }
@@ -196,8 +197,9 @@ class AIAnalysisService {
     final healthScore = await _calculateHealthScore(bloodTest, user);
     
     if (healthScore < 70) {
-      recommendations.add('Schedule a follow-up appointment with your healthcare provider');
-      recommendations.add('Consider comprehensive lifestyle changes');
+      final loc = LocalizationService();
+      recommendations.add(loc.getString('ai_rec_schedule_followup'));
+      recommendations.add(loc.getString('ai_rec_lifestyle_changes'));
     }
 
     // Specific recommendations based on risk factors
@@ -207,12 +209,12 @@ class AIAnalysisService {
 
     // Age and gender-specific recommendations
     if (user.age > 50) {
-      recommendations.add('Consider regular cardiovascular health monitoring');
-      recommendations.add('Maintain bone density through calcium and vitamin D');
+      recommendations.add(LocalizationService().getString('ai_rec_regular_cardio_monitoring'));
+      recommendations.add(LocalizationService().getString('ai_rec_bone_density'));
     }
 
     if (user.gender == 'female') {
-      recommendations.add('Monitor iron levels regularly due to menstrual cycles');
+      recommendations.add(LocalizationService().getString('ai_rec_monitor_iron_menstrual'));
     }
 
     return recommendations;

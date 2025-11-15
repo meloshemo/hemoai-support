@@ -131,32 +131,32 @@ void main() {
     group('Input Sanitization', () {
       test('should sanitize SQL injection attempts', () {
         const maliciousInput = "'; DROP TABLE users; --";
-        const sanitized = securityService.sanitizeInput(maliciousInput);
+        final sanitized = securityService.sanitizeInput(maliciousInput);
         expect(sanitized, isNot(contains("DROP")));
         expect(sanitized, isNot(contains("'")));
       });
 
       test('should sanitize XSS attempts', () {
         const maliciousInput = '<script>alert("XSS")</script>';
-        const sanitized = securityService.sanitizeInput(maliciousInput);
+        final sanitized = securityService.sanitizeInput(maliciousInput);
         expect(sanitized, isNot(contains('<script>')));
         expect(sanitized, isNot(contains('</script>')));
       });
 
       test('should preserve safe input', () {
         const safeInput = 'Hello World 123';
-        const sanitized = securityService.sanitizeInput(safeInput);
+        final sanitized = securityService.sanitizeInput(safeInput);
         expect(sanitized, contains('Hello'));
         expect(sanitized, contains('World'));
       });
 
       test('should handle null input', () {
-        const sanitized = securityService.sanitizeInput(null);
+        final sanitized = securityService.sanitizeInput(null);
         expect(sanitized, isEmpty);
       });
 
       test('should handle empty input', () {
-        const sanitized = securityService.sanitizeInput('');
+        final sanitized = securityService.sanitizeInput('');
         expect(sanitized, isEmpty);
       });
     });

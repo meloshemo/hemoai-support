@@ -75,6 +75,38 @@
 			],
 			"isBackground": false,
 			"group": "build"
+		},
+		{
+			"label": "Flutter clean + get + analyze (OS4)",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Set-Location -LiteralPath 'c:\\Users\\omeli\\Desktop\\hemoai'; flutter clean; flutter pub get; flutter analyze"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Copy performance JSONs",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Copy-Item -LiteralPath 'C:\\Users\\omeli\\Desktop\\2025-11-12-timeline-web.json' -Destination 'C:\\Users\\omeli\\Desktop\\hemoai\\docs\\performance\\2025-11-12-timeline-web.json' -Force; Copy-Item -LiteralPath 'C:\\Users\\omeli\\Desktop\\2025-11-12-timeline-web-offline.json' -Destination 'C:\\Users\\omeli\\Desktop\\hemoai\\docs\\performance\\2025-11-12-timeline-web-offline.json' -Force"
+			]
+		},
+		{
+			"label": "Inspect performance JSONs",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"$paths = @('C:\\Users\\omeli\\Desktop\\hemoai\\docs\\performance\\2025-11-12-timeline-web.json','C:\\Users\\omeli\\Desktop\\hemoai\\docs\\performance\\2025-11-12-timeline-web-offline.json'); foreach($p in $paths){ $fi = Get-Item -LiteralPath $p; $bytes = Get-Content -LiteralPath $p -Encoding Byte -TotalCount 2; $sig = if($bytes){ '{0:X2}{1:X2}' -f $bytes[0],$bytes[1] } else { 'NA' }; Write-Output (\"`nFile: $($fi.Name)\" ); Write-Output (\"Path: $p\"); Write-Output (\"Size: $($fi.Length) bytes\"); Write-Output (\"FirstBytes: $sig\"); }"
+			]
 		}
 	]
 }

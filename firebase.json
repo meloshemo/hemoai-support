@@ -1,0 +1,35 @@
+{
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs20"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "flutter-ai-playground-620c6",
+          "appId": "1:459245424017:android:f551adf6dacc10c6ed5e30",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "flutter-ai-playground-620c6",
+          "configurations": {
+            "android": "1:459245424017:android:f551adf6dacc10c6ed5e30",
+            "ios": "1:459245424017:ios:55124784856e7d30ed5e30",
+            "web": "1:459245424017:web:a9265cf2cb75b1e4ed5e30"
+          }
+        },
+        "lib/firebase/firebase_options.dart": {
+          "projectId": "flutter-ai-playground-620c6",
+          "configurations": {
+            "android": "1:459245424017:android:f551adf6dacc10c6ed5e30",
+            "ios": "1:459245424017:ios:55124784856e7d30ed5e30",
+            "web": "1:459245424017:web:1aeacebf53ea4fd0ed5e30"
+          }
+        }
+      }
+    }
+  }
+}

@@ -10,3 +10,8 @@
 -keep class io.flutter.** { *; }
 -dontwarn io.flutter.**
 
+# Firebase Crashlytics & Analytics
+-keepattributes SourceFile,LineNumberTable
+-keep class com.google.firebase.crashlytics.** { *; }
+-keep class com.google.firebase.analytics.** { *; }
+

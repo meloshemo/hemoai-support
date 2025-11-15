@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../database/app_database.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
+import '../../../services/localization_service.dart';
 import '../services/encryption_service.dart';
 import '../services/notification_service.dart';
 import '../services/health_sync_service.dart';
@@ -33,8 +34,9 @@ class AuthNotifier extends _$AuthNotifier {
         logger.i('User logged in successfully: ${result.user!.email}');
         return true;
       } else {
-        state = AsyncValue.data(AuthState.unauthenticated(result.error ?? 'Login failed'));
-        logger.e('Login failed: ${result.error}');
+        final loc = LocalizationService();
+        state = AsyncValue.data(AuthState.unauthenticated(result.error ?? loc.getString('login_failed')));
+        logger.e('${loc.getString('login_failed')}: ${result.error}');
         return false;
       }
     } catch (error, stackTrace) {
@@ -56,8 +58,9 @@ class AuthNotifier extends _$AuthNotifier {
         logger.i('User registered successfully: ${result.user!.email}');
         return true;
       } else {
-        state = AsyncValue.data(AuthState.unauthenticated(result.error ?? 'Registration failed'));
-        logger.e('Registration failed: ${result.error}');
+        final loc = LocalizationService();
+        state = AsyncValue.data(AuthState.unauthenticated(result.error ?? loc.getString('registration_failed')));
+        logger.e('${loc.getString('registration_failed')}: ${result.error}');
         return false;
       }
     } catch (error, stackTrace) {
@@ -71,8 +74,9 @@ class AuthNotifier extends _$AuthNotifier {
     try {
       final authService = ref.read(authServiceProvider);
       await authService.logout();
-      state = AsyncValue.data(const AuthState.unauthenticated('Logged out'));
-      logger.i('User logged out successfully');
+      final loc = LocalizationService();
+      state = AsyncValue.data(AuthState.unauthenticated(loc.getString('logged_out')));
+      logger.i(loc.getString('logged_out'));
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
       logger.e('Logout error: $error', error: error, stackTrace: stackTrace);
@@ -87,10 +91,10 @@ class AuthNotifier extends _$AuthNotifier {
       final result = await authService.changePassword(currentPassword, newPassword);
       
       if (result) {
-        logger.i('Password changed successfully');
+        logger.i(LocalizationService().getString('password_changed_successfully'));
         return true;
       } else {
-        logger.e('Password change failed');
+        logger.e(LocalizationService().getString('password_change_failed'));
         return false;
       }
     } catch (error, stackTrace) {

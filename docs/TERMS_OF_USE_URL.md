@@ -6,7 +6,7 @@
 
 **Terms of Use URL:**
 ```
-https://meloshemo.github.io/hemoai-support/terms-of-use.html
+https://meloshemo.github.io/HemoAI
 ```
 
 ## 📍 Implementation
@@ -16,7 +16,7 @@ The Terms of Use URL is configured in the application constants:
 **File:** `lib/utils/app_constants.dart`
 
 ```dart
-static const String termsOfUseUrl = 'https://meloshemo.github.io/hemoai-support/terms-of-use.html';
+static const String termsOfUseUrl = 'https://meloshemo.github.io/HemoAI';
 ```
 
 ## 🔗 Usage

@@ -1,0 +1,222 @@
+name: Screenshot Capture & Artifacts
+
+# Concurrency prevents overlapping runs on same ref cluttering artifacts.
+concurrency:
+  group: screenshots-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+    inputs:
+      optimize:
+        description: "Run pngquant optimization pass"
+        required: false
+        default: "false"
+  pull_request:
+    paths:
+      - 'integration_test/**'
+      - 'lib/**'
+      - 'tool/reconstruct_screenshots.dart'
+      - '.github/workflows/screenshots.yml'
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    outputs:
+      screenshot_count: ${{ steps.countshots.outputs.count }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache pub packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+          key: pub-cache-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            pub-cache-${{ runner.os }}-
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Flutter Pub Get
+        run: flutter pub get
+
+      - name: Run integration screenshot test (headless)
+        # Using web is faster; adjust if Android required. Edge device not in CI.
+        run: |
+          flutter test integration_test/screenshot_flow_test.dart --verbose > screenshot_log.txt 2>&1 || true
+        # We '|| true' so we can still attempt reconstruction & see failure artifacts.
+
+      - name: Basic log tail (diagnostics)
+        run: |
+          echo '--- Last 200 lines of screenshot_log.txt ---'
+          tail -n 200 screenshot_log.txt || true
+
+      - name: Reconstruct screenshots
+        run: |
+          dart run tool/reconstruct_screenshots.dart screenshot_log.txt || exit 1
+
+      - name: Install image diff dependencies
+        if: ${{ hashFiles('tool/screenshot_baseline/**/*.png') != '' }}
+        run: npm install pixelmatch pngjs
+
+      - name: Compare screenshots with baseline
+        if: ${{ hashFiles('tool/screenshot_baseline/**/*.png') != '' }}
+        run: node tool/compare_screenshots.mjs --baseline tool/screenshot_baseline --current build/reconstructed_screenshots --diff build/diff --threshold 0.02
+
+      - name: Count reconstructed screenshots
+        id: countshots
+        run: |
+          COUNT=$(ls -1 build/reconstructed_screenshots/*.png 2>/dev/null | wc -l || true)
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+          if [ "$COUNT" = "0" ]; then
+            echo "No screenshots reconstructed; marking for attention." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Generate SHA256 checksums
+        shell: bash
+        run: |
+          mkdir -p build/reconstructed_screenshots
+          OUTPUT_FILE="build/sha256s.txt"
+          echo "# SHA256 checksums (original)" > "$OUTPUT_FILE"
+          if compgen -G "build/reconstructed_screenshots/*.png" > /dev/null; then
+            (cd build/reconstructed_screenshots && sha256sum *.png >> "../sha256s.txt")
+          else
+            echo "No reconstructed screenshots found." >> "$OUTPUT_FILE"
+          fi
+          cat "$OUTPUT_FILE"
+
+      - name: Upload original screenshots artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-original
+          path: |
+            build/reconstructed_screenshots/*.png
+            build/sha256s.txt
+            screenshot_log.txt
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload screenshot diff artifact
+        if: ${{ always() && hashFiles('build/diff/**/*.png') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-diff
+          path: build/diff/*.png
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Set optimization flag
+        id: optflag
+        run: echo "opt=${{ github.event.inputs.optimize || 'false' }}" >> $GITHUB_OUTPUT
+
+  optimize:
+    needs: capture
+    if: needs.capture.result == 'success' && (github.event.inputs.optimize == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download original artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: screenshots-original
+          path: build/original
+
+      - name: Install pngquant
+        run: sudo apt-get update && sudo apt-get install -y pngquant
+
+      - name: Optimize screenshots
+        run: |
+          mkdir -p build/optimized
+          for f in build/original/*.png; do
+            base=$(basename "$f")
+            pngquant --quality=70-90 --speed 1 --force --output build/optimized/$base "$f" || cp "$f" build/optimized/$base
+          done
+          OUTPUT_FILE="build/sha256s_optimized.txt"
+          echo "# SHA256 checksums (optimized)" > "$OUTPUT_FILE"
+          if compgen -G "build/optimized/*.png" > /dev/null; then
+            (cd build/optimized && sha256sum *.png >> "../sha256s_optimized.txt")
+          else
+            echo "No optimized screenshots generated." >> "$OUTPUT_FILE"
+          fi
+          cat "$OUTPUT_FILE"
+
+      - name: Validate optimized file size drift
+        run: |
+          if ls build/original/*.png > /dev/null 2>&1; then
+            status=0
+            lower_ratio=0.60
+            upper_ratio=1.10
+            for f in build/original/*.png; do
+              base=$(basename "$f")
+              optimized="build/optimized/$base"
+              if [ ! -f "$optimized" ]; then
+                echo "❌ Missing optimized version for $base"
+                status=1
+                continue
+              fi
+              orig_size=$(stat -c%s "$f")
+              opt_size=$(stat -c%s "$optimized")
+              if [ "$orig_size" -eq 0 ]; then
+                echo "⚠️  Original file $base has zero size; skipping ratio check."
+                continue
+              fi
+              ratio=$(awk "BEGIN { printf \"%.4f\", $opt_size / $orig_size }")
+              if (( $(echo "$ratio < $lower_ratio" | bc -l) )); then
+                echo "❌ $base optimized too small (ratio=$ratio, min=$lower_ratio)"
+                status=1
+              elif (( $(echo "$ratio > $upper_ratio" | bc -l) )); then
+                echo "❌ $base optimized too large (ratio=$ratio, max=$upper_ratio)"
+                status=1
+              else
+                echo "✅ $base size ratio OK ($ratio)"
+              fi
+            done
+            exit $status
+          else
+            echo "No original screenshots found to validate."
+          fi
+
+      - name: Upload optimized screenshots artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-optimized
+          path: |
+            build/optimized/*.png
+            build/sha256s_optimized.txt
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Summarize artifacts
+        if: always()
+        run: |
+          echo '### Screenshot Optimization Summary' >> $GITHUB_STEP_SUMMARY
+          echo '* Optimized files:' >> $GITHUB_STEP_SUMMARY
+          ls -1 build/optimized/*.png 2>/dev/null | sed 's/^/  - /' >> $GITHUB_STEP_SUMMARY || echo '  - (none)' >> $GITHUB_STEP_SUMMARY
+          echo '' >> $GITHUB_STEP_SUMMARY
+          echo 'Hashes (optimized):' >> $GITHUB_STEP_SUMMARY
+          sed 's/^/  /' build/sha256s_optimized.txt >> $GITHUB_STEP_SUMMARY || true
+
+  summary:
+    needs: capture
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Display summary
+        run: |
+          echo '### Screenshot Capture Summary' >> $GITHUB_STEP_SUMMARY
+          echo "* Reconstructed count: ${{ needs.capture.outputs.screenshot_count }}" >> $GITHUB_STEP_SUMMARY || true
+          echo '* Artifact: screenshots-original (retention 14 days)' >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.event.inputs.optimize }}" = "true" ]; then
+            echo '* Optimization job requested (see screenshots-optimized artifact if success).' >> $GITHUB_STEP_SUMMARY
+          else
+            echo '* Optimization job skipped (workflow_dispatch optimize=false).' >> $GITHUB_STEP_SUMMARY
+          fi

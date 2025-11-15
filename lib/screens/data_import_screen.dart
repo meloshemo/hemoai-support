@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../utils/color_compat.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import '../services/data_import_service.dart';
@@ -33,11 +32,6 @@ class _DataImportScreenState extends State<DataImportScreen> with TickerProvider
   
   bool _isImporting = false;
   String? _importStatus;
-  
-  // E-Devlet form controllers
-  final TextEditingController _tcController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  bool _showPassword = false;
   final TextEditingController _pastedTextController = TextEditingController();
 
   @override
@@ -83,8 +77,6 @@ class _DataImportScreenState extends State<DataImportScreen> with TickerProvider
   void dispose() {
     _animationController.dispose();
     _pulseController.dispose();
-    _tcController.dispose();
-    _passwordController.dispose();
     _pastedTextController.dispose();
     super.dispose();
   }
@@ -234,20 +226,6 @@ class _DataImportScreenState extends State<DataImportScreen> with TickerProvider
           ),
         ),
         const SizedBox(height: 16),
-        
-        // E-Devlet Import
-        _buildImportCard(
-          context: context,
-          title: loc.getString('import_from_edevlet'),
-          subtitle: loc.getString('import_edevlet_description'),
-          icon: Icons.account_balance,
-          gradient: [const Color(0xFF1976D2), const Color(0xFF42A5F5)],
-          onTap: () => _showEDevletDialog(context, loc, scheme),
-          scheme: scheme,
-        ),
-        
-        const SizedBox(height: 16),
-        
         // QR Code Import
         _buildImportCard(
           context: context,
@@ -403,7 +381,7 @@ class _DataImportScreenState extends State<DataImportScreen> with TickerProvider
                       child: OutlinedButton.icon(
                         onPressed: _isImporting ? null : () => _mapAndSaveFromPastedText(loc),
                         icon: const Icon(Icons.auto_fix_high),
-                        label: const Text('Eşle ve Kaydet'),
+                        label: Text(loc.getString('match_and_save')),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -464,12 +442,12 @@ class _DataImportScreenState extends State<DataImportScreen> with TickerProvider
     }
     setState(() {
       _isImporting = true;
-      _importStatus = 'Mapping OCR fields...';
+      _importStatus = loc.getString('mapping_ocr_fields');
     });
     try {
       final mapped = OcrMappingService.mapHemogramFromText(text);
       if (mapped.isEmpty) {
-        _showMessage('Metinden alan bulunamadı', isError: true);
+        _showMessage(loc.getString('fields_not_found_in_text'), isError: true);
       } else {
         final userId = _prefsService?.getCurrentUserId();
         if (userId == null) {
@@ -478,11 +456,11 @@ class _DataImportScreenState extends State<DataImportScreen> with TickerProvider
           mapped['user_id'] = userId;
           mapped['test_date'] = DateTime.now().toIso8601String().substring(0, 10);
           await _dbHelper.insertHemogramTest(mapped);
-          _showMessage('Eşlenen değerler kaydedildi');
+          _showMessage(loc.getString('mapped_values_saved'));
         }
       }
     } catch (e) {
-      _showMessage('Eşleme hatası', isError: true);
+      _showMessage(loc.getString('mapping_error'), isError: true);
     } finally {
       setState(() { _isImporting = false; });
     }
@@ -636,294 +614,6 @@ class _DataImportScreenState extends State<DataImportScreen> with TickerProvider
         ],
       ),
     );
-  }
-
-  void _showEDevletDialog(BuildContext context, LocalizationService loc, ColorScheme scheme) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.transparent,
-        contentPadding: EdgeInsets.zero,
-        content: Container(
-          width: 400,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Colors.white, scheme.surface.withValues(alpha: 0.95)],
-            ),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: scheme.outline.withValues(alpha: 0.1)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
-                  ),
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(24),
-                    topRight: Radius.circular(24),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.account_balance, color: Colors.white, size: 28),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Text(
-                        loc.getString('edevlet_login_title'),
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              // Content
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    Text(
-                      loc.getString('edevlet_login_description'),
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: scheme.onSurface.withValues(alpha: 0.7),
-                        height: 1.4,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 24),
-                    
-                    // TC Kimlik No
-                    TextField(
-                      controller: _tcController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: loc.getString('tc_kimlik_no'),
-                        prefixIcon: const Icon(Icons.person),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        filled: true,
-                        fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                      ),
-                      maxLength: 11,
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // Password
-                    TextField(
-                      controller: _passwordController,
-                      obscureText: !_showPassword,
-                      decoration: InputDecoration(
-                        labelText: loc.getString('password'),
-                        prefixIcon: const Icon(Icons.lock),
-                        suffixIcon: IconButton(
-                          icon: Icon(_showPassword ? Icons.visibility_off : Icons.visibility),
-                          onPressed: () => setState(() {
-                            _showPassword = !_showPassword;
-                          }),
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        filled: true,
-                        fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Security Notice
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: scheme.primaryContainer.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: scheme.primary.withValues(alpha: 0.2)),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.security, color: scheme.primary, size: 20),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              loc.getString('edevlet_security_notice'),
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: scheme.primary,
-                                height: 1.3,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-                    // Paste e-Devlet snippet (no network) optional path
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        loc.getString('edevlet_or_paste_label'),
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: scheme.onSurface.withValues(alpha: 0.8),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _pastedTextController,
-                      maxLines: 5,
-                      decoration: InputDecoration(
-                        hintText: loc.getString('edevlet_paste_hint'),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        filled: true,
-                        fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.25),
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.content_paste),
-                          onPressed: () async {
-                            final data = await Clipboard.getData('text/plain');
-                            if (data?.text != null) {
-                              _pastedTextController.text = data!.text!;
-                            }
-                          },
-                          tooltip: loc.getString('paste_from_clipboard'),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              // Actions
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: Text(loc.getString('cancel')),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _isImporting ? null : () => _importFromEDevlet(context, loc),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1976D2),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        child: _isImporting
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : Text(loc.getString('connect_and_import')),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _isImporting ? null : () => _importFromEDevletSnippet(context, loc),
-                        icon: const Icon(Icons.paste),
-                        label: Text(loc.getString('edevlet_import_snippet_button')),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _importFromEDevlet(BuildContext context, LocalizationService loc) async {
-    if (_tcController.text.length != 11 || _passwordController.text.isEmpty) {
-      _showMessage(loc.getString('edevlet_credentials_required'), isError: true);
-      return;
-    }
-
-    setState(() {
-      _isImporting = true;
-      _importStatus = loc.getString('edevlet_connecting');
-    });
-
-    try {
-      final navigator = Navigator.of(context);
-      final result = await _importService.importFromEDevlet(
-        tcKimlik: _tcController.text,
-        password: _passwordController.text,
-      );
-
-      if (result.isSuccess && result.testResults.isNotEmpty) {
-        await _saveImportedResults(result.testResults, loc);
-        if (!mounted) return; // ensure widget still in tree
-        navigator.pop(); // Close dialog safely
-        final successMsg = loc.getStringWithParams('import_success_count', 
-          {'count': result.testResults.length.toString()});
-        _showMessage(successMsg);
-      } else {
-        _showMessage(result.errorMessage ?? loc.getString('import_failed'), isError: true);
-      }
-    } catch (e) {
-      _showMessage(loc.getString('import_error'), isError: true);
-    } finally {
-      setState(() {
-        _isImporting = false;
-      });
-    }
-  }
-
-  Future<void> _importFromEDevletSnippet(BuildContext context, LocalizationService loc) async {
-    final navigator = Navigator.of(context);
-    final snippet = _pastedTextController.text.trim();
-    if (snippet.isEmpty) {
-      _showMessage(loc.getString('no_text_provided'), isError: true);
-      return;
-    }
-    setState(() {
-      _isImporting = true;
-      _importStatus = loc.getString('parsing_text');
-    });
-    try {
-      final result = await _importService.importFromEDevletSnippet(snippet);
-      if (result.isSuccess && result.testResults.isNotEmpty) {
-        await _saveImportedResults(result.testResults, loc);
-        if (!mounted) return;
-        navigator.pop();
-        _showMessage(loc.getStringWithParams('import_success_count',
-            {'count': result.testResults.length.toString()}));
-      } else {
-        _showMessage(result.errorMessage ?? loc.getString('import_failed'), isError: true);
-      }
-    } catch (e) {
-      _showMessage(loc.getString('import_error'), isError: true);
-    } finally {
-      setState(() {
-        _isImporting = false;
-      });
-    }
   }
 
   Future<void> _scanQRCode(BuildContext context, LocalizationService loc) async {

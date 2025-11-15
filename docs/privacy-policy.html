@@ -21,7 +21,7 @@
 </head>
 <body>
     <h1>Privacy Policy</h1>
-    <p class="last-updated">Last updated: October 31, 2025</p>
+    <p class="last-updated">Last updated: November 8, 2025</p>
 
     <h2>1. Introduction</h2>
     <p>
@@ -60,8 +60,9 @@
     </p>
     <ul>
         <li>Device type, operating system, app version</li>
-        <li>Crash reports and performance metrics (if enabled)</li>
+        <li>Crash reports and performance metrics (if you enable diagnostics)</li>
         <li>Localization preferences</li>
+        <li>Anonymized subscription status metadata required to verify premium access</li>
     </ul>
 
     <h2>3. How We Use Your Information</h2>
@@ -71,7 +72,8 @@
         <li>Track your health trends over time</li>
         <li>Provide reminders for medications, tests, and appointments</li>
         <li>Offer diet and lifestyle suggestions based on your values</li>
-        <li>Improve app functionality and user experience</li>
+        <li>Improve app functionality, reliability, and user experience (including crash diagnostics)</li>
+        <li>Deliver transactional emails that you explicitly request (password reset, premium receipts)</li>
         <li>Ensure data security and backup integrity</li>
     </ul>
 
@@ -151,11 +153,14 @@
     </ul>
 
     <h2>10. Third-Party Services</h2>
-    <p>HemoAI uses the following third-party services:</p>
+    <p>HemoAI integrates with the following processors to deliver specific features; each integration is limited to the minimum data required:</p>
     <ul>
-        <li><strong>Google ML Kit:</strong> Text recognition (OCR) - processing happens on-device when possible</li>
-        <li><strong>Supabase (optional):</strong> If you enable cloud sync - data encrypted end-to-end</li>
-        <li><strong>Google Play Services:</strong> For analytics (only if explicitly enabled by you)</li>
+        <li><strong>Firebase Crashlytics & Performance Monitoring (Google LLC):</strong> Collects crash stacks, device model, OS version, and anonymized session identifiers to help us detect bugs. Crash reports are retained for up to 90 days unless you request deletion.</li>
+        <li><strong>Firebase Cloud Functions (Google LLC):</strong> Handles secure premium status checks and Stripe checkout sessions. Requests include plan type, anonymized user ID, and success/failure metadata.</li>
+        <li><strong>Stripe Payments Europe, Ltd. / Stripe, Inc.:</strong> Processes subscription purchases. We transmit only the minimum information necessary to create a checkout session (plan type, optional email/name if you provide them). Card data never touches our servers.</li>
+        <li><strong>SendGrid (Twilio SendGrid, Inc.):</strong> Sends transactional emails such as verification codes, receipts, or support responses. Messages include your name, email, and contextual metadata (e.g., completed purchase).</li>
+        <li><strong>Google ML Kit:</strong> Text recognition (OCR) - processing happens on-device when possible; otherwise data is transmitted securely to Google for interpretation.</li>
+        <li><strong>Supabase (optional):</strong> If you enable future cloud sync features - all payloads are end-to-end encrypted before they leave your device.</li>
     </ul>
 
     <h2>11. Data Retention</h2>
@@ -167,7 +172,9 @@
         <li>Uninstall the app (data may persist until manually cleared)</li>
         <li>Use the "Clear All Data" option in settings</li>
     </ul>
-    <p>If cloud sync is enabled, you can delete your cloud data at any time.</p>
+    <p>
+        If cloud sync is enabled, you can delete your cloud data at any time. Crash diagnostics and delivery logs provided by Firebase or SendGrid are automatically purged within 90 days unless we are legally required to retain them longer.
+    </p>
 
     <h2>12. Changes to This Policy</h2>
     <p>
@@ -187,8 +194,9 @@
         If you have questions, concerns, or requests regarding this Privacy Policy or your data:
     </p>
     <ul>
-        <li><strong>Email:</strong> support@meloshemo.com</li>
+        <li><strong>Email:</strong> privacy@hemoai.org</li>
         <li><strong>In-app:</strong> Settings → About → Contact Support</li>
+        <li><strong>Status & Incidents:</strong> Link to our public status page (coming soon) will be posted in-app once available.</li>
     </ul>
 
     <h2>14. Medical Disclaimer</h2>

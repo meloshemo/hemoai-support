@@ -1,9 +1,11 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
 import 'package:provider/provider.dart';
 import '../services/preferences_service.dart';
 import '../services/database_helper.dart';
 import '../services/localization_service.dart';
-import 'package:flutter/foundation.dart';
+import '../services/premium_service.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
 import 'dart:math';
@@ -37,9 +39,12 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
 
   Future<void> _initServices() async {
     _prefsService = await PreferencesService.getInstance();
-    final remembered = _prefsService!.getCustomSetting<bool>('remember_me') ?? false;
-    final rememberedPhone = _prefsService!.getCustomSetting<String>('remembered_phone') ?? '';
-    final failed = _prefsService!.getCustomSetting<int>('login_failed_attempts') ?? 0;
+    final remembered =
+        _prefsService!.getCustomSetting<bool>('remember_me') ?? false;
+    final rememberedPhone =
+        _prefsService!.getCustomSetting<String>('remembered_phone') ?? '';
+    final failed =
+        _prefsService!.getCustomSetting<int>('login_failed_attempts') ?? 0;
     final lockUntil = _prefsService!.getCustomSetting<int>('login_lock_until');
 
     if (remembered && rememberedPhone.isNotEmpty) {
@@ -74,9 +79,12 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
 
   Future<void> _recordFailedAttempt() async {
     _failedAttempts += 1;
-    await _prefsService?.saveCustomSettings('login_failed_attempts', _failedAttempts);
+    await _prefsService?.saveCustomSettings(
+        'login_failed_attempts', _failedAttempts);
     if (_failedAttempts >= 5) {
-      final until = DateTime.now().add(const Duration(seconds: 60)).millisecondsSinceEpoch;
+      final until = DateTime.now()
+          .add(const Duration(seconds: 60))
+          .millisecondsSinceEpoch;
       _lockUntilMs = until;
       await _prefsService?.saveCustomSettings('login_lock_until', until);
     }
@@ -94,6 +102,10 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
     return digits.length >= 10 && digits.length <= 11;
   }
 
+  String _normalizePhoneDigits(String value) {
+    return value.replaceAll(RegExp(r'\D'), '');
+  }
+
   bool _validateEmail(String value) {
     final email = value.trim();
     // Simple RFC 5322-friendly pattern for typical emails
@@ -108,14 +120,18 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
     });
     await _prefsService?.saveCustomSettings('remember_me', v);
     if (v) {
-      await _prefsService?.saveCustomSettings('remembered_phone', phoneController.text);
+      await _prefsService?.saveCustomSettings(
+          'remembered_phone', phoneController.text);
     }
   }
 
   Future<void> _login() async {
+    final loc = Provider.of<LocalizationService>(context, listen: false);
+    final messenger = ScaffoldMessenger.of(context);
+    final premiumService = Provider.of<PremiumService>(context, listen: false);
+
     if (_prefsService == null) {
-      final loc = Provider.of<LocalizationService>(context, listen: false);
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text(loc.getString('services_not_loaded')),
           backgroundColor: const Color(0xFFE53E3E),
@@ -125,11 +141,12 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
     }
 
     if (_isLockedOut()) {
-      final loc = Provider.of<LocalizationService>(context, listen: false);
       final secs = _lockoutSecondsRemaining();
       final msg = '${loc.getString('too_many_attempts')} — '
-          '${loc.getStringWithParams('try_again_in_seconds', {'seconds': secs.toString()})}';
-      ScaffoldMessenger.of(context).showSnackBar(
+          '${loc.getStringWithParams('try_again_in_seconds', {
+            'seconds': secs.toString()
+          })}';
+      messenger.showSnackBar(
         SnackBar(
           content: Text(msg),
           backgroundColor: const Color(0xFFE53E3E),
@@ -139,8 +156,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
     }
 
     if (!_formKey.currentState!.validate()) {
-      final loc = Provider.of<LocalizationService>(context, listen: false);
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text(loc.getString('enter_phone_password')),
           backgroundColor: const Color(0xFFE53E3E),
@@ -154,69 +170,258 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
     });
 
     try {
-      // Test user check (for convenience)
-      if (phoneController.text == '5551234567' && passwordController.text == '1234') {
-        String email = '${phoneController.text}@hemoai.com';
-        Map<String, dynamic>? existingUser = await _dbHelper.getUser(email);
+      // Normalize phone number first
+      final normalizedPhone = _normalizePhoneDigits(phoneController.text);
+      
+      // Test user check (for convenience) - only if exact match
+      final passwordText = passwordController.text.trim();
+      if (normalizedPhone == '5551234567' && passwordText == '1234') {
+        final email = '$normalizedPhone@hemoai.com';
+        final testUserName = loc.getString('test_user');
+        Map<String, dynamic>? existingUser =
+            await _dbHelper.findUserByPhone(normalizedPhone);
 
         if (existingUser == null) {
-          final loc = Provider.of<LocalizationService>(context, listen: false);
+          // Create new test user
           Map<String, dynamic> testUser = {
-            'name': loc.getString('test_user'),
+            'name': testUserName,
             'email': email,
-            'phone': phoneController.text,
-            'password_hash': _hashPassword(passwordController.text),
+            'phone': normalizedPhone,
+            'password_hash': _hashPassword(passwordText),
             'age': 25,
             'gender': 'male',
             'height': 175.0,
             'weight': 70.0,
             'bmi': 22.86,
+            'email_verified': 0,
+            'phone_verified': 1,
           };
 
           int userId = await _dbHelper.insertUser(testUser);
-          await _prefsService!.setCurrentUserId(userId);
-          await _prefsService!.setUserInfo(testUser['name'], testUser['email'], testUser['phone']);
+          if (userId <= 0) {
+            if (mounted) {
+              setState(() {
+                _isLoading = false;
+              });
+            }
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text('${loc.getString('login_error_prefix')}Failed to create test user (userId: $userId)'),
+                backgroundColor: const Color(0xFFE53E3E),
+              ),
+            );
+            return;
+          }
+          
+          try {
+            if (_prefsService == null) {
+              throw Exception('PreferencesService is null');
+            }
+            await _prefsService!.setCurrentUserId(userId);
+            if (kDebugMode) {
+              debugPrint('Test user: Set current user ID to $userId');
+            }
+            
+            // Ensure all values are non-null before calling setUserInfo
+            final safeName = testUserName.isNotEmpty ? testUserName : 'Test User';
+            final safeEmail = email.isNotEmpty ? email : '$normalizedPhone@hemoai.com';
+            final safePhone = normalizedPhone.isNotEmpty ? normalizedPhone : '5551234567';
+            
+            await _prefsService!.setUserInfo(
+              safeName,
+              safeEmail,
+              safePhone,
+              emailVerified: false,
+              phoneVerified: true,
+            );
+            if (kDebugMode) {
+              debugPrint('Test user: User info saved successfully');
+            }
+          } catch (e, stackTrace) {
+            if (kDebugMode) {
+              debugPrint('Test user: Error saving user info: $e');
+              debugPrint('Stack trace: $stackTrace');
+            }
+            if (mounted) {
+              setState(() {
+                _isLoading = false;
+              });
+            }
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text('${loc.getString('login_error_prefix')}Failed to save user info: $e'),
+                backgroundColor: const Color(0xFFE53E3E),
+                duration: const Duration(seconds: 5),
+              ),
+            );
+            return;
+          }
         } else {
-          await _prefsService!.setCurrentUserId(existingUser['id']);
-          await _prefsService!.setUserInfo(existingUser['name'], existingUser['email'], existingUser['phone']);
+          // Use existing test user
+          final userId = existingUser['id'];
+          if (userId == null) {
+            if (mounted) {
+              setState(() {
+                _isLoading = false;
+              });
+            }
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text('${loc.getString('login_error_prefix')}User ID is missing from existing user'),
+                backgroundColor: const Color(0xFFE53E3E),
+              ),
+            );
+            return;
+          }
+          
+          try {
+            if (_prefsService == null) {
+              throw Exception('PreferencesService is null');
+            }
+            await _prefsService!.setCurrentUserId(userId);
+            if (kDebugMode) {
+              debugPrint('Test user (existing): Set current user ID to $userId');
+            }
+            
+            final emailVerified = (existingUser['email_verified'] ?? 0) == 1;
+            final phoneVerified = (existingUser['phone_verified'] ?? 0) == 1;
+            
+            // Ensure all values are non-null before calling setUserInfo
+            final safeName = (existingUser['name'] ?? testUserName).toString();
+            final safeEmail = (existingUser['email'] ?? email).toString();
+            final safePhone = (existingUser['phone'] ?? normalizedPhone).toString();
+            
+            if (safeName.isEmpty || safeEmail.isEmpty || safePhone.isEmpty) {
+              throw Exception('User data contains empty values: name=$safeName, email=$safeEmail, phone=$safePhone');
+            }
+            
+            await _prefsService!.setUserInfo(
+              safeName,
+              safeEmail,
+              safePhone,
+              emailVerified: emailVerified,
+              phoneVerified: phoneVerified,
+            );
+            if (kDebugMode) {
+              debugPrint('Test user (existing): User info saved successfully');
+            }
+          } catch (e, stackTrace) {
+            if (kDebugMode) {
+              debugPrint('Test user (existing): Error saving user info: $e');
+              debugPrint('Stack trace: $stackTrace');
+            }
+            if (mounted) {
+              setState(() {
+                _isLoading = false;
+              });
+            }
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text('${loc.getString('login_error_prefix')}Failed to save user info: $e'),
+                backgroundColor: const Color(0xFFE53E3E),
+                duration: const Duration(seconds: 5),
+              ),
+            );
+            return;
+          }
         }
 
         if (!mounted) return;
-        final loc = Provider.of<LocalizationService>(context, listen: false);
-        ScaffoldMessenger.of(context).showSnackBar(
+        final locMessage = loc.getString('welcome_test_user');
+        messenger.showSnackBar(
           SnackBar(
-            content: Text(loc.getString('welcome_test_user')),
+            content: Text(locMessage),
             backgroundColor: Colors.green,
           ),
         );
 
         await _resetAttempts();
         if (_rememberMe) {
-          await _prefsService?.saveCustomSettings('remembered_phone', phoneController.text);
+          await _prefsService?.saveCustomSettings(
+              'remembered_phone', phoneController.text);
+        }
+        // Revalidate subscription on login (non-blocking)
+        try {
+          await premiumService.revalidateNow();
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('Premium revalidation failed (non-critical): $e');
+          }
         }
         if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/personal_info');
+        
+        // Navigate after successful login
+        try {
+          await _navigateAfterAuth('/personal_info');
+        } catch (e) {
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text('${loc.getString('login_error_prefix')}Navigation failed: $e'),
+                backgroundColor: const Color(0xFFE53E3E),
+              ),
+            );
+          }
+          return;
+        }
         return;
       }
 
       // Normal kullanıcı girişi
-      String email = '${phoneController.text}@hemoai.com';
-      Map<String, dynamic>? user = await _dbHelper.getUser(email);
+      if (normalizedPhone.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(loc.getString('phone_invalid')),
+            backgroundColor: const Color(0xFFE53E3E),
+          ),
+        );
+        return;
+      }
+      Map<String, dynamic>? user =
+          await _dbHelper.findUserByPhone(normalizedPhone);
 
       if (user != null) {
         String hashedPassword = _hashPassword(passwordController.text);
+        final storedHash = user['password_hash']?.toString() ?? '';
 
-        if (user['password_hash'] == hashedPassword) {
-          await _prefsService!.setCurrentUserId(user['id']);
+        if (storedHash == hashedPassword) {
+          final userId = user['id'];
+          if (userId == null) {
+            if (mounted) {
+              setState(() {
+                _isLoading = false;
+              });
+            }
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text('${loc.getString('login_error_prefix')}User ID is missing'),
+                backgroundColor: const Color(0xFFE53E3E),
+              ),
+            );
+            return;
+          }
+          
+          await _prefsService!.setCurrentUserId(userId);
+          final emailVerified = (user['email_verified'] ?? 0) == 1;
+          final phoneVerified = (user['phone_verified'] ?? 0) == 1;
           await _prefsService!.setUserInfo(
-            user['name'],
-            user['email'],
-            user['phone'],
+            (user['name'] ?? '').toString(),
+            (user['email'] ?? '').toString(),
+            (user['phone'] ?? '').toString(),
+            emailVerified: emailVerified,
+            phoneVerified: phoneVerified,
           );
 
           if (!mounted) return;
-          final loc = Provider.of<LocalizationService>(context, listen: false);
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             SnackBar(
               content: Text(loc.getString('welcome_generic')),
               backgroundColor: Colors.green,
@@ -225,39 +430,60 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
 
           await _resetAttempts();
           if (_rememberMe) {
-            await _prefsService?.saveCustomSettings('remembered_phone', phoneController.text);
+            await _prefsService?.saveCustomSettings(
+                'remembered_phone', phoneController.text);
           }
+          // Revalidate subscription on login
+          try {
+            await premiumService.revalidateNow();
+          } catch (_) {}
           if (!mounted) return;
-          Navigator.pushReplacementNamed(context, '/personal_info');
+          await _navigateAfterAuth('/personal_info');
         } else {
           await _recordFailedAttempt();
           if (!mounted) return;
-          final loc = Provider.of<LocalizationService>(context, listen: false);
-          ScaffoldMessenger.of(context).showSnackBar(
+          // Debug: Show more info in debug mode
+          final debugMsg = kDebugMode
+              ? '${loc.getString('password_incorrect')} (User found but password mismatch)'
+              : loc.getString('password_incorrect');
+          messenger.showSnackBar(
             SnackBar(
-              content: Text(loc.getString('password_incorrect')),
+              content: Text(debugMsg),
               backgroundColor: const Color(0xFFE53E3E),
+              duration: const Duration(seconds: 4),
             ),
           );
         }
       } else {
         await _recordFailedAttempt();
         if (!mounted) return;
-        final loc = Provider.of<LocalizationService>(context, listen: false);
-        ScaffoldMessenger.of(context).showSnackBar(
+        // Debug: Show more info in debug mode
+        final debugMsg = kDebugMode
+            ? '${loc.getString('user_not_found')} (Phone: $normalizedPhone)'
+            : loc.getString('user_not_found');
+        messenger.showSnackBar(
           SnackBar(
-            content: Text(loc.getString('user_not_found')),
+            content: Text(debugMsg),
             backgroundColor: const Color(0xFFE53E3E),
+            duration: const Duration(seconds: 4),
           ),
         );
       }
-    } catch (e) {
+    } catch (e, stack) {
+      if (kDebugMode) {
+        debugPrint('Login error caught: $e');
+        debugPrint('Stack trace: $stack');
+      }
       if (!mounted) return;
-      final loc = Provider.of<LocalizationService>(context, listen: false);
-      ScaffoldMessenger.of(context).showSnackBar(
+      // Provide a friendlier localized fallback when we get an opaque null error
+      final message = e.toString().contains('Unexpected null value')
+          ? loc.getString('unexpected_error_occurred')
+          : e.toString();
+      messenger.showSnackBar(
         SnackBar(
-          content: Text('${loc.getString('login_error_prefix')}$e'),
+          content: Text('${loc.getString('login_error_prefix')}$message'),
           backgroundColor: const Color(0xFFE53E3E),
+          duration: const Duration(seconds: 5),
         ),
       );
     } finally {
@@ -289,13 +515,13 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
   Future<void> _promptOtpAndVerify({required bool isForPasswordReset}) async {
     final loc = Provider.of<LocalizationService>(context, listen: false);
     final otpController = TextEditingController();
-    int resendCount = 0;
     int remaining = 120; // seconds
     Timer? countdown;
     void cancelTimer() {
       countdown?.cancel();
       countdown = null;
     }
+
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -347,16 +573,18 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                   onPressed: remaining > 0
                       ? null
                       : () async {
-                          final phone = _prefsService!.getCustomSetting<String>('otp_phone') ?? phoneController.text.trim();
+                          final phone = _prefsService!
+                                  .getCustomSetting<String>('otp_phone') ??
+                              phoneController.text.trim();
                           await _sendOtpToPhone(phone);
                           setSheetState(() {
-                            resendCount += 1;
                             remaining = 120;
                           });
                         },
                   child: Text(
                     remaining > 0
-                        ? loc.getStringWithParams('resend_code_in', {'seconds': remaining.toString()})
+                        ? loc.getStringWithParams(
+                            'resend_code_in', {'seconds': remaining.toString()})
                         : loc.getString('resend_code'),
                   ),
                 ),
@@ -365,12 +593,15 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                     cancelTimer();
                     Navigator.pop(ctx, false);
                   },
-                  child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
+                  child:
+                      Text(MaterialLocalizations.of(context).cancelButtonLabel),
                 ),
                 TextButton(
                   onPressed: () async {
-                    final savedCode = _prefsService!.getCustomSetting<String>('otp_code');
-                    final expiry = _prefsService!.getCustomSetting<int>('otp_expiry') ?? 0;
+                    final savedCode =
+                        _prefsService!.getCustomSetting<String>('otp_code');
+                    final expiry =
+                        _prefsService!.getCustomSetting<int>('otp_expiry') ?? 0;
                     final now = DateTime.now().millisecondsSinceEpoch;
                     if (now > expiry) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -416,10 +647,11 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
 
   Future<void> _completeOtpLogin() async {
     final loc = Provider.of<LocalizationService>(context, listen: false);
-    final phone = _prefsService!.getCustomSetting<String>('otp_phone') ?? phoneController.text.trim();
-    final email = '$phone@hemoai.com';
+    final phoneDigits = _prefsService!.getCustomSetting<String>('otp_phone') ??
+        phoneController.text.trim();
+    final normalized = _normalizePhoneDigits(phoneDigits);
     try {
-      final user = await _dbHelper.getUser(email);
+      final user = await _dbHelper.findUserByPhone(normalized);
       if (user == null) {
         await _recordFailedAttempt();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -431,10 +663,18 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
         return;
       }
       await _prefsService!.setCurrentUserId(user['id']);
-      await _prefsService!.setUserInfo(user['name'], user['email'], user['phone']);
+      final emailVerified = (user['email_verified'] ?? 0) == 1;
+      final phoneVerified = (user['phone_verified'] ?? 0) == 1;
+      await _prefsService!.setUserInfo(
+        user['name'],
+        user['email'],
+        user['phone'],
+        emailVerified: emailVerified,
+        phoneVerified: phoneVerified,
+      );
       await _resetAttempts();
       if (_rememberMe) {
-        await _prefsService?.saveCustomSettings('remembered_phone', phone);
+        await _prefsService?.saveCustomSettings('remembered_phone', normalized);
       }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -443,7 +683,13 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
           backgroundColor: Colors.green,
         ),
       );
-      Navigator.pushReplacementNamed(context, '/personal_info');
+      // Revalidate subscription on login
+      try {
+        final premium = Provider.of<PremiumService>(context, listen: false);
+        await premium.revalidateNow();
+      } catch (_) {}
+      if (!mounted) return;
+      await _navigateAfterAuth('/personal_info');
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -473,17 +719,26 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                 children: [
                   Text(loc.getString('choose_verification_method')),
                   const SizedBox(height: 12),
-                  RadioListTile<String>(
-                    value: 'phone',
-                    groupValue: method,
-                    onChanged: (v) => setState(() => method = v ?? 'phone'),
-                    title: Text(loc.getString('verify_via_phone')),
-                  ),
-                  RadioListTile<String>(
-                    value: 'email',
-                    groupValue: method,
-                    onChanged: (v) => setState(() => method = v ?? 'email'),
-                    title: Text(loc.getString('verify_via_email')),
+                  SegmentedButton<String>(
+                    segments: [
+                      ButtonSegment<String>(
+                        value: 'phone',
+                        label: Text(loc.getString('verify_via_phone')),
+                        icon: const Icon(Icons.phone),
+                      ),
+                      ButtonSegment<String>(
+                        value: 'email',
+                        label: Text(loc.getString('verify_via_email')),
+                        icon: const Icon(Icons.email),
+                      ),
+                    ],
+                    selected: {method},
+                    onSelectionChanged: (selection) {
+                      final choice =
+                          selection.isNotEmpty ? selection.first : 'phone';
+                      setState(() => method = choice);
+                    },
+                    showSelectedIcon: false,
                   ),
                   if (method == 'email')
                     Padding(
@@ -502,7 +757,8 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx, false),
-                  child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
+                  child:
+                      Text(MaterialLocalizations.of(context).cancelButtonLabel),
                 ),
                 TextButton(
                   onPressed: () => Navigator.pop(ctx, true),
@@ -530,7 +786,8 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
           return;
         }
         // Ensure user exists
-        final existing = await _dbHelper.findUserByPhone(phone);
+        final existing =
+            await _dbHelper.findUserByPhone(_normalizePhoneDigits(phone));
         if (existing == null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -545,7 +802,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
       } else {
         final email = emailController.text.trim().isNotEmpty
             ? emailController.text.trim()
-            : '${phoneController.text.trim()}@hemoai.com';
+            : '${_normalizePhoneDigits(phoneController.text.trim())}@hemoai.com';
         if (email.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -604,13 +861,15 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
             children: [
               TextField(
                 controller: newPassController,
-                decoration: InputDecoration(labelText: loc.getString('new_password_label')),
+                decoration: InputDecoration(
+                    labelText: loc.getString('new_password_label')),
                 obscureText: true,
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: confirmController,
-                decoration: InputDecoration(labelText: loc.getString('confirm_new_password')),
+                decoration: InputDecoration(
+                    labelText: loc.getString('confirm_new_password')),
                 obscureText: true,
               ),
             ],
@@ -632,7 +891,6 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                   return;
                 }
                 if (newPassController.text.length < 4) {
-
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(loc.getString('password_min_length')),
@@ -661,7 +919,8 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
 
     if (res == true) {
       // Resolve user by the verified channel
-      final channel = _prefsService!.getCustomSetting<String>('otp_channel') ?? 'phone';
+      final channel =
+          _prefsService!.getCustomSetting<String>('otp_channel') ?? 'phone';
       Map<String, dynamic>? user;
       if (channel == 'email') {
         final email = _prefsService!.getCustomSetting<String>('otp_email');
@@ -669,9 +928,10 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
           user = await _dbHelper.getUser(email);
         }
       } else {
-        final phone = _prefsService!.getCustomSetting<String>('otp_phone') ?? phoneController.text.trim();
-        final email = '$phone@hemoai.com';
-        user = await _dbHelper.getUser(email);
+        final phoneRaw = _prefsService!.getCustomSetting<String>('otp_phone') ??
+            phoneController.text.trim();
+        final digits = _normalizePhoneDigits(phoneRaw);
+        user = await _dbHelper.findUserByPhone(digits);
       }
       if (user != null) {
         await _dbHelper.updateUser(user['id'], {
@@ -692,10 +952,12 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
     final loc = Provider.of<LocalizationService>(context, listen: false);
     final rnd = Random();
     final code = List.generate(6, (_) => rnd.nextInt(10)).join();
-    final expiry = DateTime.now().add(const Duration(minutes: 5)).millisecondsSinceEpoch;
+    final expiry =
+        DateTime.now().add(const Duration(minutes: 5)).millisecondsSinceEpoch;
     await _prefsService!.saveCustomSettings('otp_code', code);
     await _prefsService!.saveCustomSettings('otp_expiry', expiry);
-    await _prefsService!.saveCustomSettings('otp_phone', phone);
+    final normalized = _normalizePhoneDigits(phone);
+    await _prefsService!.saveCustomSettings('otp_phone', normalized);
 
     final baseMsg = loc.getString('otp_sent');
     final msg = kDebugMode ? '$baseMsg: $code' : baseMsg;
@@ -712,14 +974,17 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
     final loc = Provider.of<LocalizationService>(context, listen: false);
     final rnd = Random();
     final code = List.generate(6, (_) => rnd.nextInt(10)).join();
-    final expiry = DateTime.now().add(const Duration(minutes: 5)).millisecondsSinceEpoch;
+    final expiry =
+        DateTime.now().add(const Duration(minutes: 5)).millisecondsSinceEpoch;
     await _prefsService!.saveCustomSettings('otp_code', code);
     await _prefsService!.saveCustomSettings('otp_expiry', expiry);
     await _prefsService!.saveCustomSettings('otp_email', email);
 
     final baseMsg = loc.getString('otp_sent_email');
     final masked = _maskEmail(email);
-    final msgShown = kDebugMode ? '$baseMsg: $code' : loc.getStringWithParams('code_sent_to', {'destination': masked});
+    final msgShown = kDebugMode
+        ? '$baseMsg: $code'
+        : loc.getStringWithParams('code_sent_to', {'destination': masked});
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -734,8 +999,36 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
     if (parts.length != 2) return email;
     final name = parts[0];
     final domain = parts[1];
-    final visible = name.length >= 2 ? name.substring(0, 2) : name.substring(0, 1);
+    final visible =
+        name.length >= 2 ? name.substring(0, 2) : name.substring(0, 1);
     return '$visible***@$domain';
+  }
+
+  Future<void> _navigateAfterAuth(String defaultRoute) async {
+    try {
+      final prefs = _prefsService ?? await PreferencesService.getInstance();
+      if (!mounted) return;
+      if (prefs.isMedicalConsentAccepted()) {
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, defaultRoute);
+      } else {
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(
+          context,
+          '/medical_consent',
+          arguments: {'nextRoute': defaultRoute},
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final loc = Provider.of<LocalizationService>(context, listen: false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${loc.getString('login_error_prefix')}Navigation error: $e'),
+          backgroundColor: const Color(0xFFE53E3E),
+        ),
+      );
+    }
   }
 
   @override
@@ -799,7 +1092,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                     },
                   ),
                 ),
-                
+
                 // Form alanları
                 Container(
                   padding: const EdgeInsets.all(24),
@@ -814,30 +1107,38 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                       children: [
                         Builder(
                           builder: (context) {
-                            final loc = Provider.of<LocalizationService>(context);
+                            final loc =
+                                Provider.of<LocalizationService>(context);
                             return TextFormField(
                               controller: phoneController,
                               decoration: InputDecoration(
                                 labelText: loc.getString('phone_number_label'),
-                                prefixIcon: Icon(Icons.phone, color: scheme.primary),
+                                prefixIcon:
+                                    Icon(Icons.phone, color: scheme.primary),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(color: scheme.primary, width: 2),
+                                  borderSide: BorderSide(
+                                      color: scheme.primary, width: 2),
                                 ),
                               ),
                               keyboardType: TextInputType.phone,
                               validator: (v) {
                                 final value = v?.trim() ?? '';
-                                if (value.isEmpty) return loc.getString('phone_required');
-                                if (!_validatePhone(value)) return loc.getString('phone_invalid');
+                                if (value.isEmpty) {
+                                  return loc.getString('phone_required');
+                                }
+                                if (!_validatePhone(value)) {
+                                  return loc.getString('phone_invalid');
+                                }
                                 return null;
                               },
                               onChanged: (v) async {
                                 if (_rememberMe) {
-                                  await _prefsService?.saveCustomSettings('remembered_phone', v);
+                                  await _prefsService?.saveCustomSettings(
+                                      'remembered_phone', v);
                                 }
                               },
                             );
@@ -846,25 +1147,30 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                         const SizedBox(height: 20),
                         Builder(
                           builder: (context) {
-                            final loc = Provider.of<LocalizationService>(context);
+                            final loc =
+                                Provider.of<LocalizationService>(context);
                             return TextFormField(
                               controller: passwordController,
                               decoration: InputDecoration(
                                 labelText: loc.getString('password_label'),
-                                prefixIcon: Icon(Icons.lock, color: scheme.primary),
+                                prefixIcon:
+                                    Icon(Icons.lock, color: scheme.primary),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(color: scheme.primary, width: 2),
+                                  borderSide: BorderSide(
+                                      color: scheme.primary, width: 2),
                                 ),
                                 suffixIcon: IconButton(
                                   tooltip: _obscurePassword
                                       ? loc.getString('show_password')
                                       : loc.getString('hide_password'),
                                   icon: Icon(
-                                    _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                                    _obscurePassword
+                                        ? Icons.visibility
+                                        : Icons.visibility_off,
                                     color: scheme.primary,
                                   ),
                                   onPressed: () {
@@ -877,8 +1183,12 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                               obscureText: _obscurePassword,
                               validator: (v) {
                                 final value = v?.trim() ?? '';
-                                if (value.isEmpty) return loc.getString('password_required');
-                                if (value.length < 4) return loc.getString('password_min_length');
+                                if (value.isEmpty) {
+                                  return loc.getString('password_required');
+                                }
+                                if (value.length < 4) {
+                                  return loc.getString('password_min_length');
+                                }
                                 return null;
                               },
                             );
@@ -893,16 +1203,19 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                             ),
                             Builder(
                               builder: (context) {
-                                final loc = Provider.of<LocalizationService>(context);
+                                final loc =
+                                    Provider.of<LocalizationService>(context);
                                 return Text(loc.getString('remember_me'));
                               },
                             ),
                             const Spacer(),
                             Builder(
                               builder: (context) {
-                                final loc = Provider.of<LocalizationService>(context);
+                                final loc =
+                                    Provider.of<LocalizationService>(context);
                                 return TextButton(
-                                  onPressed: _isLoading ? null : _forgotPasswordFlow,
+                                  onPressed:
+                                      _isLoading ? null : _forgotPasswordFlow,
                                   child: Text(
                                     loc.getString('forgot_password'),
                                     style: TextStyle(
@@ -916,18 +1229,20 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                           ],
                         ),
                         const SizedBox(height: 12),
-                        
+
                         // Test bilgisi
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
                             color: scheme.primary.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: scheme.primary.withValues(alpha: 0.4)),
+                            border: Border.all(
+                                color: scheme.primary.withValues(alpha: 0.4)),
                           ),
                           child: Builder(
                             builder: (context) {
-                              final loc = Provider.of<LocalizationService>(context);
+                              final loc =
+                                  Provider.of<LocalizationService>(context);
                               return Text(
                                 loc.getString('test_credentials_hint'),
                                 style: TextStyle(
@@ -939,9 +1254,9 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                             },
                           ),
                         ),
-                        
+
                         const SizedBox(height: 16),
-                        
+
                         // Giriş Yap Butonları
                         Row(
                           children: [
@@ -958,13 +1273,16 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                                     ),
                                     elevation: 2,
                                   ),
-                                  child: _isLoading 
+                                  child: _isLoading
                                       ? const CircularProgressIndicator(
-                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                  Colors.white),
                                         )
                                       : Builder(
                                           builder: (context) {
-                                            final loc = Provider.of<LocalizationService>(context);
+                                            final loc = Provider.of<
+                                                LocalizationService>(context);
                                             return Text(
                                               loc.getString('login'),
                                               style: const TextStyle(
@@ -992,8 +1310,11 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                                   ),
                                   child: Builder(
                                     builder: (context) {
-                                      final loc = Provider.of<LocalizationService>(context);
-                                      return Text(loc.getString('login_with_otp'));
+                                      final loc =
+                                          Provider.of<LocalizationService>(
+                                              context);
+                                      return Text(
+                                          loc.getString('login_with_otp'));
                                     },
                                   ),
                                 ),
@@ -1005,9 +1326,9 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Bottom help text area can be expanded later if needed
               ],
             ),

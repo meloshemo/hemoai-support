@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/localization_service.dart';
 
@@ -32,7 +32,7 @@ class OnboardingWelcomeScreen extends StatelessWidget {
                     Text(
                       loc.getString('onboarding_welcome_subtitle'),
                       style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.textTheme.bodyLarge?.color?.withOpacity(0.8),
+                        color: theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.8),
                       ),
                     ),
                   ],
@@ -66,3 +66,4 @@ class OnboardingWelcomeScreen extends StatelessWidget {
     );
   }
 }
+

@@ -1,3 +1,4 @@
+// ignore_for_file: use_build_context_synchronously
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -10,6 +11,7 @@ import '../services/web_database_helper.dart';
 import '../services/preferences_service.dart';
 import '../services/push_notification_service.dart' as ps;
 import '../services/database_helper.dart';
+import '../utils/async_context_guard.dart';
 
 class ReminderListScreen extends StatefulWidget {
   const ReminderListScreen({super.key});
@@ -38,10 +40,7 @@ class _ReminderListScreenState extends State<ReminderListScreen>
   }
 
   Future<void> _loadReminders() async {
-    setState(() {
-      _isLoading = true;
-    });
-
+    setState(() => _isLoading = true);
     try {
       final notificationService =
           Provider.of<ns.NotificationService>(context, listen: false);
@@ -50,9 +49,7 @@ class _ReminderListScreenState extends State<ReminderListScreen>
         _isLoading = false;
       });
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
   }
 
@@ -309,16 +306,26 @@ class _ReminderListScreenState extends State<ReminderListScreen>
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: () async {
-                              Navigator.pop(context);
-                              await _snoozeReminder(
-                                  reminder, const Duration(minutes: 10));
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: Text(
-                                        Provider.of<LocalizationService>(
-                                                context,
-                                                listen: false)
-                                            .getString('snoozed_for_10'))),
+                              await AsyncContextGuard.run(
+                                state: this,
+                                operation: (guard) async {
+                                  Navigator.pop(guard.context);
+                                  await _snoozeReminder(
+                                      reminder, const Duration(minutes: 10));
+                                  if (!guard.mounted) return;
+                                  final messenger =
+                                      ScaffoldMessenger.of(guard.context);
+                                  final loc = Provider.of<LocalizationService>(
+                                      guard.context,
+                                      listen: false);
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        loc.getString('snoozed_for_10'),
+                                      ),
+                                    ),
+                                  );
+                                },
                               );
                             },
                             icon: const Icon(Icons.snooze, size: 18),
@@ -335,16 +342,26 @@ class _ReminderListScreenState extends State<ReminderListScreen>
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: () async {
-                              Navigator.pop(context);
-                              await _snoozeReminder(
-                                  reminder, const Duration(minutes: 30));
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: Text(
-                                        Provider.of<LocalizationService>(
-                                                context,
-                                                listen: false)
-                                            .getString('snoozed_for_30'))),
+                              await AsyncContextGuard.run(
+                                state: this,
+                                operation: (guard) async {
+                                  Navigator.pop(guard.context);
+                                  await _snoozeReminder(
+                                      reminder, const Duration(minutes: 30));
+                                  if (!guard.mounted) return;
+                                  final messenger =
+                                      ScaffoldMessenger.of(guard.context);
+                                  final loc = Provider.of<LocalizationService>(
+                                      guard.context,
+                                      listen: false);
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        loc.getString('snoozed_for_30'),
+                                      ),
+                                    ),
+                                  );
+                                },
                               );
                             },
                             icon: const Icon(Icons.snooze, size: 18),
@@ -361,15 +378,25 @@ class _ReminderListScreenState extends State<ReminderListScreen>
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: () async {
-                              Navigator.pop(context);
-                              await _dismissReminderForToday(reminder);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: Text(
-                                        Provider.of<LocalizationService>(
-                                                context,
-                                                listen: false)
-                                            .getString('dismissed_for_today'))),
+                              await AsyncContextGuard.run(
+                                state: this,
+                                operation: (guard) async {
+                                  Navigator.pop(guard.context);
+                                  await _dismissReminderForToday(reminder);
+                                  if (!guard.mounted) return;
+                                  final messenger =
+                                      ScaffoldMessenger.of(guard.context);
+                                  final loc = Provider.of<LocalizationService>(
+                                      guard.context,
+                                      listen: false);
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        loc.getString('dismissed_for_today'),
+                                      ),
+                                    ),
+                                  );
+                                },
                               );
                             },
                             icon: const Icon(Icons.close, size: 18),
@@ -438,384 +465,407 @@ class _ReminderListScreenState extends State<ReminderListScreen>
   }
 
   Future<void> _markAsDone(ns.NotificationItem reminder) async {
-    try {
-      if (reminder.id == null) return;
-      final prefs = await PreferencesService.getInstance();
-      final userId = prefs.getCurrentUserId();
-      final db = DatabaseHelper.instance;
-      // Update streaks
-      final streak = await db.getReminderStreak(reminder.id!, userId: userId);
-      final last = streak['last_completed_date'] as String?;
-      final today = DateTime.now().toIso8601String().split('T')[0];
-      int current = (streak['current_streak'] as int? ?? 0);
-      int longest = (streak['longest_streak'] as int? ?? 0);
-      if (last == null) {
-        current = 1;
-      } else {
-        // if last was yesterday -> +1; if today -> keep; else reset to 1
-        final yesterday = DateTime.now()
-            .subtract(const Duration(days: 1))
-            .toIso8601String()
-            .split('T')[0];
-        if (last == today) {
-          // already counted
-        } else if (last == yesterday) {
-          current = current + 1;
-        } else {
-          current = 1;
-        }
-      }
-      if (current > longest) longest = current;
-      await db.upsertReminderStreak(
-        reminderId: reminder.id!,
-        userId: userId,
-        currentStreak: current,
-        longestStreak: longest,
-        lastCompletedDate: today,
-      );
+    await AsyncContextGuard.run(
+      state: this,
+      operation: (guard) async {
+        try {
+          if (reminder.id == null) return;
+          final prefs = await PreferencesService.getInstance();
+          final userId = prefs.getCurrentUserId();
+          final db = DatabaseHelper.instance;
+          // Update streaks
+          final streak =
+              await db.getReminderStreak(reminder.id!, userId: userId);
+          final last = streak['last_completed_date'] as String?;
+          final today = DateTime.now().toIso8601String().split('T')[0];
+          int current = (streak['current_streak'] as int? ?? 0);
+          int longest = (streak['longest_streak'] as int? ?? 0);
+          if (last == null) {
+            current = 1;
+          } else {
+            final yesterday = DateTime.now()
+                .subtract(const Duration(days: 1))
+                .toIso8601String()
+                .split('T')[0];
+            if (last == today) {
+              // already counted
+            } else if (last == yesterday) {
+              current = current + 1;
+            } else {
+              current = 1;
+            }
+          }
+          if (current > longest) longest = current;
+          await db.upsertReminderStreak(
+            reminderId: reminder.id!,
+            userId: userId,
+            currentStreak: current,
+            longestStreak: longest,
+            lastCompletedDate: today,
+          );
 
-      // Log action
-      await db.insertReminderLog(
-        reminderId: reminder.id!,
-        userId: userId,
-        action: 'done',
-        actionDate: DateTime.now(),
-        scheduledTime: reminder.scheduledTime,
-      );
+          // Log action
+          await db.insertReminderLog(
+            reminderId: reminder.id!,
+            userId: userId,
+            action: 'done',
+            actionDate: DateTime.now(),
+            scheduledTime: reminder.scheduledTime,
+          );
 
-      // Reschedule next occurrence if repeating; otherwise deactivate
-      final notificationService =
-          Provider.of<ns.NotificationService>(context, listen: false);
-      DateTime? next;
-      switch (reminder.repeatType) {
-        case ns.RepeatType.none:
-          await notificationService.toggleNotification(reminder.id!);
-          break;
-        case ns.RepeatType.daily:
-          next = reminder.scheduledTime.add(const Duration(days: 1));
-          break;
-        case ns.RepeatType.weekly:
-          next = reminder.scheduledTime.add(const Duration(days: 7));
-          break;
-        case ns.RepeatType.monthly:
-          next = DateTime(
-              reminder.scheduledTime.year,
-              reminder.scheduledTime.month + 1,
-              reminder.scheduledTime.day,
-              reminder.scheduledTime.hour,
-              reminder.scheduledTime.minute);
-          break;
-      }
-      if (next != null) {
-        await notificationService.updateScheduledTime(reminder.id!, next);
-        // Also push-notification mapping
-        final push =
-            Provider.of<ps.PushNotificationService>(context, listen: false);
-        String repeatStr = 'none';
-        switch (reminder.repeatType) {
-          case ns.RepeatType.daily:
-            repeatStr = 'daily';
-            break;
-          case ns.RepeatType.weekly:
-            repeatStr = 'weekly';
-            break;
-          case ns.RepeatType.monthly:
-            repeatStr = 'monthly';
-            break;
-          case ns.RepeatType.none:
-            repeatStr = 'none';
-            break;
+          // Reschedule next occurrence if repeating; otherwise deactivate
+          final notificationService =
+              Provider.of<ns.NotificationService>(guard.context, listen: false);
+          DateTime? next;
+          switch (reminder.repeatType) {
+            case ns.RepeatType.none:
+              await notificationService.toggleNotification(reminder.id!);
+              break;
+            case ns.RepeatType.daily:
+              next = reminder.scheduledTime.add(const Duration(days: 1));
+              break;
+            case ns.RepeatType.weekly:
+              next = reminder.scheduledTime.add(const Duration(days: 7));
+              break;
+            case ns.RepeatType.monthly:
+              next = DateTime(
+                  reminder.scheduledTime.year,
+                  reminder.scheduledTime.month + 1,
+                  reminder.scheduledTime.day,
+                  reminder.scheduledTime.hour,
+                  reminder.scheduledTime.minute);
+              break;
+          }
+          if (next != null) {
+            await notificationService.updateScheduledTime(reminder.id!, next);
+            final push = Provider.of<ps.PushNotificationService>(guard.context,
+                listen: false);
+            String repeatStr = 'none';
+            switch (reminder.repeatType) {
+              case ns.RepeatType.daily:
+                repeatStr = 'daily';
+                break;
+              case ns.RepeatType.weekly:
+                repeatStr = 'weekly';
+                break;
+              case ns.RepeatType.monthly:
+                repeatStr = 'monthly';
+                break;
+              case ns.RepeatType.none:
+                repeatStr = 'none';
+                break;
+            }
+            await push.scheduleNotification(
+              title: reminder.title,
+              body: reminder.description,
+              scheduledTime: next,
+              type: _mapReminderTypeToPush(reminder.type),
+              data: {
+                'repeat': repeatStr,
+                'hour': next.hour,
+                'minute': next.minute,
+                'reminder_id': reminder.id,
+                'source': 'mark_done',
+              },
+            );
+          }
+          AuditLogService()
+              .logAction('reminder_mark_done', data: {'id': reminder.id});
+          if (!guard.mounted) return;
+          _loadReminders();
+        } catch (e) {
+          if (!guard.mounted) return;
+          final loc =
+              Provider.of<LocalizationService>(guard.context, listen: false);
+          ScaffoldMessenger.of(guard.context).showSnackBar(
+            SnackBar(
+                content:
+                    Text('${loc.getString('error_prefix')}${e.toString()}')),
+          );
         }
-        await push.scheduleNotification(
-          title: reminder.title,
-          body: reminder.description,
-          scheduledTime: next,
-          type: _mapReminderTypeToPush(reminder.type),
-          data: {
-            'repeat': repeatStr,
-            'hour': next.hour,
-            'minute': next.minute,
-            'reminder_id': reminder.id,
-            'source': 'mark_done',
-          },
-        );
-      }
-      AuditLogService()
-          .logAction('reminder_mark_done', data: {'id': reminder.id});
-      if (!mounted) return;
-      _loadReminders();
-    } catch (e) {
-      if (!mounted) return;
-      final loc = Provider.of<LocalizationService>(context, listen: false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('${loc.getString('error_prefix')}${e.toString()}')),
-      );
-    }
+      },
+    );
   }
 
   Future<void> _dismissReminderForToday(ns.NotificationItem reminder) async {
-    try {
-      if (reminder.id == null) return;
-      final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
-      final tomorrow = today.add(const Duration(days: 1));
+    await AsyncContextGuard.run(
+      state: this,
+      operation: (guard) async {
+        try {
+          if (reminder.id == null) return;
+          final now = DateTime.now();
+          final today = DateTime(now.year, now.month, now.day);
+          final tomorrow = today.add(const Duration(days: 1));
 
-      final prefs = await PreferencesService.getInstance();
-      final userId = prefs.getCurrentUserId();
-      final db = DatabaseHelper.instance;
-      final notificationService =
-          Provider.of<ns.NotificationService>(context, listen: false);
+          final prefs = await PreferencesService.getInstance();
+          final userId = prefs.getCurrentUserId();
+          final db = DatabaseHelper.instance;
+          final notificationService =
+              Provider.of<ns.NotificationService>(guard.context, listen: false);
 
-      // Log the dismiss action
-      await db.insertReminderLog(
-        reminderId: reminder.id!,
-        userId: userId,
-        action: 'dismiss_today',
-        actionDate: now,
-        scheduledTime: null,
-        metadata: jsonEncode({'dismissed_date': today.toIso8601String()}),
-      );
+          await db.insertReminderLog(
+            reminderId: reminder.id!,
+            userId: userId,
+            action: 'dismiss_today',
+            actionDate: now,
+            scheduledTime: null,
+            metadata: jsonEncode({'dismissed_date': today.toIso8601String()}),
+          );
 
-      // If repeating, reschedule for tomorrow
-      if (reminder.repeatType != ns.RepeatType.none) {
-        DateTime? next;
-        switch (reminder.repeatType) {
-          case ns.RepeatType.daily:
-            next = DateTime(tomorrow.year, tomorrow.month, tomorrow.day,
-                reminder.scheduledTime.hour, reminder.scheduledTime.minute);
-            break;
-          case ns.RepeatType.weekly:
-            next = reminder.scheduledTime.add(const Duration(days: 7));
-            if (next.isBefore(tomorrow)) {
-              next = next.add(const Duration(days: 7));
+          if (reminder.repeatType != ns.RepeatType.none) {
+            DateTime? next;
+            switch (reminder.repeatType) {
+              case ns.RepeatType.daily:
+                next = DateTime(tomorrow.year, tomorrow.month, tomorrow.day,
+                    reminder.scheduledTime.hour, reminder.scheduledTime.minute);
+                break;
+              case ns.RepeatType.weekly:
+                next = reminder.scheduledTime.add(const Duration(days: 7));
+                if (next.isBefore(tomorrow)) {
+                  next = next.add(const Duration(days: 7));
+                }
+                break;
+              case ns.RepeatType.monthly:
+                next = DateTime(
+                    tomorrow.year,
+                    tomorrow.month + 1,
+                    reminder.scheduledTime.day,
+                    reminder.scheduledTime.hour,
+                    reminder.scheduledTime.minute);
+                break;
+              case ns.RepeatType.none:
+                break;
             }
-            break;
-          case ns.RepeatType.monthly:
-            next = DateTime(
-                tomorrow.year,
-                tomorrow.month + 1,
-                reminder.scheduledTime.day,
-                reminder.scheduledTime.hour,
-                reminder.scheduledTime.minute);
-            break;
-          case ns.RepeatType.none:
-            break;
-        }
 
-        if (next != null) {
-          await notificationService.updateScheduledTime(reminder.id!, next);
-          // Also update push notification
-          final push =
-              Provider.of<ps.PushNotificationService>(context, listen: false);
-          String repeatStr = 'none';
-          switch (reminder.repeatType) {
-            case ns.RepeatType.daily:
-              repeatStr = 'daily';
-              break;
-            case ns.RepeatType.weekly:
-              repeatStr = 'weekly';
-              break;
-            case ns.RepeatType.monthly:
-              repeatStr = 'monthly';
-              break;
-            case ns.RepeatType.none:
-              repeatStr = 'none';
-              break;
+            if (next != null) {
+              await notificationService.updateScheduledTime(reminder.id!, next);
+              final push = Provider.of<ps.PushNotificationService>(
+                  guard.context,
+                  listen: false);
+              String repeatStr = 'none';
+              switch (reminder.repeatType) {
+                case ns.RepeatType.daily:
+                  repeatStr = 'daily';
+                  break;
+                case ns.RepeatType.weekly:
+                  repeatStr = 'weekly';
+                  break;
+                case ns.RepeatType.monthly:
+                  repeatStr = 'monthly';
+                  break;
+                case ns.RepeatType.none:
+                  repeatStr = 'none';
+                  break;
+              }
+              await push.scheduleNotification(
+                title: reminder.title,
+                body: reminder.description,
+                scheduledTime: next,
+                type: _mapReminderTypeToPush(reminder.type),
+                data: {
+                  'repeat': repeatStr,
+                  'hour': next.hour,
+                  'minute': next.minute,
+                  'reminder_id': reminder.id,
+                  'dismissed_today': true,
+                  'dismissed_date': today.toIso8601String(),
+                  'source': 'dismiss_today',
+                },
+              );
+            }
+          } else {
+            final next = DateTime(tomorrow.year, tomorrow.month, tomorrow.day,
+                reminder.scheduledTime.hour, reminder.scheduledTime.minute);
+            await notificationService.updateScheduledTime(reminder.id!, next);
+            final push = Provider.of<ps.PushNotificationService>(guard.context,
+                listen: false);
+            await push.cancelSchedulesForReminder(reminder.id!);
           }
-          await push.scheduleNotification(
-            title: reminder.title,
-            body: reminder.description,
-            scheduledTime: next,
-            type: _mapReminderTypeToPush(reminder.type),
-            data: {
-              'repeat': repeatStr,
-              'hour': next.hour,
-              'minute': next.minute,
-              'reminder_id': reminder.id,
-              'dismissed_today': true,
-              'dismissed_date': today.toIso8601String(),
-              'source': 'dismiss_today',
-            },
+
+          AuditLogService()
+              .logAction('reminder_dismiss_today', data: {'id': reminder.id});
+          if (!guard.mounted) return;
+          _loadReminders();
+        } catch (e) {
+          if (!guard.mounted) return;
+          final loc =
+              Provider.of<LocalizationService>(guard.context, listen: false);
+          ScaffoldMessenger.of(guard.context).showSnackBar(
+            SnackBar(
+              content: Text('${loc.getString('error_prefix')}${e.toString()}'),
+            ),
           );
         }
-      } else {
-        // Non-repeating: just deactivate for today by updating to tomorrow
-        final next = DateTime(tomorrow.year, tomorrow.month, tomorrow.day,
-            reminder.scheduledTime.hour, reminder.scheduledTime.minute);
-        await notificationService.updateScheduledTime(reminder.id!, next);
-        // Cancel any push notifications for today
-        final push =
-            Provider.of<ps.PushNotificationService>(context, listen: false);
-        await push.cancelSchedulesForReminder(reminder.id!);
-      }
-
-      AuditLogService()
-          .logAction('reminder_dismiss_today', data: {'id': reminder.id});
-      if (!mounted) return;
-      _loadReminders();
-    } catch (e) {
-      if (!mounted) return;
-      final loc = Provider.of<LocalizationService>(context, listen: false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('${loc.getString('error_prefix')}${e.toString()}')),
-      );
-    }
+      },
+    );
   }
 
   Future<void> _snoozeReminder(
       ns.NotificationItem reminder, Duration delay) async {
-    try {
-      if (reminder.id == null) return;
-      final prefs = await PreferencesService.getInstance();
-      final userId = prefs.getCurrentUserId();
-      final db = DatabaseHelper.instance;
-      final newTime = DateTime.now().add(delay);
-      // Update schedule in local service
-      final notificationService =
-          Provider.of<ns.NotificationService>(context, listen: false);
-      await notificationService.updateScheduledTime(reminder.id!, newTime);
-      // Log action
-      await db.insertReminderLog(
-        reminderId: reminder.id!,
-        userId: userId,
-        action: 'snooze',
-        actionDate: DateTime.now(),
-        scheduledTime: newTime,
-        metadata: 'minutes=${delay.inMinutes}',
-      );
-      // Push layer schedule one-off (no repeat)
-      final push =
-          Provider.of<ps.PushNotificationService>(context, listen: false);
-      await push.scheduleNotification(
-        title: reminder.title,
-        body: reminder.description,
-        scheduledTime: newTime,
-        type: _mapReminderTypeToPush(reminder.type),
-        data: {
-          'repeat': 'none',
-          'hour': newTime.hour,
-          'minute': newTime.minute,
-          'reminder_id': reminder.id,
-          'source': 'snooze_10m',
-        },
-      );
-      AuditLogService().logAction('reminder_snoozed',
-          data: {'id': reminder.id, 'minutes': delay.inMinutes});
-      if (!mounted) return;
-      _loadReminders();
-    } catch (e) {
-      if (!mounted) return;
-      final loc = Provider.of<LocalizationService>(context, listen: false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('${loc.getString('error_prefix')}${e.toString()}')),
-      );
-    }
-  }
-
-  Future<void> _toggleReminder(ns.NotificationItem reminder) async {
-    try {
-      final notificationService =
-          Provider.of<ns.NotificationService>(context, listen: false);
-      final push =
-          Provider.of<ps.PushNotificationService>(context, listen: false);
-      if (reminder.id != null) {
-        await notificationService.toggleNotification(reminder.id!);
-        // Persist to DB if logged in
-        final prefs = await PreferencesService.getInstance();
-        final userId = prefs.getCurrentUserId();
-        if (userId != null) {
-          await WebDatabaseHelper.instance
-              .updateReminderStatus(userId, reminder.id!, !reminder.isActive);
-        }
-        // Cancel or schedule based on new active state
-        if (reminder.isActive) {
-          // It was active, now will be inactive -> cancel schedules
-          await push.cancelSchedulesForReminder(reminder.id!);
-        } else {
-          // It was inactive, now will be active -> schedule
-          final dt = reminder.scheduledTime;
-          String repeatStr = 'none';
-          switch (reminder.repeatType) {
-            case ns.RepeatType.daily:
-              repeatStr = 'daily';
-              break;
-            case ns.RepeatType.weekly:
-              repeatStr = 'weekly';
-              break;
-            case ns.RepeatType.monthly:
-              repeatStr = 'monthly';
-              break;
-            case ns.RepeatType.none:
-              repeatStr = 'none';
-              break;
-          }
+    await AsyncContextGuard.run(
+      state: this,
+      operation: (guard) async {
+        try {
+          if (reminder.id == null) return;
+          final prefs = await PreferencesService.getInstance();
+          final userId = prefs.getCurrentUserId();
+          final db = DatabaseHelper.instance;
+          final newTime = DateTime.now().add(delay);
+          final notificationService =
+              Provider.of<ns.NotificationService>(guard.context, listen: false);
+          await notificationService.updateScheduledTime(reminder.id!, newTime);
+          await db.insertReminderLog(
+            reminderId: reminder.id!,
+            userId: userId,
+            action: 'snooze',
+            actionDate: DateTime.now(),
+            scheduledTime: newTime,
+            metadata: 'minutes=${delay.inMinutes}',
+          );
+          final push = Provider.of<ps.PushNotificationService>(guard.context,
+              listen: false);
           await push.scheduleNotification(
             title: reminder.title,
             body: reminder.description,
-            scheduledTime: dt,
+            scheduledTime: newTime,
             type: _mapReminderTypeToPush(reminder.type),
             data: {
-              'repeat': repeatStr,
-              'hour': dt.hour,
-              'minute': dt.minute,
+              'repeat': 'none',
+              'hour': newTime.hour,
+              'minute': newTime.minute,
               'reminder_id': reminder.id,
-              'source': 'toggle_on',
+              'source': 'snooze_10m',
             },
           );
+          AuditLogService().logAction('reminder_snoozed',
+              data: {'id': reminder.id, 'minutes': delay.inMinutes});
+          if (!guard.mounted) return;
+          _loadReminders();
+        } catch (e) {
+          if (!guard.mounted) return;
+          final loc =
+              Provider.of<LocalizationService>(guard.context, listen: false);
+          ScaffoldMessenger.of(guard.context).showSnackBar(
+            SnackBar(
+              content: Text('${loc.getString('error_prefix')}${e.toString()}'),
+            ),
+          );
         }
-        AuditLogService().logAction('reminder_toggled', data: {
-          'id': reminder.id,
-          'active': !reminder.isActive,
-        });
-        if (!mounted) return;
-        _loadReminders();
-      }
-    } catch (e) {
-      if (!mounted) return;
-      final loc = Provider.of<LocalizationService>(context, listen: false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('${loc.getString('error_prefix')}${e.toString()}')),
-      );
-    }
+      },
+    );
+  }
+
+  Future<void> _toggleReminder(ns.NotificationItem reminder) async {
+    await AsyncContextGuard.run(
+      state: this,
+      operation: (guard) async {
+        try {
+          final notificationService =
+              Provider.of<ns.NotificationService>(guard.context, listen: false);
+          final push = Provider.of<ps.PushNotificationService>(guard.context,
+              listen: false);
+          if (reminder.id != null) {
+            await notificationService.toggleNotification(reminder.id!);
+            final prefs = await PreferencesService.getInstance();
+            final userId = prefs.getCurrentUserId();
+            if (userId != null) {
+              await WebDatabaseHelper.instance.updateReminderStatus(
+                  userId, reminder.id!, !reminder.isActive);
+            }
+            if (reminder.isActive) {
+              await push.cancelSchedulesForReminder(reminder.id!);
+            } else {
+              final dt = reminder.scheduledTime;
+              String repeatStr = 'none';
+              switch (reminder.repeatType) {
+                case ns.RepeatType.daily:
+                  repeatStr = 'daily';
+                  break;
+                case ns.RepeatType.weekly:
+                  repeatStr = 'weekly';
+                  break;
+                case ns.RepeatType.monthly:
+                  repeatStr = 'monthly';
+                  break;
+                case ns.RepeatType.none:
+                  repeatStr = 'none';
+                  break;
+              }
+              await push.scheduleNotification(
+                title: reminder.title,
+                body: reminder.description,
+                scheduledTime: dt,
+                type: _mapReminderTypeToPush(reminder.type),
+                data: {
+                  'repeat': repeatStr,
+                  'hour': dt.hour,
+                  'minute': dt.minute,
+                  'reminder_id': reminder.id,
+                  'source': 'toggle_on',
+                },
+              );
+            }
+            AuditLogService().logAction('reminder_toggled', data: {
+              'id': reminder.id,
+              'active': !reminder.isActive,
+            });
+            if (!guard.mounted) return;
+            _loadReminders();
+          }
+        } catch (e) {
+          if (!guard.mounted) return;
+          final loc =
+              Provider.of<LocalizationService>(guard.context, listen: false);
+          ScaffoldMessenger.of(guard.context).showSnackBar(
+            SnackBar(
+              content: Text('${loc.getString('error_prefix')}${e.toString()}'),
+            ),
+          );
+        }
+      },
+    );
   }
 
   Future<void> _deleteReminder(ns.NotificationItem reminder) async {
-    try {
-      final notificationService =
-          Provider.of<ns.NotificationService>(context, listen: false);
-      final push =
-          Provider.of<ps.PushNotificationService>(context, listen: false);
-      if (reminder.id != null) {
-        await notificationService.removeNotification(reminder.id!);
-        // Persist deletion if logged in
-        final prefs = await PreferencesService.getInstance();
-        final userId = prefs.getCurrentUserId();
-        if (userId != null) {
-          await WebDatabaseHelper.instance.deleteReminder(userId, reminder.id!);
+    await AsyncContextGuard.run(
+      state: this,
+      operation: (guard) async {
+        try {
+          final notificationService =
+              Provider.of<ns.NotificationService>(guard.context, listen: false);
+          final push = Provider.of<ps.PushNotificationService>(guard.context,
+              listen: false);
+          if (reminder.id != null) {
+            await notificationService.removeNotification(reminder.id!);
+            final prefs = await PreferencesService.getInstance();
+            final userId = prefs.getCurrentUserId();
+            if (userId != null) {
+              await WebDatabaseHelper.instance
+                  .deleteReminder(userId, reminder.id!);
+            }
+            await push.cancelSchedulesForReminder(reminder.id!);
+            AuditLogService()
+                .logAction('reminder_deleted', data: {'id': reminder.id});
+            if (!guard.mounted) return;
+            _loadReminders();
+            final loc =
+                Provider.of<LocalizationService>(guard.context, listen: false);
+            ScaffoldMessenger.of(guard.context).showSnackBar(
+              SnackBar(content: Text(loc.getString('reminder_deleted'))),
+            );
+          }
+        } catch (e) {
+          if (!guard.mounted) return;
+          final loc =
+              Provider.of<LocalizationService>(guard.context, listen: false);
+          ScaffoldMessenger.of(guard.context).showSnackBar(
+            SnackBar(
+              content: Text('${loc.getString('error_prefix')}${e.toString()}'),
+            ),
+          );
         }
-        // Cancel any scheduled notifications for this reminder
-        await push.cancelSchedulesForReminder(reminder.id!);
-        AuditLogService()
-            .logAction('reminder_deleted', data: {'id': reminder.id});
-        if (!mounted) return;
-        _loadReminders();
-        final loc = Provider.of<LocalizationService>(context, listen: false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(loc.getString('reminder_deleted'))),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      final loc = Provider.of<LocalizationService>(context, listen: false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('${loc.getString('error_prefix')}${e.toString()}')),
-      );
-    }
+      },
+    );
   }
 
   // Map local NotificationType to PushNotificationService.NotificationType
@@ -887,7 +937,7 @@ class _ReminderListScreenState extends State<ReminderListScreen>
                             color: Theme.of(context)
                                 .colorScheme
                                 .onSurface
-                                .withValues(alpha: 0.75),
+                                .withValues(alpha: 0.88),
                             fontSize: 14,
                           ),
                       maxLines: 2,
@@ -904,7 +954,7 @@ class _ReminderListScreenState extends State<ReminderListScreen>
                               : Theme.of(context)
                                   .colorScheme
                                   .onSurface
-                                  .withValues(alpha: 0.75),
+                                  .withValues(alpha: 0.88),
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -916,7 +966,7 @@ class _ReminderListScreenState extends State<ReminderListScreen>
                                 : Theme.of(context)
                                     .colorScheme
                                     .onSurface
-                                    .withValues(alpha: 0.75),
+                                    .withValues(alpha: 0.88),
                             fontWeight:
                                 isOverdue ? FontWeight.w600 : FontWeight.normal,
                           ),
@@ -927,8 +977,9 @@ class _ReminderListScreenState extends State<ReminderListScreen>
                               reminder.id ?? -1,
                               userId: PreferencesService().getCurrentUserId()),
                           builder: (context, snapshot) {
-                            if (!snapshot.hasData)
+                            if (!snapshot.hasData) {
                               return const SizedBox.shrink();
+                            }
                             final data = snapshot.data!;
                             final current =
                                 (data['current_streak'] as int? ?? 0);
@@ -1064,14 +1115,15 @@ class _ReminderListScreenState extends State<ReminderListScreen>
           indicatorColor: scheme.primary,
           labelColor: scheme.primary,
           unselectedLabelColor:
-              theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              theme.colorScheme.onSurface.withValues(alpha: 0.85),
           tabs: [
             Tab(
               text: Provider.of<LocalizationService>(context)
                   .getString('reminder_tab_upcoming'),
               icon: Badge(
                 label: Text(_upcomingReminders.length.toString()),
-                child: const Icon(Icons.upcoming),
+                isLabelVisible: _upcomingReminders.isNotEmpty,
+                child: const Icon(Icons.schedule, size: 20),
               ),
             ),
             Tab(
@@ -1079,7 +1131,9 @@ class _ReminderListScreenState extends State<ReminderListScreen>
                   .getString('reminder_tab_overdue'),
               icon: Badge(
                 label: Text(_overdueReminders.length.toString()),
-                child: const Icon(Icons.warning),
+                isLabelVisible: _overdueReminders.isNotEmpty,
+                backgroundColor: scheme.error,
+                child: const Icon(Icons.warning, size: 20),
               ),
             ),
             Tab(
@@ -1087,7 +1141,8 @@ class _ReminderListScreenState extends State<ReminderListScreen>
                   .getString('reminder_tab_completed'),
               icon: Badge(
                 label: Text(_completedReminders.length.toString()),
-                child: const Icon(Icons.check_circle),
+                isLabelVisible: _completedReminders.isNotEmpty,
+                child: const Icon(Icons.check_circle, size: 20),
               ),
             ),
           ],
@@ -1141,7 +1196,7 @@ class _ReminderListScreenState extends State<ReminderListScreen>
                       ),
               ],
             ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Navigator.push(
             context,
@@ -1150,7 +1205,11 @@ class _ReminderListScreenState extends State<ReminderListScreen>
             ),
           ).then((_) => _loadReminders());
         },
-        child: const Icon(Icons.add),
+        icon: const Icon(Icons.add),
+        label: Text(
+          Provider.of<LocalizationService>(context, listen: false)
+              .getString('add_reminder'),
+        ),
       ),
     );
   }

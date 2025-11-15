@@ -1,0 +1,77 @@
+name: Flutter CI
+
+on:
+  push:
+    branches: [ main, os4-dev ]
+  pull_request:
+    branches: [ main, os4-dev ]
+
+jobs:
+  analyze_and_test:
+    name: Analyze, Lint, Test (Dart/Flutter)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.5'
+      - name: Flutter pub get
+        run: flutter pub get
+      - name: Localization validation
+        run: dart run tool/validate_localization.dart
+      - name: Flutter analyze
+        run: flutter analyze
+      - name: Flutter unit/widget tests
+        run: flutter test
+      - name: Dart Code Metrics (lib + test)
+        run: |
+          dart pub global activate dart_code_metrics
+          dart pub global run dart_code_metrics:metrics analyze lib test \
+            --reporter=github \
+            --fatal-style \
+            --fatal-performance \
+            --fatal-warnings
+
+  web_a11y:
+    name: Web build + Accessibility scan (Pa11y)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.5'
+      - name: Build Flutter web (release)
+        run: flutter build web --release
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install CLI tools
+        run: npm i -g http-server pa11y-ci
+      - name: Serve web app (8081)
+        run: nohup http-server build/web -p 8081 &
+      - name: Pa11y scan (multi-routes)
+        run: pa11y-ci -c .pa11yci.json
+
+  android_integration:
+    name: Android emulator + integration_test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.5'
+      - name: Flutter pub get
+        run: flutter pub get
+      - name: Start Android emulator and run integration tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: |
+            adb devices
+            flutter devices
+            flutter test integration_test

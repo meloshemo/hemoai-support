@@ -7,6 +7,7 @@
 /// 
 /// Security Note: Never commit API keys to version control.
 /// Use environment variables or secure configuration management.
+library;
 
 class EmailConfig {
   // Configure via --dart-define at build/run time to avoid hardcoding secrets

@@ -1,0 +1,16 @@
+repos:
+  - repo: local
+    hooks:
+      - id: hemoai-secret-scan
+        name: Prevent committing secrets and plaintext env files
+        entry: bash tool/hooks/check_secrets.sh
+        language: system
+        pass_filenames: false
+        stages: [commit]
+      - id: hemoai-pii-scan
+        name: Prevent committing PII / health dumps
+        entry: bash tool/hooks/check_pii.sh
+        language: system
+        pass_filenames: true
+        stages: [commit]
+

@@ -154,8 +154,8 @@ class ScrollToTopButton extends StatelessWidget {
           curve: curve,
         );
       },
-      child: const Icon(Icons.arrow_upward),
       tooltip: loc.getString('scroll_to_top'),
+      child: const Icon(Icons.arrow_upward),
     );
   }
 }

@@ -1,6 +1,94 @@
 /// AI-powered diet menu service that generates rich, varied, personalized meal plans
 /// for each day of the week based on hemogram values and health conditions.
+library;
+
+class DietPlanSafetyReport {
+  final bool requiresClinicalReview;
+  final List<String> warningKeys;
+  final List<String> guidelineKeys;
+
+  const DietPlanSafetyReport({
+    this.requiresClinicalReview = false,
+    this.warningKeys = const [],
+    this.guidelineKeys = const [],
+  });
+
+  bool get shouldDisplay =>
+      requiresClinicalReview || warningKeys.isNotEmpty || guidelineKeys.isNotEmpty;
+}
+
+class _SafetyCheck {
+  final String metricKey;
+  final double? below;
+  final double? above;
+  final String warningKey;
+  final String guidelineKey;
+  final List<String> tags;
+  final bool urgent;
+
+  const _SafetyCheck({
+    required this.metricKey,
+    this.below,
+    this.above,
+    required this.warningKey,
+    required this.guidelineKey,
+    this.tags = const [],
+    this.urgent = true,
+  });
+
+  bool triggers(double value) {
+    if (below != null && value < below!) return true;
+    if (above != null && value > above!) return true;
+    return false;
+  }
+}
+
 class AIDietMenuService {
+  DietPlanSafetyReport evaluatePlanSafety({
+    Iterable<String>? focusTags,
+    Map<String, double>? hemogramValues,
+  }) {
+    final activeTags = focusTags?.toSet() ?? <String>{};
+    final warnings = <String>{};
+    final guidelines = <String>{};
+    var requiresClinicalReview = false;
+
+    if (hemogramValues != null && hemogramValues.isNotEmpty) {
+      for (final check in _safetyChecks) {
+        if (check.tags.isNotEmpty &&
+            activeTags.isNotEmpty &&
+            !check.tags.any(activeTags.contains)) {
+          continue;
+        }
+        final value = hemogramValues[check.metricKey];
+        if (value == null) continue;
+        if (check.triggers(value)) {
+          warnings.add(check.warningKey);
+          guidelines.add(check.guidelineKey);
+          if (check.urgent) {
+            requiresClinicalReview = true;
+          }
+        }
+      }
+    }
+
+    for (final tag in activeTags) {
+      if (_tagsRequiringReview.contains(tag)) {
+        requiresClinicalReview = true;
+        final guideline = _guidelineByTag[tag];
+        if (guideline != null) {
+          guidelines.add(guideline);
+        }
+      }
+    }
+
+    return DietPlanSafetyReport(
+      requiresClinicalReview: requiresClinicalReview,
+      warningKeys: warnings.toList(),
+      guidelineKeys: guidelines.toList(),
+    );
+  }
+
   /// Generate a comprehensive, varied daily menu for a specific day and health condition
   /// 
   /// [riskTag] - The health condition tag (hemoglobin, iron, glucose, etc.)
@@ -24,6 +112,159 @@ class AIDietMenuService {
       'dinner': _generateDinner(riskTag, dayIndex, hemogramValues),
     };
   }
+
+  DayInsights generateDayInsights({
+    required String riskTag,
+    required int dayIndex,
+    Map<String, double>? hemogramValues,
+    int? waterGoalMl,
+  }) {
+    final menu = generateDailyMenu(
+      riskTag: riskTag,
+      dayIndex: dayIndex,
+      hemogramValues: hemogramValues,
+    );
+
+    List<String> pickTopItems(List<String>? items, int count) {
+      if (items == null) return const [];
+      final unique = <String>[];
+      for (final entry in items) {
+        if (!unique.contains(entry)) unique.add(entry);
+        if (unique.length >= count) break;
+      }
+      return unique;
+    }
+
+    final boostItems = [
+      ...pickTopItems(menu['breakfast'], 2),
+      ...pickTopItems(menu['lunch'], 1),
+    ];
+
+    final swaps = _swapIdeas[riskTag] ?? _swapIdeas['general']!;
+    final swapItems = swaps[dayIndex % swaps.length];
+
+    final mindfulKey = _mindfulKeys[riskTag] ?? _mindfulKeys['general']!;
+    final hydrationLiters = _suggestedWaterLiters(
+      riskTag: riskTag,
+      hemogramValues: hemogramValues,
+      waterGoalMl: waterGoalMl,
+    );
+
+    return DayInsights(
+      focusTag: riskTag,
+      boostItems: boostItems,
+      swapItems: swapItems,
+      mindfulKey: mindfulKey,
+      hydrationLiters: hydrationLiters,
+    );
+  }
+
+  double _suggestedWaterLiters({
+    required String riskTag,
+    Map<String, double>? hemogramValues,
+    int? waterGoalMl,
+  }) {
+    final base = (waterGoalMl != null && waterGoalMl > 0)
+        ? waterGoalMl / 1000.0
+        : 2.2;
+
+    if (hemogramValues == null) {
+      return double.parse(base.toStringAsFixed(1));
+    }
+
+    final entry = _hydrationWeights[riskTag];
+    if (entry == null) {
+      return double.parse(base.toStringAsFixed(1));
+    }
+
+    final value = hemogramValues[entry.key];
+    if (value == null) {
+      return double.parse(base.toStringAsFixed(1));
+    }
+
+    final deviation = value - entry.threshold;
+    final adjustment = deviation.abs() > 0.1 ? deviation.sign * entry.delta : 0.0;
+    final liters = (base + adjustment).clamp(1.8, 2.8);
+    return double.parse(liters.toStringAsFixed(1));
+  }
+
+  static const Map<String, List<List<String>>> _swapIdeas = {
+    'hemoglobin': [
+      ['diet_item_lentil_soup', 'diet_item_dried_apricots'],
+      ['diet_item_quinoa_salad', 'diet_item_beetroot_salad'],
+    ],
+    'iron': [
+      ['diet_item_chickpea_stew', 'diet_item_citrus_salad'],
+      ['diet_item_black_bean_burger', 'diet_item_pumpkin_seeds'],
+    ],
+    'glucose': [
+      ['diet_item_chia_seed_pudding', 'diet_item_cinnamon'],
+      ['diet_item_greek_yogurt', 'diet_item_flax_seeds'],
+    ],
+    'liver': [
+      ['diet_item_steamed_fish', 'diet_item_dandelion_tea'],
+      ['diet_item_steamed_vegetables', 'diet_item_ginger_tea'],
+    ],
+    'bilirubin': [
+      ['diet_item_grilled_salmon', 'diet_item_citrus_salad'],
+      ['diet_item_brown_rice', 'diet_item_pomegranate'],
+    ],
+    'crp': [
+      ['diet_item_mediterranean_bowl', 'diet_item_green_tea'],
+      ['diet_item_chia_pudding', 'diet_item_blueberries'],
+    ],
+    'thyroid': [
+      ['diet_item_egg_white_scramble', 'diet_item_steamed_spinach'],
+      ['diet_item_lentil_dal', 'diet_item_cottage_cheese'],
+    ],
+    'vitamin_d3': [
+      ['diet_item_steamed_salmon', 'diet_item_almond_milk'],
+      ['diet_item_grilled_shrimp', 'diet_item_citrus_salad'],
+    ],
+    'vitamin_b12': [
+      ['diet_item_turkey_breast', 'diet_item_feta_cheese'],
+      ['diet_item_grilled_sardines', 'diet_item_greek_yogurt'],
+    ],
+    'electrolytes': [
+      ['diet_item_coconut_water', 'diet_item_banana'],
+      ['diet_item_steamed_spinach', 'diet_item_pumpkin_seeds'],
+    ],
+    'calcium': [
+      ['diet_item_greek_yogurt', 'diet_item_steamed_broccoli'],
+      ['diet_item_cottage_cheese', 'diet_item_chia_seed_pudding'],
+    ],
+    'white_blood_cells': [
+      ['diet_item_fruit_salad', 'diet_item_green_tea'],
+      ['diet_item_dark_chocolate_70', 'diet_item_almonds'],
+    ],
+    'general': [
+      ['diet_item_fruit_salad', 'diet_item_nuts'],
+      ['diet_item_green_tea', 'diet_item_chia_pudding'],
+    ],
+  };
+
+  static const Map<String, _HydrationEntry> _hydrationWeights = {
+    'glucose': _HydrationEntry('glucose', 100.0, 0.2),
+    'hemoglobin': _HydrationEntry('hemoglobin', 12.0, 0.1),
+    'crp': _HydrationEntry('crp', 5.0, 0.15),
+    'liver': _HydrationEntry('alt', 40.0, 0.15),
+  };
+
+  static const Map<String, String> _mindfulKeys = {
+    'hemoglobin': 'ai_tip_mindful_hemoglobin',
+    'iron': 'ai_tip_mindful_iron',
+    'glucose': 'ai_tip_mindful_glucose',
+    'liver': 'ai_tip_mindful_liver',
+    'bilirubin': 'ai_tip_mindful_bilirubin',
+    'crp': 'ai_tip_mindful_crp',
+    'thyroid': 'ai_tip_mindful_thyroid',
+    'vitamin_d3': 'ai_tip_mindful_vitamin_d3',
+    'vitamin_b12': 'ai_tip_mindful_vitamin_b12',
+    'electrolytes': 'ai_tip_mindful_electrolytes',
+    'calcium': 'ai_tip_mindful_calcium',
+    'white_blood_cells': 'ai_tip_mindful_white_blood_cells',
+    'general': 'ai_tip_mindful_general',
+  };
 
   /// Generate breakfast menu - varied and rich options
   List<String> _generateBreakfast(String riskTag, int dayIndex, Map<String, double>? hemogramValues) {
@@ -87,7 +328,7 @@ class AIDietMenuService {
     ];
 
     final dayMenu = dayVariations[dayIndex];
-    return dayMenu![riskTag] ?? dayMenu['default'] ?? _getFallbackBreakfast(riskTag);
+    return dayMenu[riskTag] ?? dayMenu['default'] ?? _getFallbackBreakfast(riskTag);
   }
 
   /// Generate lunch menu - varied and rich options
@@ -99,7 +340,7 @@ class AIDietMenuService {
         'iron': ['diet_item_lentil_curry', 'diet_item_brown_rice', 'diet_item_steamed_kale', 'diet_item_tomato_salad'],
         'glucose': ['diet_item_grilled_chicken_breast', 'diet_item_vegetable_stir_fry', 'diet_item_quinoa', 'diet_item_side_salad'],
         'liver': ['diet_item_steamed_fish', 'diet_item_steamed_vegetables', 'diet_item_brown_rice', 'diet_item_ginger_tea'],
-        'default': ['diet_item_grilled_salmon', 'diet_item_roasted_vegetables', 'diet_item_quinoa', 'diet_item_fresh_salad'],
+        'default': ['diet_item_grilled_chicken_thigh', 'diet_item_steamed_asparagus', 'diet_item_brown_rice', 'diet_item_pomegranate'],
       },
       // Monday - Energizing
       {
@@ -107,7 +348,7 @@ class AIDietMenuService {
         'iron': ['diet_item_chickpea_stew', 'diet_item_whole_grain_pasta', 'diet_item_steamed_broccoli', 'diet_item_pumpkin_seeds'],
         'glucose': ['diet_item_turkey_breast', 'diet_item_vegetable_soup', 'diet_item_side_salad', 'diet_item_herbal_tea'],
         'liver': ['diet_item_steamed_chicken', 'diet_item_steamed_vegetables', 'diet_item_brown_rice', 'diet_item_herbal_tea'],
-        'default': ['diet_item_grilled_chicken', 'diet_item_roasted_sweet_potato', 'diet_item_steamed_green_beans', 'diet_item_fresh_salad'],
+        'default': ['diet_item_turkey_breast', 'diet_item_vegetable_stir_fry', 'diet_item_quinoa', 'diet_item_herbal_tea'],
       },
       // Tuesday - Mediterranean
       {
@@ -115,7 +356,7 @@ class AIDietMenuService {
         'iron': ['diet_item_black_bean_burger', 'diet_item_whole_grain_bun', 'diet_item_steamed_kale', 'diet_item_tahini_sauce'],
         'glucose': ['diet_item_mediterranean_salad', 'diet_item_grilled_chicken', 'diet_item_olive_oil', 'diet_item_herbal_tea'],
         'liver': ['diet_item_steamed_cod', 'diet_item_steamed_vegetables', 'diet_item_brown_rice', 'diet_item_ginger_tea'],
-        'default': ['diet_item_mediterranean_bowl', 'diet_item_chickpeas', 'diet_item_feta_cheese', 'diet_item_olive_oil'],
+        'default': ['diet_item_grilled_shrimp', 'diet_item_vegetable_paella', 'diet_item_quinoa', 'diet_item_fresh_salad'],
       },
       // Wednesday - Power lunch
       {
@@ -123,7 +364,7 @@ class AIDietMenuService {
         'iron': ['diet_item_lentil_dal', 'diet_item_whole_grain_naan', 'diet_item_steamed_spinach', 'diet_item_sunflower_seeds'],
         'glucose': ['diet_item_grilled_turkey', 'diet_item_quinoa_tabbouleh', 'diet_item_roasted_vegetables', 'diet_item_herbal_tea'],
         'liver': ['diet_item_steamed_white_fish', 'diet_item_steamed_vegetables', 'diet_item_brown_rice', 'diet_item_dandelion_tea'],
-        'default': ['diet_item_grilled_fish', 'diet_item_roasted_vegetables', 'diet_item_quinoa', 'diet_item_fresh_salad'],
+        'default': ['diet_item_lean_beef_stew', 'diet_item_brown_rice', 'diet_item_steamed_green_beans', 'diet_item_herbal_tea'],
       },
       // Thursday - Fresh and light
       {
@@ -131,7 +372,7 @@ class AIDietMenuService {
         'iron': ['diet_item_red_bean_stew', 'diet_item_whole_grain_bread', 'diet_item_steamed_kale', 'diet_item_pumpkin_seeds'],
         'glucose': ['diet_item_grilled_chicken_breast', 'diet_item_vegetable_skewers', 'diet_item_side_salad', 'diet_item_herbal_tea'],
         'liver': ['diet_item_steamed_salmon', 'diet_item_steamed_vegetables', 'diet_item_brown_rice', 'diet_item_ginger_tea'],
-        'default': ['diet_item_grilled_shrimp', 'diet_item_vegetable_paella', 'diet_item_fresh_salad', 'diet_item_herbal_tea'],
+        'default': ['diet_item_grilled_salmon', 'diet_item_vegetable_skewers', 'diet_item_quinoa', 'diet_item_citrus_salad'],
       },
       // Friday - Fish day
       {
@@ -139,7 +380,7 @@ class AIDietMenuService {
         'iron': ['diet_item_chickpea_salad', 'diet_item_whole_grain_crackers', 'diet_item_steamed_spinach', 'diet_item_sesame_seeds'],
         'glucose': ['diet_item_grilled_white_fish', 'diet_item_roasted_vegetables', 'diet_item_quinoa', 'diet_item_herbal_tea'],
         'liver': ['diet_item_steamed_cod', 'diet_item_steamed_vegetables', 'diet_item_brown_rice', 'diet_item_dandelion_tea'],
-        'default': ['diet_item_grilled_salmon', 'diet_item_roasted_vegetables', 'diet_item_quinoa', 'diet_item_fresh_salad'],
+        'default': ['diet_item_grilled_sardines', 'diet_item_brown_rice', 'diet_item_steamed_asparagus', 'diet_item_citrus_salad'],
       },
       // Saturday - Comfort weekend
       {
@@ -147,12 +388,12 @@ class AIDietMenuService {
         'iron': ['diet_item_lentil_soup', 'diet_item_whole_grain_bread', 'diet_item_steamed_kale', 'diet_item_pumpkin_seeds'],
         'glucose': ['diet_item_grilled_chicken', 'diet_item_vegetable_curry', 'diet_item_brown_rice', 'diet_item_herbal_tea'],
         'liver': ['diet_item_steamed_fish', 'diet_item_steamed_vegetables', 'diet_item_brown_rice', 'diet_item_ginger_tea'],
-        'default': ['diet_item_grilled_steak', 'diet_item_roasted_vegetables', 'diet_item_quinoa', 'diet_item_fresh_salad'],
+        'default': ['diet_item_braised_beef', 'diet_item_mashed_sweet_potato', 'diet_item_steamed_spinach', 'diet_item_herbal_tea'],
       },
     ];
 
     final dayMenu = dayVariations[dayIndex];
-    return dayMenu![riskTag] ?? dayMenu['default'] ?? _getFallbackLunch(riskTag);
+    return dayMenu[riskTag] ?? dayMenu['default'] ?? _getFallbackLunch(riskTag);
   }
 
   /// Generate snack menu - varied and healthy options
@@ -217,7 +458,7 @@ class AIDietMenuService {
     ];
 
     final daySnacks = snacks[dayIndex];
-    return daySnacks![riskTag] ?? daySnacks['default'] ?? _getFallbackSnack(riskTag);
+    return daySnacks[riskTag] ?? daySnacks['default'] ?? _getFallbackSnack(riskTag);
   }
 
   /// Generate dinner menu - varied and rich options
@@ -282,7 +523,7 @@ class AIDietMenuService {
     ];
 
     final dayMenu = dayVariations[dayIndex];
-    return dayMenu![riskTag] ?? dayMenu['default'] ?? _getFallbackDinner(riskTag);
+    return dayMenu[riskTag] ?? dayMenu['default'] ?? _getFallbackDinner(riskTag);
   }
 
   // Fallback methods for each meal type - using descriptive strings that will be localized
@@ -334,5 +575,99 @@ class AIDietMenuService {
     }
   }
 
+}
+
+const List<_SafetyCheck> _safetyChecks = [
+  _SafetyCheck(
+    metricKey: 'hemoglobin',
+    below: 8.0,
+    warningKey: 'medical_warning_hemoglobin_low',
+    guidelineKey: 'medical_guideline_hemoglobin',
+    tags: ['hemoglobin', 'iron'],
+  ),
+  _SafetyCheck(
+    metricKey: 'hemoglobin',
+    above: 19.0,
+    warningKey: 'medical_warning_hemoglobin_high',
+    guidelineKey: 'medical_guideline_hemoglobin',
+    tags: ['hemoglobin'],
+    urgent: false,
+  ),
+  _SafetyCheck(
+    metricKey: 'glucose',
+    below: 70.0,
+    warningKey: 'medical_warning_glucose_low',
+    guidelineKey: 'medical_guideline_glucose',
+    tags: ['glucose'],
+  ),
+  _SafetyCheck(
+    metricKey: 'glucose',
+    above: 200.0,
+    warningKey: 'medical_warning_glucose_high',
+    guidelineKey: 'medical_guideline_glucose',
+    tags: ['glucose'],
+  ),
+  _SafetyCheck(
+    metricKey: 'crp',
+    above: 10.0,
+    warningKey: 'medical_warning_crp_high',
+    guidelineKey: 'medical_guideline_crp',
+    tags: ['crp'],
+    urgent: false,
+  ),
+  _SafetyCheck(
+    metricKey: 'total_bilirubin',
+    above: 3.0,
+    warningKey: 'medical_warning_bilirubin_high',
+    guidelineKey: 'medical_guideline_bilirubin',
+    tags: ['bilirubin', 'liver'],
+    urgent: false,
+  ),
+  _SafetyCheck(
+    metricKey: 'alt',
+    above: 120.0,
+    warningKey: 'medical_warning_alt_high',
+    guidelineKey: 'medical_guideline_liver',
+    tags: ['liver'],
+    urgent: false,
+  ),
+];
+
+const Set<String> _tagsRequiringReview = {'crp', 'bilirubin', 'liver'};
+
+const Map<String, String> _guidelineByTag = {
+  'hemoglobin': 'medical_guideline_hemoglobin',
+  'iron': 'medical_guideline_hemoglobin',
+  'glucose': 'medical_guideline_glucose',
+  'crp': 'medical_guideline_crp',
+  'bilirubin': 'medical_guideline_bilirubin',
+  'liver': 'medical_guideline_liver',
+};
+
+class DayInsights {
+  final String focusTag;
+  final List<String> boostItems;
+  final List<String> swapItems;
+  final String mindfulKey;
+  final double hydrationLiters;
+
+  const DayInsights({
+    required this.focusTag,
+    required this.boostItems,
+    required this.swapItems,
+    required this.mindfulKey,
+    required this.hydrationLiters,
+  });
+
+  bool get hasBoost => boostItems.isNotEmpty;
+  bool get hasSwap => swapItems.isNotEmpty;
+}
+
+class _HydrationEntry {
+  final String key;
+  final double threshold;
+  final double delta;
+
+  const _HydrationEntry(this.key, this.threshold, this.delta);
 }
 

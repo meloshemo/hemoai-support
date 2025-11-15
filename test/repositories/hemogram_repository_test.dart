@@ -6,145 +6,85 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('HemogramRepository', () {
-    late HemogramRepository hemogramRepository;
+    late HemogramRepository repository;
 
     setUp(() {
       SharedPreferences.setMockInitialValues({});
-      hemogramRepository = HemogramRepository();
+      repository = HemogramRepository();
     });
 
-    group('Insert Operations', () {
-      test('should insert hemogram test', () async {
-        final test = {
-          'user_id': 1,
-          'test_date': DateTime.now().toIso8601String(),
-          'wbc': 7.5,
-          'rbc': 4.5,
+    test('saveHemogram persists active record', () async {
+      final id = await repository.saveHemogram(
+        userId: 1,
+        values: {
           'hemoglobin': 14.0,
-          'hematocrit': 42.0,
-          'platelets': 250000,
-        };
-        
-        final testId = await hemogramRepository.insertHemogramTest(test);
-        expect(testId, isA<int>());
-        expect(testId, greaterThan(0));
-      });
+          'leukocyte': 7.8,
+          'platelet': 250000,
+        },
+      );
 
-      test('should insert test with all required fields', () async {
-        final test = {
-          'user_id': 1,
-          'test_date': DateTime.now().toIso8601String(),
-          'wbc': 6.0,
-          'rbc': 5.0,
+      expect(id, greaterThan(0));
+
+      final active = await repository.getActiveHemogram(1);
+      expect(active, isNotNull);
+      expect(active!.isActive, isTrue);
+      expect(active.values['hemoglobin'], equals(14.0));
+    });
+
+    test('latest save archives previous active record', () async {
+      await repository.saveHemogram(
+        userId: 5,
+        values: {
+          'hemoglobin': 12.5,
+          'leukocyte': 6.4,
+        },
+        testDate: DateTime.now().subtract(const Duration(days: 30)),
+      );
+
+      await repository.saveHemogram(
+        userId: 5,
+        values: {
+          'hemoglobin': 13.2,
+          'leukocyte': 7.1,
+        },
+      );
+
+      final history = await repository.getHemogramHistory(5);
+      expect(history.length, equals(2));
+      expect(history.first.isActive, isTrue);
+      expect(history.last.status, equals('archived'));
+      expect(history.last.archivedAt, isNotNull);
+    });
+
+    test('histories are isolated per user', () async {
+      await repository.saveHemogram(
+        userId: 7,
+        values: {
+          'hemoglobin': 13.0,
+          'leukocyte': 6.0,
+        },
+      );
+
+      await repository.saveHemogram(
+        userId: 11,
+        values: {
           'hemoglobin': 15.0,
-          'hematocrit': 45.0,
-          'platelets': 300000,
-          'mcv': 90.0,
-          'mch': 30.0,
-          'mchc': 33.0,
-        };
-        
-        final testId = await hemogramRepository.insertHemogramTest(test);
-        expect(testId, greaterThan(0));
-      });
+          'leukocyte': 8.2,
+        },
+      );
+
+      final user7History = await repository.getHemogramHistory(7);
+      final user11History = await repository.getHemogramHistory(11);
+
+      expect(user7History, hasLength(1));
+      expect(user11History, hasLength(1));
+      expect(user7History.first.userId, equals(7));
+      expect(user11History.first.userId, equals(11));
     });
 
-    group('Retrieve Operations', () {
-      test('should get hemogram tests for user', () async {
-        final userId = 1;
-        
-        // Insert multiple tests
-        for (int i = 0; i < 3; i++) {
-          await hemogramRepository.insertHemogramTest({
-            'user_id': userId,
-            'test_date': DateTime.now().subtract(Duration(days: i)).toIso8601String(),
-            'wbc': 7.0 + i,
-            'rbc': 4.5,
-            'hemoglobin': 14.0,
-            'hematocrit': 42.0,
-            'platelets': 250000,
-          });
-        }
-        
-        final tests = await hemogramRepository.getHemogramTests(userId);
-        expect(tests, isA<List<Map<String, dynamic>>>());
-        expect(tests.length, greaterThanOrEqualTo(3));
-      });
-
-      test('should get latest hemogram test', () async {
-        final userId = 1;
-        
-        // Insert multiple tests
-        await hemogramRepository.insertHemogramTest({
-          'user_id': userId,
-          'test_date': DateTime.now().subtract(Duration(days: 2)).toIso8601String(),
-          'wbc': 7.0,
-          'rbc': 4.5,
-          'hemoglobin': 14.0,
-          'hematocrit': 42.0,
-          'platelets': 250000,
-        });
-        
-        await hemogramRepository.insertHemogramTest({
-          'user_id': userId,
-          'test_date': DateTime.now().toIso8601String(),
-          'wbc': 8.0,
-          'rbc': 4.6,
-          'hemoglobin': 14.5,
-          'hematocrit': 43.0,
-          'platelets': 260000,
-        });
-        
-        final latest = await hemogramRepository.getLatestHemogramTest(userId);
-        expect(latest, isNotNull);
-        expect(latest!['wbc'], equals(8.0));
-      });
-
-      test('should return empty list for user with no tests', () async {
-        final tests = await hemogramRepository.getHemogramTests(999);
-        expect(tests, isA<List<Map<String, dynamic>>>());
-        expect(tests.length, equals(0));
-      });
-
-      test('should return null for latest test when no tests exist', () async {
-        final latest = await hemogramRepository.getLatestHemogramTest(999);
-        expect(latest, isNull);
-      });
-    });
-
-    group('Data Integrity', () {
-      test('should maintain separate tests for different users', () async {
-        // Insert test for user 1
-        await hemogramRepository.insertHemogramTest({
-          'user_id': 1,
-          'test_date': DateTime.now().toIso8601String(),
-          'wbc': 7.0,
-          'rbc': 4.5,
-          'hemoglobin': 14.0,
-          'hematocrit': 42.0,
-          'platelets': 250000,
-        });
-        
-        // Insert test for user 2
-        await hemogramRepository.insertHemogramTest({
-          'user_id': 2,
-          'test_date': DateTime.now().toIso8601String(),
-          'wbc': 8.0,
-          'rbc': 5.0,
-          'hemoglobin': 15.0,
-          'hematocrit': 45.0,
-          'platelets': 300000,
-        });
-        
-        final user1Tests = await hemogramRepository.getHemogramTests(1);
-        final user2Tests = await hemogramRepository.getHemogramTests(2);
-        
-        expect(user1Tests.length, greaterThanOrEqualTo(1));
-        expect(user2Tests.length, greaterThanOrEqualTo(1));
-        expect(user1Tests[0]['user_id'], equals(1));
-        expect(user2Tests[0]['user_id'], equals(2));
-      });
+    test('getActiveHemogram returns null when user has no tests', () async {
+      final active = await repository.getActiveHemogram(999);
+      expect(active, isNull);
     });
   });
 }
-

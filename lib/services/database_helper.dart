@@ -1,4 +1,7 @@
 import 'package:sqflite/sqflite.dart';
+// FFI fallback for desktop & test environments
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'dart:io' show Platform; // Safe because guarded by kIsWeb
 import 'package:path/path.dart';
 import 'package:flutter/foundation.dart';
 import 'web_database_helper.dart';
@@ -11,6 +14,23 @@ class DatabaseHelper {
 
   DatabaseHelper._internal();
 
+  Future<WebDatabaseHelper> _ensureWebHelper() async {
+    _webHelper ??= WebDatabaseHelper.instance;
+    await _webHelper!.init();
+    return _webHelper!;
+  }
+
+  int _boolToInt(dynamic value, {int defaultValue = 0}) {
+    if (value is bool) return value ? 1 : 0;
+    if (value is num) return value != 0 ? 1 : 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized == 'true' || normalized == '1') return 1;
+      if (normalized == 'false' || normalized == '0') return 0;
+    }
+    return defaultValue;
+  }
+
   static DatabaseHelper get instance {
     _instance ??= DatabaseHelper._internal();
     return _instance!;
@@ -18,9 +38,7 @@ class DatabaseHelper {
 
   Future<dynamic> get database async {
     if (kIsWeb) {
-      _webHelper ??= WebDatabaseHelper.instance;
-      await _webHelper!.init();
-      return _webHelper;
+      return await _ensureWebHelper();
     } else {
       _database ??= await _initDatabase();
       return _database!;
@@ -28,10 +46,23 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDatabase() async {
+    // Ensure FFI initialized for non-mobile desktop & test (where sqflite native may be absent)
+    if (!kIsWeb) {
+      try {
+        // On Windows/Linux/macOS tests, databaseFactory may not be initialized.
+        if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+          // Initialize ffi only once; safe to call repeatedly
+          sqfliteFfiInit();
+          databaseFactory = databaseFactoryFfi;
+        }
+      } catch (_) {
+        // Ignore if Platform.* not supported or already initialized
+      }
+    }
     String path = join(await getDatabasesPath(), 'hemoai.db');
     return await openDatabase(
       path,
-      version: 6,
+      version: 9,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -51,6 +82,8 @@ class DatabaseHelper {
         height REAL NOT NULL,
         weight REAL NOT NULL,
         bmi REAL,
+        email_verified INTEGER NOT NULL DEFAULT 0,
+        phone_verified INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
       )
@@ -91,8 +124,11 @@ class DatabaseHelper {
         bilirubin REAL,
         creatinine REAL,
         urea REAL,
+        values_json TEXT,
         risk_level TEXT,
         doctor_notes TEXT,
+        status TEXT NOT NULL DEFAULT 'active',
+        archived_at TEXT,
         created_at TEXT NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
       )
@@ -445,6 +481,81 @@ class DatabaseHelper {
         ALTER TABLE hemogram_tests ADD COLUMN urea REAL
       ''');
     }
+    if (oldVersion < 7) {
+      await db.execute(
+        "ALTER TABLE hemogram_tests ADD COLUMN values_json TEXT",
+      );
+    }
+    if (oldVersion < 8) {
+      await db.execute(
+        "ALTER TABLE hemogram_tests ADD COLUMN status TEXT DEFAULT 'archived'",
+      );
+      await db.execute(
+        "ALTER TABLE hemogram_tests ADD COLUMN archived_at TEXT",
+      );
+
+      final rows = await db.query(
+        'hemogram_tests',
+        orderBy: 'user_id ASC, test_date DESC, created_at DESC',
+      );
+      final Set<int> seenUsers = {};
+      final nowIso = DateTime.now().toIso8601String();
+      for (final row in rows) {
+        final userId = (row['user_id'] as num?)?.toInt();
+        final id = (row['id'] as num?)?.toInt();
+        if (userId == null || id == null) continue;
+
+        if (seenUsers.add(userId)) {
+          await db.update(
+            'hemogram_tests',
+            {'status': 'active', 'archived_at': null},
+            where: 'id = ?',
+            whereArgs: [id],
+          );
+        } else {
+          await db.update(
+            'hemogram_tests',
+            {'status': 'archived', 'archived_at': nowIso},
+            where: 'id = ?',
+            whereArgs: [id],
+          );
+        }
+      }
+
+      if (oldVersion < 9) {
+        await db.execute(
+          "ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0",
+        );
+        await db.execute(
+          "ALTER TABLE users ADD COLUMN phone_verified INTEGER NOT NULL DEFAULT 0",
+        );
+
+        final rows = await db.query('users');
+        for (final row in rows) {
+          final id = (row['id'] as num?)?.toInt();
+          if (id == null) continue;
+          final emailRaw = (row['email'] ?? '').toString();
+          final phoneRaw = (row['phone'] ?? '').toString();
+          final isPlaceholderEmail = emailRaw.endsWith('@hemoai.com') ||
+              emailRaw.endsWith('@no-email.hemoai');
+          final emailVerified =
+              emailRaw.isNotEmpty && !isPlaceholderEmail ? 1 : 0;
+          final phoneVerified =
+              phoneRaw.isNotEmpty && phoneRaw.toLowerCase() != 'not_provided'
+                  ? 1
+                  : 0;
+          await db.update(
+            'users',
+            {
+              'email_verified': emailVerified,
+              'phone_verified': phoneVerified,
+            },
+            where: 'id = ?',
+            whereArgs: [id],
+          );
+        }
+      }
+    }
   }
 
   // ===== Reminder streaks & logs =====
@@ -614,7 +725,15 @@ class DatabaseHelper {
     } else {
       user['created_at'] = DateTime.now().toIso8601String();
       user['updated_at'] = DateTime.now().toIso8601String();
-      return await (db as Database).insert('users', user);
+      user['email_verified'] =
+          _boolToInt(user['email_verified'], defaultValue: 0);
+      user['phone_verified'] =
+          _boolToInt(user['phone_verified'], defaultValue: 0);
+      return await (db as Database).insert(
+        'users',
+        user,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
     }
   }
 
@@ -652,6 +771,14 @@ class DatabaseHelper {
       return await (db as WebDatabaseHelper).updateUser(id, user);
     } else {
       user['updated_at'] = DateTime.now().toIso8601String();
+      if (user.containsKey('email_verified')) {
+        user['email_verified'] =
+            _boolToInt(user['email_verified'], defaultValue: 0);
+      }
+      if (user.containsKey('phone_verified')) {
+        user['phone_verified'] =
+            _boolToInt(user['phone_verified'], defaultValue: 0);
+      }
       return await (db as Database).update(
         'users',
         user,
@@ -669,7 +796,8 @@ class DatabaseHelper {
     final result = kIsWeb
         ? await (db as WebDatabaseHelper).insertHemogramTest(test)
         : await (() async {
-            // Sanitize map to only include columns that exist in hemogram_tests
+            final nativeDb = db as Database;
+
             final allowedColumns = <String>{
               'user_id',
               'test_date',
@@ -702,20 +830,20 @@ class DatabaseHelper {
               'bilirubin',
               'creatinine',
               'urea',
+              'values_json',
               'risk_level',
               'doctor_notes',
+              'status',
+              'archived_at',
               'created_at',
             };
 
-            // Map extended/canonical keys to existing DB columns when possible
-            Map<String, dynamic> sanitized = {};
-            // Direct allowed keys
+            final sanitized = <String, dynamic>{};
             for (final entry in test.entries) {
               if (allowedColumns.contains(entry.key)) {
                 sanitized[entry.key] = entry.value;
               }
             }
-            // Try to map canonical keys from extended model
             void tryAssign(String canonicalKey, String dbColumn) {
               if (!sanitized.containsKey(dbColumn) &&
                   test.containsKey(canonicalKey)) {
@@ -724,7 +852,9 @@ class DatabaseHelper {
             }
 
             tryAssign('white_blood_cells', 'leukocyte');
+            tryAssign('wbc', 'leukocyte');
             tryAssign('red_blood_cells', 'erythrocyte');
+            tryAssign('rbc', 'erythrocyte');
             tryAssign('platelets', 'platelet');
             tryAssign('neutrophils', 'neutrophil');
             tryAssign('lymphocytes', 'lymphocyte');
@@ -735,10 +865,70 @@ class DatabaseHelper {
             tryAssign('vitamin_d3', 'vitamin_d3');
             tryAssign('vitamin_b12', 'vitamin_b12');
 
-            // Ensure mandatory metadata
-            sanitized['created_at'] = DateTime.now().toIso8601String();
+            final nowIso = DateTime.now().toIso8601String();
+            sanitized['created_at'] = sanitized['created_at'] ?? nowIso;
 
-            return await (db as Database).insert('hemogram_tests', sanitized);
+            String status = (test['status'] ?? sanitized['status'] ?? 'active')
+                .toString()
+                .toLowerCase()
+                .trim();
+            if (status != 'archived') {
+              status = 'active';
+            }
+
+            DateTime? newTestDate;
+            final rawTestDate = sanitized['test_date'];
+            if (rawTestDate is String && rawTestDate.isNotEmpty) {
+              newTestDate = DateTime.tryParse(rawTestDate);
+            }
+
+            Map<String, dynamic>? currentActive;
+            if (userId != null) {
+              final existingRows = await nativeDb.query(
+                'hemogram_tests',
+                where: 'user_id = ? AND status = ?',
+                whereArgs: [userId, 'active'],
+                orderBy: 'test_date DESC, created_at DESC',
+                limit: 1,
+              );
+              if (existingRows.isNotEmpty) {
+                currentActive = existingRows.first;
+              }
+            }
+
+            if (userId != null &&
+                status == 'active' &&
+                currentActive != null &&
+                newTestDate != null) {
+              final existingDate = DateTime.tryParse(
+                (currentActive['test_date'] ?? '') as String,
+              );
+              if (existingDate != null && newTestDate.isBefore(existingDate)) {
+                status = 'archived';
+              }
+            }
+
+            if (status == 'archived') {
+              sanitized['status'] = 'archived';
+              sanitized['archived_at'] =
+                  sanitized['archived_at'] ?? test['archived_at'] ?? nowIso;
+            } else {
+              sanitized['status'] = 'active';
+              sanitized['archived_at'] = null;
+              if (userId != null) {
+                await nativeDb.update(
+                  'hemogram_tests',
+                  {
+                    'status': 'archived',
+                    'archived_at': nowIso,
+                  },
+                  where: 'user_id = ? AND status = ?',
+                  whereArgs: [userId, 'active'],
+                );
+              }
+            }
+
+            return await nativeDb.insert('hemogram_tests', sanitized);
           })();
 
     // Invalidate cache after insert
@@ -768,25 +958,93 @@ class DatabaseHelper {
             orderBy: 'test_date DESC',
           );
 
+    final hasExplicitActive = results.any(
+      (row) => (row['status'] ?? '').toString().toLowerCase() == 'active',
+    );
+    final normalized = <Map<String, dynamic>>[];
+    for (var i = 0; i < results.length; i++) {
+      final row = results[i];
+      var status = (row['status'] ?? '').toString().toLowerCase();
+      status = status == 'null' ? '' : status;
+      if (!hasExplicitActive && i == 0) {
+        status = 'active';
+      } else if (status.isEmpty) {
+        status = 'archived';
+      } else if (status != 'active') {
+        status = 'archived';
+      }
+
+      final normalizedRow = {
+        ...row,
+        'status': status,
+        'archived_at': row['archived_at'],
+        // Provide legacy/canonical aliases
+        'wbc': row['leukocyte'],
+        'rbc': row['erythrocyte'],
+        'platelets': row['platelet'],
+      };
+
+      if (status == 'active') {
+        normalizedRow['archived_at'] = null;
+      } else if (normalizedRow['archived_at'] == null) {
+        normalizedRow['archived_at'] = row['created_at'];
+      }
+
+      normalized.add(normalizedRow);
+    }
+
     // Cache results
-    cache.putHemogramHistory(userId, results);
-    return results;
+    cache.putHemogramHistory(userId, normalized);
+    return normalized;
   }
 
-  Future<Map<String, dynamic>?> getLatestHemogramTest(int userId) async {
+  Future<Map<String, dynamic>?> getActiveHemogramTest(int userId) async {
     final db = await database;
     if (kIsWeb) {
-      return await (db as WebDatabaseHelper).getLatestHemogramTest(userId);
+      return await (db as WebDatabaseHelper).getActiveHemogramTest(userId);
     } else {
-      final List<Map<String, dynamic>> tests = await (db as Database).query(
+      final nativeDb = db as Database;
+      final List<Map<String, dynamic>> tests = await nativeDb.query(
+        'hemogram_tests',
+        where: 'user_id = ? AND status = ?',
+        whereArgs: [userId, 'active'],
+        orderBy: 'test_date DESC, created_at DESC',
+        limit: 1,
+      );
+      if (tests.isNotEmpty) {
+        final row = tests.first;
+        return {
+          ...row,
+          'wbc': row['leukocyte'],
+          'rbc': row['erythrocyte'],
+          'platelets': row['platelet'],
+          'status': row['status'] ?? 'active',
+        };
+      }
+
+      // Fallback for legacy records without status column populated
+      final legacy = await nativeDb.query(
         'hemogram_tests',
         where: 'user_id = ?',
         whereArgs: [userId],
-        orderBy: 'test_date DESC',
+        orderBy: 'test_date DESC, created_at DESC',
         limit: 1,
       );
-      return tests.isNotEmpty ? tests.first : null;
+      if (legacy.isEmpty) return null;
+      final row = legacy.first;
+      return {
+        ...row,
+        'status': row['status'] ?? 'active',
+        'archived_at': row['archived_at'],
+        'wbc': row['leukocyte'],
+        'rbc': row['erythrocyte'],
+        'platelets': row['platelet'],
+      };
     }
+  }
+
+  Future<Map<String, dynamic>?> getLatestHemogramTest(int userId) async {
+    return await getActiveHemogramTest(userId);
   }
 
   // Aile uyesi islemleri
@@ -869,29 +1127,49 @@ class DatabaseHelper {
 
   // Ilac islemleri
   Future<int> insertMedication(Map<String, dynamic> medication) async {
-    final db = await database;
-    medication['created_at'] = DateTime.now().toIso8601String();
-    return await db.insert('medications', medication);
+    if (kIsWeb) {
+      final helper = await _ensureWebHelper();
+      return await helper.insertMedicationFromMap(medication);
+    } else {
+      final db = await database;
+      // Ensure required fields and sane defaults
+      medication['total_days'] =
+          (medication['total_days'] as num?)?.toInt() ?? 1; // NOT NULL
+      medication['completed_days'] =
+          (medication['completed_days'] as num?)?.toInt() ?? 0;
+      medication['created_at'] = DateTime.now().toIso8601String();
+      return await db.insert('medications', medication);
+    }
   }
 
   Future<List<Map<String, dynamic>>> getMedications(int userId) async {
-    final db = await database;
-    return await db.query(
-      'medications',
-      where: 'user_id = ? AND is_active = 1',
-      whereArgs: [userId],
-      orderBy: 'name ASC',
-    );
+    if (kIsWeb) {
+      final helper = await _ensureWebHelper();
+      return await helper.getMedicationsNormalized(userId);
+    } else {
+      final db = await database;
+      return await db.query(
+        'medications',
+        where: 'user_id = ? AND is_active = 1',
+        whereArgs: [userId],
+        orderBy: 'name ASC',
+      );
+    }
   }
 
   Future<int> updateMedication(int id, Map<String, dynamic> medication) async {
-    final db = await database;
-    return await db.update(
-      'medications',
-      medication,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    if (kIsWeb) {
+      final helper = await _ensureWebHelper();
+      return await helper.updateMedicationFromMap(id, medication);
+    } else {
+      final db = await database;
+      return await db.update(
+        'medications',
+        medication,
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    }
   }
 
   Future<void> updateMedicationTaken(
@@ -1150,16 +1428,45 @@ class DatabaseHelper {
 
   Future<Map<String, dynamic>?> findUserByPhone(String phone) async {
     if (kIsWeb) {
-      return await _webHelper!.findUserByPhone(phone);
+      final web = await _ensureWebHelper();
+      return await web.findUserByPhone(phone);
     } else {
       final db = await database;
+      // Normalize phone: remove all non-digit characters for comparison
+      final normalizedPhone = phone.replaceAll(RegExp(r'\D'), '');
+      
+      // First try exact match
       List<Map<String, dynamic>> results = await db.query(
         'users',
         where: 'phone = ?',
         whereArgs: [phone],
         limit: 1,
       );
-      return results.isNotEmpty ? results.first : null;
+      
+      // If no exact match, try to find by normalizing all stored phones
+      if (results.isEmpty && normalizedPhone.isNotEmpty) {
+        final allUsers = await db.query('users');
+        for (final user in allUsers) {
+          final storedPhone = (user['phone'] ?? '').toString();
+          final normalizedStored = storedPhone.replaceAll(RegExp(r'\D'), '');
+          if (normalizedStored == normalizedPhone) {
+            // Ensure id field exists
+            if (!user.containsKey('id') || user['id'] == null) {
+              continue; // Skip users without ID
+            }
+            return user;
+          }
+        }
+      }
+      if (results.isNotEmpty) {
+        final user = results.first;
+        // Ensure id field exists
+        if (!user.containsKey('id') || user['id'] == null) {
+          return null;
+        }
+        return user;
+      }
+      return null;
     }
   }
 
@@ -1171,6 +1478,10 @@ class DatabaseHelper {
           .addMedication(userId, name, dosage, frequency, time);
     } else {
       final db = await database;
+      // NOTE: Schema requires total_days NOT NULL. Some earlier helper versions
+      // omitted this field causing NOT NULL constraint failures in tests.
+      // We provide a conservative default of 1 day if not specified by higher layers.
+      // completed_days always starts at 0.
       return await db.insert('medications', {
         'user_id': userId,
         'name': name,
@@ -1178,6 +1489,8 @@ class DatabaseHelper {
         'frequency': frequency,
         // native schema uses time_to_take; store provided time string (e.g., HH:mm)
         'time_to_take': time,
+        'total_days': 1,
+        'completed_days': 0,
         'start_date': DateTime.now().toIso8601String().split('T')[0],
         'end_date': null,
         'is_active': 1,
@@ -1510,18 +1823,7 @@ class DatabaseHelper {
 
   // Advanced Analytics metodlari
   Future<List<Map<String, dynamic>>> getHemogramTestsByUser(int userId) async {
-    if (kIsWeb) {
-      final webDb = await database;
-      return await webDb.getHemogramTestsByUser(userId);
-    } else {
-      final db = await database;
-      return await db.query(
-        'hemogram_tests',
-        where: 'user_id = ?',
-        whereArgs: [userId],
-        orderBy: 'test_date DESC',
-      );
-    }
+    return await getHemogramTests(userId);
   }
 
   // ===== Emergency Contacts Methods =====

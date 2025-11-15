@@ -51,8 +51,8 @@ class AboutScreen extends StatelessWidget {
             FutureBuilder<PackageInfo>(
               future: PackageInfo.fromPlatform(),
               builder: (context, snapshot) {
-                final version = snapshot.data?.version ?? '—';
-                final build = snapshot.data?.buildNumber ?? '—';
+                final version = snapshot.data?.version ?? loc.getString('not_available', defaultValue: '-');
+                final build = snapshot.data?.buildNumber ?? loc.getString('not_available', defaultValue: '-');
                 return _buildAppInfoCard(context, loc, theme, scheme, version, build);
               },
             ),
@@ -128,7 +128,7 @@ class AboutScreen extends StatelessWidget {
             
             // App Description + Release
             Text(
-              '${loc.getString('app_description_detailed')}',
+              loc.getString('app_description_detailed'),
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: scheme.onPrimaryContainer.withValues(alpha: 0.8),
@@ -281,7 +281,7 @@ class AboutScreen extends StatelessWidget {
             _buildInfoRow(loc.getString('build_number'), buildNumber, theme),
             _buildInfoRow(loc.getString('release_label'), loc.getString('release_name'), theme),
             _buildInfoRow(loc.getString('developed_by'), loc.getString('developer_name'), theme),
-            _buildInfoRow(loc.getString('release_date'), 'October 2025', theme),
+            _buildInfoRow(loc.getString('release_date'), loc.getString('release_date_value'), theme),
           ],
         ),
       ),
@@ -391,11 +391,11 @@ class AboutScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            _buildInfoRow('Platform', defaultTargetPlatform.name, theme),
-            _buildInfoRow('Debug Mode', kDebugMode.toString(), theme),
-            _buildInfoRow('Release Mode', kReleaseMode.toString(), theme),
-            _buildInfoRow('Profile Mode', kProfileMode.toString(), theme),
-            if (kIsWeb) _buildInfoRow('Is Web', 'true', theme),
+            _buildInfoRow(loc.getString('platform'), defaultTargetPlatform.name, theme),
+            _buildInfoRow(loc.getString('debug_mode'), kDebugMode.toString(), theme),
+            _buildInfoRow(loc.getString('release_mode'), kReleaseMode.toString(), theme),
+            _buildInfoRow(loc.getString('profile_mode'), kProfileMode.toString(), theme),
+            if (kIsWeb) _buildInfoRow(loc.getString('is_web'), loc.getString('yes'), theme),
             _buildActionTile(
               context,
               Icons.cleaning_services,
@@ -435,6 +435,10 @@ class AboutScreen extends StatelessWidget {
     final analytics = Provider.of<AnalyticsService>(context, listen: false);
     analytics.trackEvent('contact_support_clicked');
     
+    // Use constant email address; localize only the UI labels
+    final email = AppConstants.supportEmail;
+    final copiedLabel = loc.getString('copied', defaultValue: 'copied');
+
     try {
       // Open support portal URL
       final uri = Uri.parse(AppConstants.supportUrl);
@@ -442,11 +446,11 @@ class AboutScreen extends StatelessWidget {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
         // Fallback: Copy email to clipboard
-        Clipboard.setData(ClipboardData(text: AppConstants.supportEmail));
+        Clipboard.setData(ClipboardData(text: email));
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('${loc.getString('support_email') ?? AppConstants.supportEmail} ${loc.getString('copy') ?? 'copied'}'),
+              content: Text('$email $copiedLabel'),
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -454,11 +458,11 @@ class AboutScreen extends StatelessWidget {
       }
     } catch (e) {
       // Fallback: Copy email to clipboard
-      Clipboard.setData(ClipboardData(text: AppConstants.supportEmail));
+      Clipboard.setData(ClipboardData(text: email));
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${loc.getString('support_email') ?? AppConstants.supportEmail} ${loc.getString('copy') ?? 'copied'}'),
+            content: Text('$email $copiedLabel'),
             behavior: SnackBarBehavior.floating,
           ),
         );

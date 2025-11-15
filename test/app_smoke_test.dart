@@ -4,12 +4,20 @@ import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:hemoai/services/theme_service.dart';
-import 'package:hemoai/services/notification_service.dart';
+import 'package:hemoai/services/notification_service.dart' as inapp_notifications;
 import 'package:hemoai/services/push_notification_service.dart';
 import 'package:hemoai/services/localization_service.dart';
 import 'package:hemoai/services/analytics_service.dart';
 import 'package:hemoai/services/daily_advice_service.dart';
 import 'package:hemoai/services/water_service.dart';
+import 'package:hemoai/services/wellness_service.dart';
+import 'package:hemoai/services/sync_scheduler_service.dart';
+import 'package:hemoai/services/premium_service.dart';
+import 'package:hemoai/services/challenge_service.dart';
+import 'package:hemoai/services/social_challenge_service.dart';
+import 'package:hemoai/services/screenshot_overlay_service.dart';
+import 'package:hemoai/services/messaging_service.dart';
+import 'package:hemoai/services/firestore_sync_service.dart';
 import 'package:hemoai/main.dart';
 // Repositories (SSoT)
 import 'package:hemoai/repositories/user_repository.dart';
@@ -34,12 +42,20 @@ void main() {
       MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => ThemeService()),
-          ChangeNotifierProvider(create: (_) => NotificationService()..initialize()),
+          ChangeNotifierProvider(create: (_) => inapp_notifications.NotificationService()..initialize()),
           ChangeNotifierProvider(create: (_) => PushNotificationService()..initialize()),
           ChangeNotifierProvider(create: (_) => LocalizationService()..initialize()),
           ChangeNotifierProvider(create: (_) => AnalyticsService()..initialize()),
+          ChangeNotifierProvider(create: (_) => WellnessService()..initialize()),
+          ChangeNotifierProvider(create: (_) => SyncSchedulerService()..initialize()),
           ChangeNotifierProvider(create: (_) => DailyAdviceService()..initialize()),
           ChangeNotifierProvider(create: (_) => WaterService()..initialize()),
+          ChangeNotifierProvider(create: (_) => PremiumService()..initialize()),
+          ChangeNotifierProvider(create: (_) => ChallengeService()..initialize()),
+          ChangeNotifierProvider(create: (_) => SocialChallengeService()..initialize()),
+          ChangeNotifierProvider(create: (_) => ScreenshotOverlayService()),
+          ChangeNotifierProvider(create: (_) => MessagingService()..initialize()),
+          ChangeNotifierProvider(create: (_) => FirestoreSyncService()..initialize()),
           // Repository providers (match main.dart)
           Provider<UserRepository>(create: (_) => UserRepository()),
           Provider<HemogramRepository>(create: (_) => HemogramRepository()),

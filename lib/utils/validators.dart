@@ -1,5 +1,6 @@
 /// Professional input validation utilities
 /// Provides reusable validators for forms and user input
+library;
 
 import 'package:hemoai/services/localization_service.dart';
 
@@ -59,7 +60,7 @@ class Validators {
       if (digitsOnly.length < 10 || digitsOnly.length > 11) {
         return customError ?? localization.getString('phone_must_be_10_11_digits');
       }
-      if (!digitsOnly.startsWith('5')) {
+      if (!_turkishPhoneRegex.hasMatch(trimmed)) {
         return customError ?? localization.getString('turkish_phone_must_start_with_5');
       }
       return null;
@@ -68,6 +69,9 @@ class Validators {
     // International format validation
     if (digitsOnly.length < 10 || digitsOnly.length > 15) {
       return customError ?? 'Phone number must be between 10 and 15 digits';
+    }
+    if (!_phoneRegex.hasMatch(trimmed.startsWith('+') ? trimmed : '+$trimmed')) {
+      return customError ?? 'Please enter a valid international phone number';
     }
 
     return null;

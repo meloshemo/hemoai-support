@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/localization_service.dart';
 import '../services/database_helper.dart';
 import '../services/preferences_service.dart';
+import '../services/verification_service.dart';
 import '../widgets/app_drawer.dart';
 import 'dart:async';
 
@@ -49,15 +50,20 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
     }
   }
 
-  Future<void> _addContact(BuildContext context) async {
-    final loc = Provider.of<LocalizationService>(context, listen: false);
+  Future<void> _addContact(BuildContext ctx) async {
+    final verified = await VerificationService().ensurePhoneVerified(ctx);
+    if (!ctx.mounted || !verified) return;
+    final loc = Provider.of<LocalizationService>(ctx, listen: false);
     final nameController = TextEditingController();
     final phoneController = TextEditingController();
     final relationController = TextEditingController();
-    
+
+    // Capture messenger before async gaps to avoid using context after await
+    final messenger = ScaffoldMessenger.of(ctx);
+
     final result = await showDialog<Map<String, String>>(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: ctx,
+      builder: (dialogCtx) => AlertDialog(
         title: Text(loc.getString('add_emergency_contact')),
         content: SingleChildScrollView(
           child: Column(
@@ -92,18 +98,18 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogCtx),
             child: Text(loc.getString('cancel')),
           ),
           ElevatedButton(
             onPressed: () {
-              if (nameController.text.isNotEmpty && 
+              if (nameController.text.isNotEmpty &&
                   phoneController.text.isNotEmpty) {
-                Navigator.pop(context, {
+                Navigator.pop(dialogCtx, {
                   'name': nameController.text,
                   'phone': phoneController.text,
-                  'relation': relationController.text.isNotEmpty 
-                      ? relationController.text 
+                  'relation': relationController.text.isNotEmpty
+                      ? relationController.text
                       : loc.getString('emergency_contact_default'),
                 });
               }
@@ -114,6 +120,8 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
       ),
     );
 
+    if (!ctx.mounted) return;
+
     if (result != null && _currentUserId != null) {
       await _dbHelper.addEmergencyContact(
         userId: _currentUserId!,
@@ -122,20 +130,20 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
         relation: result['relation']!,
       );
       await _loadContacts();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(loc.getString('contact_added')),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+      if (!ctx.mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(loc.getString('contact_added')),
+          backgroundColor: Colors.green,
+        ),
+      );
     }
   }
 
   Future<void> _deleteContact(int id) async {
     final loc = Provider.of<LocalizationService>(context, listen: false);
-    
+    final messenger = ScaffoldMessenger.of(context);
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -157,17 +165,18 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
       ),
     );
 
+    if (!mounted) return;
+
     if (confirm == true) {
       await _dbHelper.deleteEmergencyContact(id);
       await _loadContacts();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(loc.getString('contact_deleted')),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(loc.getString('contact_deleted')),
+          backgroundColor: Colors.green,
+        ),
+      );
     }
   }
 
@@ -182,7 +191,8 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
         return Directionality(
           textDirection: loc.textDirection,
           child: Scaffold(
-            backgroundColor: isDark ? const Color(0xFF0D1117) : const Color(0xFFF6F8FA),
+            backgroundColor:
+                isDark ? const Color(0xFF0D1117) : const Color(0xFFF6F8FA),
             drawer: const AppDrawer(currentRoute: '/settings'),
             appBar: AppBar(
               leading: Builder(
@@ -213,7 +223,8 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
     );
   }
 
-  Widget _buildEmptyState(LocalizationService loc, ThemeData theme, bool isDark) {
+  Widget _buildEmptyState(
+      LocalizationService loc, ThemeData theme, bool isDark) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -260,7 +271,8 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           color: isDark ? const Color(0xFF21262D) : Colors.white,
           child: ListTile(
             contentPadding: const EdgeInsets.all(16),
@@ -295,7 +307,8 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(Icons.label_outline, size: 16, color: Colors.grey.shade600),
+                    Icon(Icons.label_outline,
+                        size: 16, color: Colors.grey.shade600),
                     const SizedBox(width: 8),
                     Text(
                       contact['relation'] ?? '',
@@ -315,4 +328,3 @@ class _EmergencyContactScreenState extends State<EmergencyContactScreen> {
     );
   }
 }
-

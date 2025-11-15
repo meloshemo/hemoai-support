@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/localization_service.dart';
+import '../services/preferences_service.dart';
 import '../utils/validators.dart';
 
 class HemogramEntryScreen extends StatefulWidget {
@@ -58,16 +59,54 @@ class _HemogramEntryScreenState extends State<HemogramEntryScreen> {
     'vitamin_b12': [200, 900], // pg/mL
   };
 
-  Color getScaleColor(double value, double low, double high) {
-    if (value < low) return Colors.red;
-    if (value > high) return Colors.green;
-    return Colors.yellow;
+  DateTime? _selectedDate;
+  bool _isLoading = true;
+
+  // Parameter categories for organized display
+  Map<String, List<String>> get _parameterCategories => {
+    'hemogram_basic': ['hemoglobin'],
+    'glucose_metabolism': ['glucose'],
+    'electrolytes': ['sodium', 'potassium', 'chloride', 'calcium'],
+    'liver_function': ['alt', 'ast', 'ggt', 'total_bilirubin', 'direct_bilirubin'],
+    'inflammation': ['crp'],
+    'iron_studies': ['iron', 'uibc', 'tibc'],
+    'thyroid_function': ['tsh', 'free_t3', 'free_t4'],
+    'vitamins': ['vitamin_d3', 'vitamin_b12'],
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _hydrateExistingValues();
   }
 
-  String getScaleText(Color color, LocalizationService loc) {
-    if (color == Colors.green) return loc.getString('good');
-    if (color == Colors.yellow) return loc.getString('normal');
-    return loc.getString('low');
+  Future<void> _hydrateExistingValues() async {
+    final prefs = await PreferencesService.getInstance();
+    Map<String, double>? values = prefs.getLastHemogramValues();
+    if (values == null || values.isEmpty) {
+      values = await prefs.loadActiveHemogramValues();
+    }
+    DateTime? lastDate;
+    final dateStr = prefs.getLastHemogramDate();
+    if (dateStr != null && dateStr.isNotEmpty) {
+      lastDate = DateTime.tryParse(dateStr);
+    }
+    if (!mounted) return;
+    if (values != null && values.isNotEmpty) {
+      final existing = values;
+      controllers.forEach((key, controller) {
+        final v = existing[key];
+        if (v != null) {
+          controller.text = v.toStringAsFixed(
+            v.truncateToDouble() == v ? 0 : 2,
+          );
+        }
+      });
+    }
+    setState(() {
+      _selectedDate = lastDate;
+      _isLoading = false;
+    });
   }
 
   @override
@@ -83,79 +122,71 @@ class _HemogramEntryScreenState extends State<HemogramEntryScreen> {
   @override
   Widget build(BuildContext context) {
     final loc = Provider.of<LocalizationService>(context);
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: Text(loc.getString('hemogram_entry'))),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
     return Scaffold(
       appBar: AppBar(title: Text(loc.getString('hemogram_entry'))),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: StatefulBuilder(
           builder: (context, setState) {
+            final materialLoc = MaterialLocalizations.of(context);
             return ListView(
               children: [
+                Card(
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ListTile(
+                    leading: const Icon(Icons.event),
+                    title: Text(loc.getString('test_date')),
+                    subtitle: Text(
+                      _selectedDate != null
+                          ? materialLoc.formatFullDate(_selectedDate!)
+                          : loc.getString('select_date_hint',
+                              defaultValue: loc.getString('select')),
+                    ),
+                    trailing: TextButton(
+                      onPressed: () async {
+                        final now = DateTime.now();
+                        final initial = _selectedDate ?? now;
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: initial,
+                          firstDate: DateTime(now.year - 10),
+                          lastDate: now.add(const Duration(days: 1)),
+                        );
+                        if (picked != null) {
+                          setState(() => _selectedDate = picked);
+                        }
+                      },
+                      child: Text(loc.getString('edit')),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 ElevatedButton.icon(
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(loc.getString('ocr_desktop_placeholder'))),
+                      SnackBar(
+                          content:
+                              Text(loc.getString('ocr_desktop_placeholder'))),
                     );
                   },
                   icon: Icon(Icons.camera_alt),
                   label: Text(loc.getString('scan_document')),
                 ),
                 SizedBox(height: 16),
-                ...controllers.keys.map((param) {
-                  double value = double.tryParse(controllers[param]!.text) ?? 0.0;
-                  double low = referenceRanges[param]![0];
-                  double high = referenceRanges[param]![1];
-                  Color color = getScaleColor(value, low, high);
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextField(
-                        controller: controllers[param],
-                        keyboardType: TextInputType.numberWithOptions(decimal: true),
-                        decoration: InputDecoration(
-                          labelText: loc.getString(param),
-                          border: const OutlineInputBorder(),
-                          errorText: controllers[param]!.text.isNotEmpty
-                              ? Validators.validateNumericRange(
-                                  controllers[param]!.text,
-                                  min: referenceRanges[param]![0] * 0.5,
-                                  max: referenceRanges[param]![1] * 2.0,
-                                  fieldName: loc.getString(param),
-                                )
-                              : null,
-                        ),
-                        onChanged: (val) {
-                          setState(() {});
-                        },
-                      ),
-                      SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Text('${loc.getString('value')}: ${value.toStringAsFixed(1)}'),
-                          SizedBox(width: 16),
-                          Container(
-                            width: 60,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              color: color,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Center(
-                              child: Text(
-                                getScaleText(color, loc),
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 16),
-                    ],
-                  );
-                }),
+                // Categorized parameters for better organization
+                ..._buildCategorizedParameters(loc, setState),
                 SizedBox(height: 24),
                 ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     final Map<String, double> values = {};
                     controllers.forEach((key, ctrl) {
                       final t = ctrl.text.trim();
@@ -164,7 +195,35 @@ class _HemogramEntryScreenState extends State<HemogramEntryScreen> {
                         if (v != null) values[key] = v;
                       }
                     });
-                    Navigator.pushNamed(context, '/analysis', arguments: values);
+                    if (values.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            loc.getString(
+                              'enter_hemogram_values',
+                            ),
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+                    
+                    // Save hemogram values before navigating
+                    final prefs = await PreferencesService.getInstance();
+                    await prefs.saveHemogramValues(
+                      values,
+                      testDate: _selectedDate ?? DateTime.now(),
+                    );
+                    
+                    if (!mounted) return;
+                    Navigator.pushNamed(
+                      context,
+                      '/analysis',
+                      arguments: {
+                        'values': values,
+                        'testDate': _selectedDate,
+                      },
+                    );
                   },
                   child: Text(loc.getString('analysis')),
                 ),
@@ -174,5 +233,162 @@ class _HemogramEntryScreenState extends State<HemogramEntryScreen> {
         ),
       ),
     );
+  }
+
+  List<Widget> _buildCategorizedParameters(LocalizationService loc, StateSetter setState) {
+    final widgets = <Widget>[];
+    
+    _parameterCategories.forEach((categoryKey, params) {
+      // Filter to only include parameters that exist in controllers
+      final validParams = params.where((p) => controllers.containsKey(p)).toList();
+      if (validParams.isEmpty) return;
+      
+      widgets.add(
+        Card(
+          elevation: 2,
+          margin: const EdgeInsets.only(bottom: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Category header
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE53E3E).withValues(alpha: 0.1),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    topRight: Radius.circular(12),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _getCategoryIcon(categoryKey),
+                      color: const Color(0xFFE53E3E),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      loc.getString(categoryKey),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFE53E3E),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Parameters in this category
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: validParams.map((param) {
+                    final textValue = controllers[param]!.text.trim();
+                    final low = referenceRanges[param]![0];
+                    final high = referenceRanges[param]![1];
+                    final helper =
+                        '${loc.getString('reference_range')}: ${low.toStringAsFixed(low == low.truncateToDouble() ? 0 : 1)} - ${high.toStringAsFixed(high == high.truncateToDouble() ? 0 : 1)}';
+                    
+                    // Check if value is in range for visual feedback
+                    Color? borderColor;
+                    if (textValue.isNotEmpty) {
+                      final value = double.tryParse(textValue.replaceAll(',', '.'));
+                      if (value != null) {
+                        if (value < low || value > high) {
+                          borderColor = Colors.orange;
+                        } else {
+                          borderColor = Colors.green;
+                        }
+                      }
+                    }
+                    
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: TextField(
+                        controller: controllers[param],
+                        keyboardType: TextInputType.numberWithOptions(decimal: true),
+                        decoration: InputDecoration(
+                          labelText: loc.getString(param),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: borderColor != null
+                                ? BorderSide(color: borderColor!, width: 2)
+                                : const BorderSide(),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: borderColor != null
+                                ? BorderSide(color: borderColor!, width: 2)
+                                : const BorderSide(),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(
+                              color: borderColor ?? const Color(0xFFE53E3E),
+                              width: 2,
+                            ),
+                          ),
+                          helperText: helper,
+                          errorText: textValue.isNotEmpty
+                              ? Validators.validateNumericRange(
+                                  textValue,
+                                  min: referenceRanges[param]![0] * 0.5,
+                                  max: referenceRanges[param]![1] * 2.0,
+                                  fieldName: loc.getString(param),
+                                )
+                              : null,
+                          suffixIcon: textValue.isNotEmpty && borderColor != null
+                              ? Icon(
+                                  borderColor == Colors.green
+                                      ? Icons.check_circle
+                                      : Icons.warning,
+                                  color: borderColor,
+                                  size: 20,
+                                )
+                              : null,
+                        ),
+                        onChanged: (val) {
+                          setState(() {});
+                        },
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
+    
+    return widgets;
+  }
+
+  IconData _getCategoryIcon(String categoryKey) {
+    switch (categoryKey) {
+      case 'hemogram_basic':
+        return Icons.bloodtype;
+      case 'glucose_metabolism':
+        return Icons.monitor_heart;
+      case 'electrolytes':
+        return Icons.water_drop;
+      case 'liver_function':
+        return Icons.medical_services;
+      case 'inflammation':
+        return Icons.local_fire_department;
+      case 'iron_studies':
+        return Icons.iron;
+      case 'thyroid_function':
+        return Icons.health_and_safety;
+      case 'vitamins':
+        return Icons.medication;
+      default:
+        return Icons.science;
+    }
   }
 }

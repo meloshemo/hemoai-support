@@ -3,6 +3,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:logger/logger.dart';
+import '../../services/localization_service.dart';
 import '../database/app_database.dart';
 import '../models/user_model.dart';
 
@@ -12,6 +13,7 @@ class NotificationService {
   NotificationService._internal();
 
   final Logger _logger = Logger();
+  final LocalizationService _loc = LocalizationService();
   late FlutterLocalNotificationsPlugin _notifications;
   bool _isInitialized = false;
 
@@ -225,8 +227,10 @@ class NotificationService {
       // Schedule daily health check reminder
       await scheduleReminder(
         id: 1000 + user.id,
-        title: 'Daily Health Check',
-        body: 'Time for your daily health check-in, ${user.name}!',
+        title: _loc.getString('notification_daily_check_title'),
+        body: _loc
+            .getString('notification_daily_check_body')
+            .replaceAll('{name}', user.name),
         scheduledTime: DateTime.now().add(const Duration(hours: 1)),
         repeatDaily: true,
         payload: 'daily_health_check',
@@ -235,8 +239,8 @@ class NotificationService {
       // Schedule weekly test reminder
       await scheduleReminder(
         id: 2000 + user.id,
-        title: 'Weekly Test Reminder',
-        body: 'Don\'t forget to update your health metrics this week!',
+        title: _loc.getString('notification_weekly_check_title'),
+        body: _loc.getString('notification_weekly_check_body'),
         scheduledTime: DateTime.now().add(const Duration(days: 7)),
         payload: 'weekly_test_reminder',
       );
@@ -258,8 +262,10 @@ class NotificationService {
     try {
       await scheduleReminder(
         id: 3000 + userId + time.hour,
-        title: 'Medication Reminder',
-        body: 'Time to take $medicationName',
+        title: _loc.getString('notification_medication_title'),
+        body: _loc
+            .getString('notification_medication_body')
+            .replaceAll('{name}', medicationName),
         scheduledTime: time,
         repeatDaily: repeatDaily,
         payload: 'medication_reminder',
@@ -281,8 +287,10 @@ class NotificationService {
     try {
       await scheduleReminder(
         id: 4000 + userId,
-        title: 'Test Appointment',
-        body: 'You have a $testType appointment scheduled',
+        title: _loc.getString('notification_test_title'),
+        body: _loc
+            .getString('notification_test_body')
+            .replaceAll('{test}', testType),
         scheduledTime: scheduledTime,
         payload: 'test_appointment',
       );
@@ -295,6 +303,10 @@ class NotificationService {
     }
   }
 }
+
+
+
+
 
 
 

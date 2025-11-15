@@ -1,7 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../utils/color_compat.dart';
 import 'package:provider/provider.dart';
 import '../services/database_helper.dart';
 import '../services/audit_log_service.dart';
@@ -15,10 +13,12 @@ import 'export_options_screen_simple.dart' as export_options;
 
 class AnalysisScreen extends StatefulWidget {
   final Map<String, double> hemogramValues;
+  final DateTime? testDate;
 
   const AnalysisScreen({
     Key? key,
     required this.hemogramValues,
+    this.testDate,
   }) : super(key: key);
 
   @override
@@ -131,8 +131,9 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
     } catch (e) {
       debugPrint('Error loading test history: $e');
       if (mounted) {
+        final loc = Provider.of<LocalizationService>(context, listen: false);
         setState(() {
-          _errorMessage = 'Failed to load test history: ${e.toString()}';
+          _errorMessage = loc.getString('error_prefix') + ' ' + e.toString();
         });
       }
     }
@@ -141,8 +142,9 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
   Future<void> _runAnalysis() async {
     if (currentValues.isEmpty) {
       if (mounted) {
+        final loc = Provider.of<LocalizationService>(context, listen: false);
         setState(() {
-          _errorMessage = 'No values to analyze';
+          _errorMessage = loc.getString('no_data');
           _loadingAnalysis = false;
         });
       }
@@ -210,7 +212,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
           ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
-            tooltip: 'Refresh',
+            tooltip: localizationService.getString('refresh'),
             onPressed: () {
               _loadTestHistory();
               _runAnalysis();
@@ -227,8 +229,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
                     valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE53E3E)),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    localizationService.getString('analyzing') ?? 'Analyzing...',
+                      Text(
+                        localizationService.getString('analyzing'),
                     style: TextStyle(
                       color: isDark ? Colors.white : Colors.black87,
                       fontSize: 16,
@@ -262,7 +264,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
                         ElevatedButton.icon(
                           onPressed: _runAnalysis,
                           icon: const Icon(Icons.refresh),
-                          label: const Text('Retry'),
+                          label: Text(localizationService.getString('retry')),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFE53E3E),
                             foregroundColor: Colors.white,
@@ -293,7 +295,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFE53E3E).withOpacity(0.3),
+                    color: const Color(0xFFE53E3E).withValues(alpha:0.3),
                     spreadRadius: 2,
                     blurRadius: 10,
                     offset: const Offset(0, 4),
@@ -340,9 +342,9 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
                     return Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
+                        color: Colors.white.withValues(alpha:0.15),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: c.withOpacity(0.9), width: 1.2),
+                        border: Border.all(color: c.withValues(alpha:0.9), width: 1.2),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -461,7 +463,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha:0.1),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -526,7 +528,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
                           label: Text(localizationService.getString('quick_pdf')),
                           onPressed: () => _quickExportPDF(context),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white.withOpacity(0.9),
+                            backgroundColor: Colors.white.withValues(alpha:0.9),
                             foregroundColor: Colors.red[700],
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -540,7 +542,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
                           label: Text(localizationService.getString('quick_excel')),
                           onPressed: () => _quickExportExcel(context),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white.withOpacity(0.9),
+                            backgroundColor: Colors.white.withValues(alpha:0.9),
                             foregroundColor: Colors.green[700],
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -606,7 +608,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: scoreColor.withOpacity(0.15),
+                    color: scoreColor.withValues(alpha:0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -645,7 +647,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: c.withOpacity(0.1),
+                      color: c.withValues(alpha:0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
@@ -723,6 +725,47 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
     double score = abnormal * 15 + bonus.toDouble();
     if (score > 100) score = 100;
     return score;
+  }
+
+  double _computeHealthScore() {
+    // Direct health score calculation: start from 100, deduct for abnormalities
+    if (currentValues.isEmpty) return 50.0; // Default if no data
+    
+    double baseScore = 100.0;
+    int totalParams = currentValues.length;
+    double pointsPerParam = 100.0 / totalParams;
+    
+    currentValues.forEach((key, value) {
+      final range = referenceRanges[key];
+      if (range == null) return;
+      
+      if (value < range['min']! || value > range['max']!) {
+        // Parameter is abnormal
+        final min = range['min']!;
+        final max = range['max']!;
+        double deviation = 0.0;
+        
+        if (value < min) {
+          // Below normal: calculate how far below
+          deviation = (min - value) / min;
+        } else {
+          // Above normal: calculate how far above
+          deviation = (value - max) / max;
+          // Check if very high (more than 1.5x upper limit)
+          if (value > max * 1.5) {
+            deviation *= 1.5; // Extra penalty for very high values
+          }
+        }
+        
+        // Deduct points based on deviation (max deduction is full points for this param)
+        double deduction = pointsPerParam * (deviation.clamp(0.0, 1.0));
+        baseScore -= deduction;
+      }
+      // If in range, no deduction (full points for this parameter)
+    });
+    
+    // Ensure score is between 0 and 100
+    return baseScore.clamp(0.0, 100.0);
   }
 
   List<Map<String, dynamic>> _getTopFlags(int count) {
@@ -890,8 +933,10 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
                 if (range != null)
                   Text(
                     loc.getStringWithParams('normal_range_template', {
-                      'min': range['min']!.toStringAsFixed(1),
-                      'max': range['max']!.toStringAsFixed(1),
+                      'min': Provider.of<LocalizationService>(context, listen: false)
+                          .formatNumber(range['min']!, decimals: 1),
+                      'max': Provider.of<LocalizationService>(context, listen: false)
+                          .formatNumber(range['max']!, decimals: 1),
                     }),
                     style: TextStyle(
                       fontSize: 12,
@@ -904,7 +949,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
           Expanded(
             flex: 1,
             child: Text(
-              value.toStringAsFixed(1),
+              Provider.of<LocalizationService>(context, listen: false)
+                  .formatNumber(value, decimals: 1),
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
@@ -917,7 +963,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.2),
+                color: statusColor.withValues(alpha:0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -962,7 +1008,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          color: cardColor.withOpacity(0.1),
+          color: cardColor.withValues(alpha:0.1),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1124,7 +1170,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
             ...top.map((t) {
               final label = _localizedParamName(t.key);
               final dir = dirLabel(t.direction);
-              final pct = t.percentChange.toStringAsFixed(1);
+        final pct = Provider.of<LocalizationService>(context, listen: false)
+          .formatNumber(t.percentChange, decimals: 1);
               final chipColor = dirColor(t.direction);
               return Container(
                 margin: const EdgeInsets.only(bottom: 10),
@@ -1149,7 +1196,12 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Text('${t.sampleCount}x', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                    Text(
+                      loc.getStringWithParams('times_compact', {
+                        'count': t.sampleCount.toString(),
+                      }),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    ),
                   ],
                 ),
               );
@@ -1260,6 +1312,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
     final rawDate = test['test_date'] as String? ?? DateTime.now().toIso8601String();
     DateTime testDate = DateTime.tryParse(rawDate) ?? DateTime.now();
     String riskLevel = (test['risk_level'] ?? 'low').toString();
+    final statusRaw = (test['status'] ?? 'archived').toString().toLowerCase();
     final loc = Provider.of<LocalizationService>(context, listen: false);
     // Normalize any stored label/code and derive color + localized label
     final rl = _normalizeAscii(riskLevel);
@@ -1300,13 +1353,24 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
                     style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                 ),
-                Text((v as num).toStringAsFixed(1), style: const TextStyle(fontSize: 13)),
+                Text(
+                  Provider.of<LocalizationService>(context, listen: false)
+                      .formatNumber((v as num).toDouble(), decimals: 1),
+                  style: const TextStyle(fontSize: 13),
+                ),
               ],
             ),
           ),
         );
       }
     }
+
+    // Build small status chip (Active/Archived)
+    final bool isActive = statusRaw == 'active';
+    final Color statusColor = isActive ? Colors.teal : Colors.grey;
+    final String statusLabel = isActive
+        ? loc.getString('hemogram_status_active')
+        : loc.getString('hemogram_status_archived');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -1324,14 +1388,32 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
             children: [
               Expanded(
                 child: Text(
-                  '${testDate.day}/${testDate.month}/${testDate.year}',
+                  Provider.of<LocalizationService>(context, listen: false)
+                      .formatDate(testDate),
                   style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+              // Status badge first so users can see Active/Archived easily
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha:0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  statusLabel,
+                  style: TextStyle(
+                    color: statusColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
                 ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: riskColor.withOpacity(0.2),
+                  color: riskColor.withValues(alpha:0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -1511,7 +1593,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
   final loc = Provider.of<LocalizationService>(context, listen: false);
   StringBuffer report = StringBuffer();
   report.writeln(loc.getString('report_header'));
-  report.writeln('${loc.getString('date_label')}: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}');
+  report.writeln('${loc.getString('date_label')}: ${loc.formatDate(DateTime.now())}');
     report.writeln('');
   report.writeln(loc.getString('report_section_values'));
     report.writeln('==================');
@@ -1526,7 +1608,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
           status = (value > max * 1.5) ? 'status_very_high' : 'status_high';
         }
       }
-      report.writeln('${_localizedParamName(parameter)}: ${value.toStringAsFixed(1)} [${loc.getString(status)}]');
+  report.writeln('${_localizedParamName(parameter)}: ${loc.formatNumber(value, decimals: 1)} [${loc.getString(status)}]');
     });
     
     report.writeln('');
@@ -1558,15 +1640,19 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
     if (currentValues.isEmpty || _isExporting) return;
 
     setState(() => _isExporting = true);
+    final loc = Provider.of<LocalizationService>(context, listen: false);
 
     try {
-      final success = await _exportService.exportHemogramToPdf(
+        final exportDate = widget.testDate ?? DateTime.now();
+        final exportDateStr = exportDate.toIso8601String().split('T').first;
+        final success = await _exportService.exportHemogramToPdf(
         hemogramValues: currentValues,
-  patientName: Provider.of<LocalizationService>(context, listen: false).getString('patient_placeholder'),
-  testDate: DateTime.now().toString().split(' ')[0],
-  doctorNotes: Provider.of<LocalizationService>(context, listen: false).getString('doctor_notes_generated_by_hemoai'),
+        patientName: loc.getString('patient_placeholder'),
+        testDate: exportDateStr,
+        doctorNotes: loc.getString('doctor_notes_generated_by_hemoai'),
       );
 
+      if (!mounted) return;
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1574,7 +1660,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
               children: [
                 const Icon(Icons.check_circle, color: Colors.white),
                 const SizedBox(width: 8),
-                Text(Provider.of<LocalizationService>(context, listen: false).getString('pdf_download_success')),
+                Text(loc.getString('pdf_download_success')),
               ],
             ),
             backgroundColor: Colors.green,
@@ -1582,12 +1668,13 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
           ),
         );
       } else {
-        throw Exception('PDF export failed');
+        throw Exception(loc.getString('pdf_export_failed'));
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(Provider.of<LocalizationService>(context, listen: false).getString('pdf_export_error_prefix') + e.toString()),
+          content: Text(loc.getString('pdf_export_error_prefix') + e.toString()),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -1602,15 +1689,19 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
     if (currentValues.isEmpty || _isExporting) return;
 
     setState(() => _isExporting = true);
+    final loc = Provider.of<LocalizationService>(context, listen: false);
 
     try {
+      final exportDate = widget.testDate ?? DateTime.now();
+      final exportDateStr = exportDate.toIso8601String().split('T').first;
       final success = await _exportService.exportHemogramToExcel(
         hemogramValues: currentValues,
-  patientName: Provider.of<LocalizationService>(context, listen: false).getString('patient_placeholder'),
-        testDate: DateTime.now().toString().split(' ')[0],
+        patientName: loc.getString('patient_placeholder'),
+        testDate: exportDateStr,
         historicalData: testHistory,
       );
 
+      if (!mounted) return;
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1618,7 +1709,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
               children: [
                 const Icon(Icons.check_circle, color: Colors.white),
                 const SizedBox(width: 8),
-                Text(Provider.of<LocalizationService>(context, listen: false).getString('excel_download_success')),
+                Text(loc.getString('excel_download_success')),
               ],
             ),
             backgroundColor: Colors.green,
@@ -1626,12 +1717,13 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
           ),
         );
       } else {
-        throw Exception('Excel export failed');
+        throw Exception(loc.getString('excel_export_failed'));
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(Provider.of<LocalizationService>(context, listen: false).getString('excel_export_error_prefix') + e.toString()),
+          content: Text(loc.getString('excel_export_error_prefix') + e.toString()),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -1725,7 +1817,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE53E3E).withOpacity(0.1),
+                    color: const Color(0xFFE53E3E).withValues(alpha:0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(Icons.psychology, color: Color(0xFFE53E3E), size: 28),
@@ -1736,7 +1828,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'AI Insights',
+                        loc.getString('ai_insights_title'),
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -1744,7 +1836,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
                         ),
                       ),
                       Text(
-                        'Powered by advanced analysis',
+                        loc.getString('ai_insights_subtitle'),
                         style: TextStyle(
                           fontSize: 12,
                           color: isDark ? Colors.grey[400] : Colors.grey[600],
@@ -1848,7 +1940,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
         insights.add(_insightItem(
           icon: Icons.warning,
           color: Colors.red,
-          text: 'Critical values detected - immediate attention recommended',
+          text: loc.getString('critical_values_attention'),
           isDark: isDark,
         ));
       }
@@ -1856,14 +1948,14 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
         insights.add(_insightItem(
           icon: Icons.insights,
           color: Colors.orange,
-          text: 'Multiple parameters require monitoring',
+          text: loc.getString('multiple_parameters_monitoring'),
           isDark: isDark,
         ));
       }
       insights.add(_insightItem(
         icon: Icons.trending_up,
         color: Colors.blue,
-        text: 'Consider follow-up testing in 3-6 months',
+        text: loc.getString('follow_up_3_6_months'),
         isDark: isDark,
       ));
     }
@@ -1884,7 +1976,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha:0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: color, size: 20),
@@ -1908,92 +2000,150 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
   Widget _buildHealthScoreVisualization() {
     final loc = Provider.of<LocalizationService>(context, listen: false);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final score = _result?.riskScore ?? _computeRiskScore();
-    final normalizedScore = (100 - score) / 100; // Invert for health score
+    // Calculate health score directly (more accurate than inverse of risk score)
+    final healthScore = _computeHealthScore();
+    final normalizedScore = healthScore / 100; // For progress indicator (0.0 to 1.0)
     
     Color scoreColor;
     String scoreLabel;
-    if (score <= 33) {
+    if (healthScore >= 80) {
       scoreColor = Colors.green;
-      scoreLabel = 'Excellent';
-    } else if (score <= 66) {
+      scoreLabel = loc.getString('health_score_excellent');
+    } else if (healthScore >= 60) {
       scoreColor = Colors.orange;
-      scoreLabel = 'Good';
+      scoreLabel = loc.getString('health_score_good');
     } else {
       scoreColor = Colors.red;
-      scoreLabel = 'Needs Attention';
+      scoreLabel = loc.getString('health_score_needs_attention');
     }
     
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              scoreColor.withValues(alpha: 0.1),
+              scoreColor.withValues(alpha: 0.05),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header with icon and label
             Row(
               children: [
-                const Icon(Icons.favorite, color: Color(0xFFE53E3E)),
-                const SizedBox(width: 8),
-                Text(
-                  'Health Score',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black87,
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: scoreColor.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.favorite,
+                    color: scoreColor,
+                    size: 24,
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    loc.getString('health_score'),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
-                    color: scoreColor.withOpacity(0.1),
+                    color: scoreColor.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: scoreColor.withValues(alpha: 0.5),
+                      width: 1.5,
+                    ),
                   ),
                   child: Text(
                     scoreLabel,
                     style: TextStyle(
                       color: scoreColor,
                       fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                      fontSize: 13,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-            // Circular progress indicator
+            const SizedBox(height: 32),
+            // Score display with circular progress
             Center(
               child: SizedBox(
-                width: 150,
-                height: 150,
+                width: 180,
+                height: 180,
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    CircularProgressIndicator(
-                      value: normalizedScore,
-                      strokeWidth: 12,
-                      backgroundColor: Colors.grey.withOpacity(0.2),
-                      valueColor: AlwaysStoppedAnimation<Color>(scoreColor),
+                    // Background circle
+                    Container(
+                      width: 180,
+                      height: 180,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.grey.withValues(alpha: 0.1),
+                      ),
                     ),
+                    // Progress indicator
+                    SizedBox(
+                      width: 180,
+                      height: 180,
+                      child: CircularProgressIndicator(
+                        value: normalizedScore,
+                        strokeWidth: 14,
+                        backgroundColor: Colors.grey.withValues(alpha: 0.15),
+                        valueColor: AlwaysStoppedAnimation<Color>(scoreColor),
+                        strokeCap: StrokeCap.round,
+                      ),
+                    ),
+                    // Score text
                     Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          '${(normalizedScore * 100).toStringAsFixed(0)}',
-                          style: TextStyle(
-                            fontSize: 36,
-                            fontWeight: FontWeight.bold,
-                            color: scoreColor,
-                          ),
-                        ),
-                        Text(
-                          '/ 100',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: isDark ? Colors.grey[400] : Colors.grey[600],
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              Provider.of<LocalizationService>(context, listen: false)
+                                  .formatNumber(healthScore, decimals: 0),
+                              style: TextStyle(
+                                fontSize: 48,
+                                fontWeight: FontWeight.bold,
+                                color: scoreColor,
+                                height: 1.0,
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8, left: 4),
+                              child: Text(
+                                '/ 100',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                  height: 1.0,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -2001,14 +2151,20 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
+            // Info text
             Center(
-              child: Text(
-                'Based on ${currentValues.length} parameters',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDark ? Colors.grey[400] : Colors.grey[600],
-                ),
+              child: Column(
+                children: [
+                  Text(
+                    loc.getStringWithParams('based_on_parameters', {'count': currentValues.length.toString()}),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

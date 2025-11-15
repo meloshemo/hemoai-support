@@ -78,7 +78,7 @@ git push -u origin main
 2. **"New Form"** butonuna tıklayın
 3. **Form bilgileri:**
    - **Form name:** `HemoAI Support`
-   - **Email to receive submissions:** `support@hemoai.com`
+   - **Email to receive submissions:** `support@hemoai.org`
    - **Form type:** `Contact Form`
    - **"Create Form"** tıklayın
 
@@ -115,7 +115,7 @@ git push -u origin main
    - Başarı mesajını görün
 
 3. **E-postanızı kontrol edin:**
-   - `support@hemoai.com` adresine form gönderimi gelecek
+   - `support@hemoai.org` adresine form gönderimi gelecek
    - Spam klasörünü de kontrol edin
 
 ---
@@ -202,7 +202,7 @@ Domain sağlayıcınızda (ör. Namecheap, GoDaddy):
 
 1. **Spam klasörünü kontrol edin**
 2. **Formspree Dashboard → Submissions** kontrol edin
-3. **E-posta adresini doğrulayın:** `support@hemoai.com`
+3. **E-posta adresini doğrulayın:** `support@hemoai.org`
 
 ---
 
@@ -256,7 +256,7 @@ Eğer ziyaretçi sayısını takip etmek isterseniz:
 ## 📞 Destek
 
 Sorularınız için:
-- **Email:** support@hemoai.com
+- **Email:** support@hemoai.org
 - **Formspree:** https://help.formspree.io
 - **GitHub Pages:** https://docs.github.com/pages
 

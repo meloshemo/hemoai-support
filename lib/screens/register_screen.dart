@@ -1,3 +1,4 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart';
@@ -9,6 +10,7 @@ import 'dart:async';
 import '../services/localization_service.dart';
 import '../services/database_helper.dart';
 import '../services/preferences_service.dart';
+import '../utils/async_context_guard.dart';
 
 class RegisterScreen extends StatefulWidget {
   final String initialMethod; // 'phone' | 'email'
@@ -22,6 +24,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController phoneController = TextEditingController();
   String _selectedDialCode = '+90';
   String _selectedFlag = '🇹🇷';
+  Country _selectedCountry = Country.parse('TR');
   final TextEditingController emailController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
@@ -70,38 +73,62 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _sendOtpToPhone(String phone) async {
-    final loc = Provider.of<LocalizationService>(context, listen: false);
-    final rnd = Random();
-    final code = List.generate(6, (_) => rnd.nextInt(10)).join();
-    final expiry = DateTime.now().add(const Duration(minutes: 5)).millisecondsSinceEpoch;
-    await _prefs!.saveCustomSettings('reg_otp_code', code);
-    await _prefs!.saveCustomSettings('reg_otp_expiry', expiry);
-    await _prefs!.saveCustomSettings('reg_channel', 'phone');
-    await _prefs!.saveCustomSettings('reg_phone', phone);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(kDebugMode ? '${loc.getString('otp_sent')}: $code' : loc.getString('otp_sent')),
-        backgroundColor: Colors.green,
-      ),
+    await AsyncContextGuard.run(
+      state: this,
+      operation: (guard) async {
+        final loc =
+            Provider.of<LocalizationService>(guard.context, listen: false);
+        final messenger = ScaffoldMessenger.of(guard.context);
+        final rnd = Random();
+        final code = List.generate(6, (_) => rnd.nextInt(10)).join();
+        final expiry = DateTime.now()
+            .add(const Duration(minutes: 5))
+            .millisecondsSinceEpoch;
+        await _prefs!.saveCustomSettings('reg_otp_code', code);
+        await _prefs!.saveCustomSettings('reg_otp_expiry', expiry);
+        await _prefs!.saveCustomSettings('reg_channel', 'phone');
+        await _prefs!.saveCustomSettings('reg_phone', phone);
+        if (!guard.mounted) return;
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(kDebugMode
+                ? '${loc.getString('otp_sent')}: $code'
+                : loc.getString('otp_sent')),
+            backgroundColor: Colors.green,
+          ),
+        );
+      },
     );
   }
 
   Future<void> _sendOtpToEmail(String email) async {
-    final loc = Provider.of<LocalizationService>(context, listen: false);
-    final rnd = Random();
-    final code = List.generate(6, (_) => rnd.nextInt(10)).join();
-    final expiry = DateTime.now().add(const Duration(minutes: 5)).millisecondsSinceEpoch;
-    await _prefs!.saveCustomSettings('reg_otp_code', code);
-    await _prefs!.saveCustomSettings('reg_otp_expiry', expiry);
-    await _prefs!.saveCustomSettings('reg_channel', 'email');
-    await _prefs!.saveCustomSettings('reg_email', email);
-    final masked = _maskEmail(email);
-    final msg = kDebugMode ? '${loc.getString('otp_sent_email')}: $code' : loc.getStringWithParams('code_sent_to', {'destination': masked});
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: Colors.green,
-      ),
+    await AsyncContextGuard.run(
+      state: this,
+      operation: (guard) async {
+        final loc =
+            Provider.of<LocalizationService>(guard.context, listen: false);
+        final messenger = ScaffoldMessenger.of(guard.context);
+        final rnd = Random();
+        final code = List.generate(6, (_) => rnd.nextInt(10)).join();
+        final expiry = DateTime.now()
+            .add(const Duration(minutes: 5))
+            .millisecondsSinceEpoch;
+        await _prefs!.saveCustomSettings('reg_otp_code', code);
+        await _prefs!.saveCustomSettings('reg_otp_expiry', expiry);
+        await _prefs!.saveCustomSettings('reg_channel', 'email');
+        await _prefs!.saveCustomSettings('reg_email', email);
+        final masked = _maskEmail(email);
+        final msg = kDebugMode
+            ? '${loc.getString('otp_sent_email')}: $code'
+            : loc.getStringWithParams('code_sent_to', {'destination': masked});
+        if (!guard.mounted) return;
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(msg),
+            backgroundColor: Colors.green,
+          ),
+        );
+      },
     );
   }
 
@@ -110,12 +137,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (parts.length != 2) return email;
     final name = parts[0];
     final domain = parts[1];
-    final visible = name.length >= 2 ? name.substring(0, 2) : name.substring(0, 1);
+    final visible =
+        name.length >= 2 ? name.substring(0, 2) : name.substring(0, 1);
     return '$visible***@$domain';
   }
 
   Future<bool> _promptOtpVerify() async {
     final loc = Provider.of<LocalizationService>(context, listen: false);
+    final messenger = ScaffoldMessenger.of(context);
     final codeController = TextEditingController();
     int remaining = 120;
     Timer? timer;
@@ -149,19 +178,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 onPressed: remaining > 0
                     ? null
                     : () async {
-                        final channel = _prefs!.getCustomSetting<String>('reg_channel') ?? 'phone';
+                        final channel =
+                            _prefs!.getCustomSetting<String>('reg_channel') ??
+                                'phone';
                         if (channel == 'email') {
-                          final email = _prefs!.getCustomSetting<String>('reg_email') ?? emailController.text.trim();
+                          final email =
+                              _prefs!.getCustomSetting<String>('reg_email') ??
+                                  emailController.text.trim();
                           await _sendOtpToEmail(email);
                         } else {
-                          final phone = _prefs!.getCustomSetting<String>('reg_phone') ?? phoneController.text.trim();
+                          final phone =
+                              _prefs!.getCustomSetting<String>('reg_phone') ??
+                                  phoneController.text.trim();
                           await _sendOtpToPhone(phone);
                         }
                         setState(() => remaining = 120);
                       },
                 child: Text(
                   remaining > 0
-                      ? loc.getStringWithParams('resend_code_in', {'seconds': remaining.toString()})
+                      ? loc.getStringWithParams(
+                          'resend_code_in', {'seconds': remaining.toString()})
                       : loc.getString('resend_code'),
                 ),
               ),
@@ -170,22 +206,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   timer?.cancel();
                   Navigator.pop(ctx);
                 },
-                child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
+                child:
+                    Text(MaterialLocalizations.of(context).cancelButtonLabel),
               ),
               TextButton(
                 onPressed: () async {
-                  final saved = _prefs!.getCustomSetting<String>('reg_otp_code') ?? '';
-                  final expiry = _prefs!.getCustomSetting<int>('reg_otp_expiry') ?? 0;
+                  final saved =
+                      _prefs!.getCustomSetting<String>('reg_otp_code') ?? '';
+                  final expiry =
+                      _prefs!.getCustomSetting<int>('reg_otp_expiry') ?? 0;
                   final now = DateTime.now().millisecondsSinceEpoch;
                   if (now > expiry) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(loc.getString('otp_expired')), backgroundColor: const Color(0xFFE53E3E)),
+                    if (!mounted) return;
+                    messenger.showSnackBar(
+                      SnackBar(
+                          content: Text(loc.getString('otp_expired')),
+                          backgroundColor: const Color(0xFFE53E3E)),
                     );
                     return;
                   }
                   if (codeController.text.trim() != saved) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(loc.getString('invalid_otp')), backgroundColor: const Color(0xFFE53E3E)),
+                    if (!mounted) return;
+                    messenger.showSnackBar(
+                      SnackBar(
+                          content: Text(loc.getString('invalid_otp')),
+                          backgroundColor: const Color(0xFFE53E3E)),
                     );
                     return;
                   }
@@ -205,6 +250,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _startRegistration() async {
     final loc = Provider.of<LocalizationService>(context, listen: false);
+    final messenger = ScaffoldMessenger.of(context);
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
     try {
@@ -212,8 +258,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         final email = emailController.text.trim();
         final existing = await _db.getUser(email);
         if (existing != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(loc.getString('email_exists')), backgroundColor: const Color(0xFFE53E3E)),
+          if (!mounted) return;
+          messenger.showSnackBar(
+            SnackBar(
+                content: Text(loc.getString('email_exists')),
+                backgroundColor: const Color(0xFFE53E3E)),
           );
           setState(() => _isLoading = false);
           return;
@@ -223,8 +272,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         final phone = phoneController.text.trim();
         final existing = await _db.findUserByPhone(phone);
         if (existing != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(loc.getString('phone_exists')), backgroundColor: const Color(0xFFE53E3E)),
+          if (!mounted) return;
+          messenger.showSnackBar(
+            SnackBar(
+                content: Text(loc.getString('phone_exists')),
+                backgroundColor: const Color(0xFFE53E3E)),
           );
           setState(() => _isLoading = false);
           return;
@@ -239,8 +291,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
 
       // Create user with minimal defaults; complete profile later
-      final email = method == 'email' ? emailController.text.trim() : '${phoneController.text.trim()}@hemoai.com';
-      final phone = method == 'email' ? 'not_provided' : phoneController.text.trim();
+      final registerWithEmail = method == 'email';
+      final registerWithPhone = !registerWithEmail;
+      final rawPhone = phoneController.text.trim();
+      final digitsOnly = rawPhone.replaceAll(RegExp(r'\D'), '');
+      final normalizedDigits = digitsOnly;
+      final email = registerWithEmail
+          ? emailController.text.trim()
+          : '$normalizedDigits@hemoai.com';
+      final phone = registerWithEmail ? 'not_provided' : normalizedDigits;
       final userRow = {
         'name': nameController.text.trim(),
         'email': email,
@@ -251,6 +310,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'height': 0.0,
         'weight': 0.0,
         'bmi': 0.0,
+        'email_verified': registerWithEmail ? 1 : 0,
+        'phone_verified': registerWithPhone ? 1 : 0,
       };
       final userId = await _db.insertUser(userRow);
       await _prefs!.setCurrentUserId(userId);
@@ -258,28 +319,48 @@ class _RegisterScreenState extends State<RegisterScreen> {
         userRow['name'] as String,
         userRow['email'] as String,
         userRow['phone'] as String,
+        emailVerified: registerWithEmail,
+        phoneVerified: registerWithPhone,
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(loc.getString('registration_success')), backgroundColor: Colors.green),
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+            content: Text(loc.getString('registration_success')),
+            backgroundColor: Colors.green),
       );
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/personal_info');
+      await _navigateAfterAuth('/personal_info');
     } catch (e) {
       final loc = Provider.of<LocalizationService>(context, listen: false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${loc.getString('registration_error_prefix')}$e'), backgroundColor: const Color(0xFFE53E3E)),
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+            content: Text('${loc.getString('registration_error_prefix')}$e'),
+            backgroundColor: const Color(0xFFE53E3E)),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  Future<void> _navigateAfterAuth(String defaultRoute) async {
+    final prefs = _prefs ?? await PreferencesService.getInstance();
+    if (!mounted) return;
+    if (prefs.isMedicalConsentAccepted()) {
+      Navigator.pushReplacementNamed(context, defaultRoute);
+    } else {
+      Navigator.pushReplacementNamed(
+        context,
+        '/medical_consent',
+        arguments: {'nextRoute': defaultRoute},
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final loc = Provider.of<LocalizationService>(context, listen: false);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    Country _selectedCountry = Country.parse('TR');
     return Scaffold(
       appBar: AppBar(
         title: Text(loc.getString('register_appbar_title')),
@@ -305,11 +386,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     borderRadius: BorderRadius.circular(8),
                     children: [
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                         child: Text(loc.getString('register_with_phone')),
                       ),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                         child: Text(loc.getString('register_with_email')),
                       ),
                     ],
@@ -318,8 +401,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   TextFormField(
                     controller: nameController,
-                    decoration: InputDecoration(labelText: loc.getString('name_label')),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? loc.getString('name_required') : null,
+                    decoration:
+                        InputDecoration(labelText: loc.getString('name_label')),
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? loc.getString('name_required')
+                        : null,
                   ),
                   const SizedBox(height: 16),
 
@@ -337,14 +423,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   _selectedCountry = c;
                                   _selectedDialCode = '+${c.phoneCode}';
                                   _selectedFlag = c.flagEmoji;
-                                  final digits = phoneController.text.replaceAll(RegExp(r'\D'), '');
-                                  phoneController.text = '${_selectedDialCode} ${digits}';
+                                  final digits = phoneController.text
+                                      .replaceAll(RegExp(r'\D'), '');
+                                  phoneController.text =
+                                      '$_selectedDialCode $digits';
                                 });
                               },
                             );
                           },
-                          icon: Text(_selectedFlag, style: const TextStyle(fontSize: 18)),
-                          label: Text('${_selectedCountry.name} (+${_selectedCountry.phoneCode})'),
+                          icon: Text(_selectedFlag,
+                              style: const TextStyle(fontSize: 18)),
+                          label: Text(
+                              '${_selectedCountry.name} (+${_selectedCountry.phoneCode})'),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -356,8 +446,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             keyboardType: TextInputType.phone,
                             validator: (v) {
                               final value = v?.trim() ?? '';
-                              if (value.isEmpty) return loc.getString('phone_required');
-                              if (!_validatePhone(value)) return loc.getString('phone_invalid');
+                              if (value.isEmpty) {
+                                return loc.getString('phone_required');
+                              }
+                              if (!_validatePhone(value)) {
+                                return loc.getString('phone_invalid');
+                              }
                               return null;
                             },
                           ),
@@ -367,12 +461,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ] else ...[
                     TextFormField(
                       controller: emailController,
-                      decoration: InputDecoration(labelText: loc.getString('enter_email_label')),
+                      decoration: InputDecoration(
+                          labelText: loc.getString('enter_email_label')),
                       keyboardType: TextInputType.emailAddress,
                       validator: (v) {
                         final value = v?.trim() ?? '';
-                        if (value.isEmpty) return loc.getString('email_required');
-                        if (!_validateEmail(value)) return loc.getString('email_invalid');
+                        if (value.isEmpty) {
+                          return loc.getString('email_required');
+                        }
+                        if (!_validateEmail(value)) {
+                          return loc.getString('email_invalid');
+                        }
                         return null;
                       },
                     ),
@@ -381,23 +480,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: passwordController,
-                    decoration: InputDecoration(labelText: loc.getString('password_label')),
+                    decoration: InputDecoration(
+                        labelText: loc.getString('password_label')),
                     obscureText: true,
                     validator: (v) {
                       final value = v?.trim() ?? '';
-                      if (value.isEmpty) return loc.getString('password_required');
-                      if (value.length < 4) return loc.getString('password_min_length');
+                      if (value.isEmpty) {
+                        return loc.getString('password_required');
+                      }
+                      if (value.length < 4) {
+                        return loc.getString('password_min_length');
+                      }
                       return null;
                     },
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: confirmController,
-                    decoration: InputDecoration(labelText: loc.getString('password_confirm_label')),
+                    decoration: InputDecoration(
+                        labelText: loc.getString('password_confirm_label')),
                     obscureText: true,
-                    validator: (v) => (v?.trim() ?? '') != (passwordController.text.trim())
-                        ? loc.getString('password_mismatch')
-                        : null,
+                    validator: (v) =>
+                        (v?.trim() ?? '') != (passwordController.text.trim())
+                            ? loc.getString('password_mismatch')
+                            : null,
                   ),
 
                   const SizedBox(height: 24),
@@ -406,7 +512,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _startRegistration,
                       child: _isLoading
-                          ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white))
+                          ? const CircularProgressIndicator(
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white))
                           : Text(loc.getString('send_code')),
                     ),
                   ),

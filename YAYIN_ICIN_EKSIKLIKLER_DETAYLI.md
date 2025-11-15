@@ -363,7 +363,7 @@
 ## 📞 İLETİŞİM & DESTEK
 
 **Developer:** Meloshemo  
-**Support:** support@hemoai.com  
+**Support:** support@hemoai.org  
 **URL:** https://meloshemo.github.io/hemoai-support
 
 ---

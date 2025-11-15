@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:cryptography/cryptography.dart';
+import '../services/localization_service.dart';
 
 class BackupEncryption {
   // File layout (bytes):
@@ -43,17 +44,17 @@ class BackupEncryption {
   static Future<Uint8List> decryptBytes(Uint8List data, String password) async {
     final magicBytes = utf8.encode(_magic);
     if (data.length < magicBytes.length + 1 + _saltLen + _nonceLen + 16) {
-      throw const FormatException('Invalid encrypted file');
+      throw FormatException(LocalizationService().getString('backup_invalid_encrypted_file'));
     }
     // Verify magic
     for (int i = 0; i < magicBytes.length; i++) {
       if (data[i] != magicBytes[i]) {
-        throw const FormatException('Invalid magic header');
+        throw FormatException(LocalizationService().getString('backup_invalid_magic_header'));
       }
     }
     final version = data[magicBytes.length];
     if (version != _version) {
-      throw const FormatException('Unsupported version');
+      throw FormatException(LocalizationService().getString('backup_unsupported_version'));
     }
     final offsetSalt = magicBytes.length + 1;
     final salt = data.sublist(offsetSalt, offsetSalt + _saltLen);
@@ -61,11 +62,11 @@ class BackupEncryption {
     final nonce = data.sublist(offsetNonce, offsetNonce + _nonceLen);
     final offsetPayload = offsetNonce + _nonceLen;
     if (offsetPayload >= data.length) {
-      throw const FormatException('Invalid payload');
+      throw FormatException(LocalizationService().getString('backup_invalid_payload'));
     }
     // Split ciphertext and mac (last 16 bytes default for AES-GCM mac length may be 16)
     if (data.length - offsetPayload < 16) {
-      throw const FormatException('Truncated payload');
+      throw FormatException(LocalizationService().getString('backup_truncated_payload'));
     }
     final macBytes = data.sublist(data.length - 16);
     final cipherText = data.sublist(offsetPayload, data.length - 16);
@@ -78,7 +79,7 @@ class BackupEncryption {
       final clear = await _algo.decrypt(secretBox, secretKey: secretKey);
       return Uint8List.fromList(clear);
     } catch (e) {
-      throw const FormatException('Decryption failed');
+      throw FormatException(LocalizationService().getString('backup_decryption_failed'));
     }
   }
 

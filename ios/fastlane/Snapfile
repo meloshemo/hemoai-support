@@ -1,0 +1,29 @@
+# Fastlane snapshot configuration for automated iOS screenshots.
+# Requires fastlane installed (gem install fastlane) and Xcode command line tools.
+# Run: fastlane snapshot (from ios directory)
+
+# List of devices to capture
+devices([
+  "iPhone 15",
+  "iPad Pro (12.9-inch) (6th generation)"
+])
+
+languages(["en", "tr"])
+
+# Where to store output
+output_directory("../screenshots/ios")
+
+# Scheme (ensure a matching Flutter-generated scheme exists after "flutter build ios")
+scheme("Runner")
+
+# Clear previous run
+clear_previous_screenshots(true)
+
+# Stop after first error
+stop_after_first_error(true)
+
+# Use 64-bit architecture sims only
+skip_open_summary(true)
+
+# Add a custom launch argument to enable overlay banner (define env usage if needed)
+launch_arguments(["--dart-define=SCREENSHOT_MODE=true"])

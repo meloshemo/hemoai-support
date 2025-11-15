@@ -1,0 +1,52 @@
+# Configuration for the `screenshots` package.
+# Run with: flutter pub run screenshots
+# Ensure you have Android emulator(s) and iOS simulators (on macOS) available.
+#
+# KURULUM:
+# 1. flutter pub add --dev screenshots
+# 2. Windows için ImageMagick kurun: https://imagemagick.org/script/download.php#windows
+# 3. Emulator'ü başlatın: flutter emulators --launch Pixel_7_Pro_API_33
+# 4. Çalıştırın: flutter pub run screenshots
+#
+# NOT: Integration test dosyası gerekli (integration_test/screenshot_flow_test.dart)
+
+version: 2.0
+
+# Devices definitions - Play Store ve App Store için optimize edilmiş
+devices:
+  android:
+    - name: pixel_7_pro
+      deviceId: pixel_7_pro
+      orientation: Portrait
+      frame: true  # Telefon çerçevesi ekle (opsiyonel, false yapabilirsiniz)
+  ios:
+    - name: iPhone 15 Pro Max
+      deviceId: iPhone_15_Pro_Max
+      orientation: Portrait
+      frame: true  # Telefon çerçevesi ekle (opsiyonel, false yapabilirsiniz)
+
+# Where screenshots will be stored
+output:
+  directory: screenshots
+  # Alt klasörler: screenshots/android/, screenshots/ios/
+
+# Steps: integration test drives navigation & overlay titles
+# See integration_test/screenshot_flow_test.dart
+# 
+# ÖNEMLİ: Screenshots paketi integration test dosyası gerektirir.
+# Eğer integration test yoksa, manuel screenshot alma yöntemini kullanın:
+# - Android: Emulator toolbar'dan 📷 ikonu veya Ctrl+S
+# - iOS: Cmd+S veya Device > Screenshot
+
+# Localization: We'll capture EN and TR variants.
+locales:
+  - en
+  - tr
+
+# Optional overlay already provided by app itself via ScreenshotOverlayService
+# so we disable the tool's own overlay compositing.
+overlay: false
+
+# Frame settings (telefon çerçevesi)
+# Frame eklemek için frame: true yapın (yukarıda)
+# Frame'ler screenshots paketi tarafından otomatik eklenir

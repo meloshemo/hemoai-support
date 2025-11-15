@@ -29,23 +29,19 @@ extension StringLocalizationExtension on String {
 class LocalizationHelper {
   /// Format date with localization
   static String formatDate(BuildContext context, DateTime date) {
-    final loc = Provider.of<LocalizationService>(context, listen: false);
-    // Use intl package for proper date formatting
-    // For now, return simple format
+    // TODO: Use locale-specific formatting once intl is integrated.
     return '${date.day}/${date.month}/${date.year}';
   }
 
   /// Format number with localization
   static String formatNumber(BuildContext context, num value, {int decimals = 2}) {
-    final loc = Provider.of<LocalizationService>(context, listen: false);
-    // Use locale-specific number formatting
+    // TODO: Apply locale-aware number formatting when ready.
     return value.toStringAsFixed(decimals);
   }
 
   /// Format currency with localization
   static String formatCurrency(BuildContext context, double amount, {String currency = 'TRY'}) {
-    final loc = Provider.of<LocalizationService>(context, listen: false);
-    // Use locale-specific currency formatting
+    // TODO: Apply locale-aware currency formatting when ready.
     return '${amount.toStringAsFixed(2)} $currency';
   }
 }

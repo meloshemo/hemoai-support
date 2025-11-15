@@ -427,7 +427,7 @@ Her veri tipi için yukarıdaki detaylı açıklamaları kullanın.
 - Settings → Clear All Data
 - Individual record deletion
 - Cloud data deletion within 30 days
-- Support email for requests: support@hemoai.com
+- Support email for requests: support@hemoai.org
 
 ---
 
@@ -465,7 +465,7 @@ https://meloshemo.github.io/hemoai-support
 
 **Email for Data Requests:**
 ```
-support@hemoai.com
+support@hemoai.org
 ```
 
 ---
@@ -530,7 +530,7 @@ support@hemoai.com
 ## 📞 DESTEK
 
 Form doldurma sırasında sorularınız için:
-- **Email:** support@hemoai.com
+- **Email:** support@hemoai.org
 - **Privacy Policy:** https://meloshemo.github.io
 - **Support Portal:** https://meloshemo.github.io/hemoai-support
 

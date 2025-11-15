@@ -1,0 +1,36 @@
+{
+  "defaults": {
+    "timeout": 60000,
+    "wait": 2500,
+    "standard": "WCAG2AA"
+  },
+  "urls": [
+    "http://127.0.0.1:8081/",
+    { "url": "http://127.0.0.1:8081/#/dashboard", "actions": ["wait for 3000"] },
+    { "url": "http://127.0.0.1:8081/#/settings", "actions": ["wait for 3000"] },
+    { "url": "http://127.0.0.1:8081/#/support", "actions": ["wait for 3000"] },
+    { "url": "http://127.0.0.1:8081/#/medical_consent", "actions": ["wait for 3000"] },
+    { "url": "http://127.0.0.1:8081/#/diet_program", "actions": ["wait for 3000"] },
+    { "url": "http://127.0.0.1:8081/#/advanced_analytics", "actions": ["wait for 3000"] },
+    { "url": "http://127.0.0.1:8081/#/notifications", "actions": ["wait for 3000"] },
+    { "url": "http://127.0.0.1:8081/#/analysis", "actions": ["wait for 3000"] },
+    { "url": "http://127.0.0.1:8081/#/alternative_medicine", "actions": ["wait for 3000"] },
+    { "url": "http://127.0.0.1:8081/#/export_options", "actions": ["wait for 3000"] },
+    { "url": "http://127.0.0.1:8081/#/reminders", "actions": ["wait for 3000"] },
+    { "url": "http://127.0.0.1:8081/#/add_reminder", "actions": ["wait for 3000"] },
+    { "url": "http://127.0.0.1:8081/#/water", "actions": ["wait for 3000"] },
+    { "url": "http://127.0.0.1:8081/#/data_import", "actions": ["wait for 3000"] },
+    { "url": "http://127.0.0.1:8081/#/hemogram_entry", "actions": ["wait for 3000"] },
+    { "url": "http://127.0.0.1:8081/#/full_results", "actions": ["wait for 3000"] },
+    { "url": "http://127.0.0.1:8081/#/premium", "actions": ["wait for 3000"] },
+    { "url": "http://127.0.0.1:8081/#/personal_info", "actions": ["wait for 3000"] },
+    { "url": "http://127.0.0.1:8081/#/language_settings", "actions": ["wait for 3000"] },
+    { "url": "http://127.0.0.1:8081/#/notification_debug", "actions": ["wait for 3000"] },
+    { "url": "http://127.0.0.1:8081/#/stats", "actions": ["wait for 3000"] },
+    { "url": "http://127.0.0.1:8081/#/performance", "actions": ["wait for 3000"] },
+    { "url": "http://127.0.0.1:8081/#/about", "actions": ["wait for 3000"] },
+    { "url": "http://127.0.0.1:8081/#/challenges", "actions": ["wait for 3000"] },
+    { "url": "http://127.0.0.1:8081/#/all_quotes", "actions": ["wait for 3000"] },
+    { "url": "http://127.0.0.1:8081/#/login", "actions": ["wait for 3000"] }
+  ]
+}

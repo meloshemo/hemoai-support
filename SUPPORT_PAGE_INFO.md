@@ -25,7 +25,7 @@
 
 ### 2. Destek Formu ve İletişim
 
-**Destek E-posta Adresi:** support@hemoai.com
+**Destek E-posta Adresi:** support@hemoai.org
 
 **Form Servisi:** Formspree (ücretsiz, https://formspree.io)
 - Formspree kullanarak form gönderimleri doğrudan e-posta adresinize gelecek
@@ -81,7 +81,7 @@
 1. **Formspree hesabı oluştur:** https://formspree.io/accounts/signup
 2. **Yeni form oluştur:**
    - Form name: "HemoAI Support"
-   - Email: support@hemoai.com
+   - Email: support@hemoai.org
    - Form ID alın: `xxxxxxxxxxxx` (form ID)
 3. **Form ID'yi HTML'e ekleyin:**
    ```html
@@ -152,7 +152,7 @@ Device: [Cihaz]
 
 ## 📞 İletişim Bilgileri
 
-**E-posta:** support@hemoai.com  
+**E-posta:** support@hemoai.org  
 **Privacy Policy:** https://meloshemo.github.io  
 **Terms of Use:** https://meloshemo.github.io/hemoai-support/terms-of-use.html
 

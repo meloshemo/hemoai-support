@@ -196,7 +196,7 @@ _Tile(
 ```
 
 ### 4. Support Contact (1 gün)
-- Support email: support@hemoai.com
+- Support email: support@hemoai.org
 - Support URL: https://yourwebsite.com/support
 - Settings ekranına ekle
 

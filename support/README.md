@@ -57,7 +57,7 @@ If you want to use `support.hemoai.app`:
 2. **Create New Form:**
    - Click "New Form"
    - Form name: `HemoAI Support`
-   - Email: `support@hemoai.com`
+   - Email: `support@hemoai.org`
    - Get your Form ID (e.g., `xxxxxxxxxxxx`)
 
 3. **Update HTML:**
@@ -68,7 +68,7 @@ If you want to use `support.hemoai.app`:
 
 4. **Test:**
    - Submit a test form
-   - Check your email at `support@hemoai.com`
+   - Check your email at `support@hemoai.org`
 
 **Formspree Free Plan Limits:**
 - 50 submissions per month
@@ -90,7 +90,7 @@ action="https://formspree.io/f/YOUR_FORM_ID"
 ```
 And update the email link:
 ```html
-href="mailto:support@hemoai.com"
+href="mailto:support@hemoai.org"
 ```
 
 ### Add More FAQ Items
@@ -164,7 +164,7 @@ The page automatically detects and saves user language preference. All text is t
 ## 📞 Support
 
 If you need help with this support page:
-- Email: support@hemoai.com
+   - Email: support@hemoai.org
 - Check Formspree documentation: https://help.formspree.io
 
 ## 📄 License

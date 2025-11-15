@@ -31,6 +31,26 @@ class ParameterFlag {
   });
 }
 
+class RiskEvaluation {
+  final double score;
+  final String label;
+  final List<ParameterFlag> flags;
+  final int abnormalCount;
+  final double severityComponent;
+  final double abnormalRatio;
+  final bool hasCriticalDeviation;
+
+  const RiskEvaluation({
+    required this.score,
+    required this.label,
+    required this.flags,
+    required this.abnormalCount,
+    required this.severityComponent,
+    required this.abnormalRatio,
+    required this.hasCriticalDeviation,
+  });
+}
+
 class AnalysisResult {
   final Map<String, Map<String, double>> referenceRanges;
   final double riskScore; // 0..100
@@ -76,6 +96,133 @@ class AnalysisService {
     'vitamin_b12': {'min': 200.0, 'max': 900.0},
   };
 
+  static const Map<String, double> parameterWeights = {
+    'hemoglobin': 1.2,
+    'glucose': 1.4,
+    'calcium': 1.1,
+    'sodium': 1.4,
+    'potassium': 1.6,
+    'chloride': 1.0,
+    'alt': 1.15,
+    'ast': 1.15,
+    'ggt': 1.1,
+    'total_bilirubin': 1.3,
+    'direct_bilirubin': 1.35,
+    'crp': 1.2,
+    'iron': 1.0,
+    'uibc': 0.9,
+    'tibc': 0.9,
+    'tsh': 1.3,
+    'free_t3': 1.1,
+    'free_t4': 1.1,
+    'vitamin_d3': 1.0,
+    'vitamin_b12': 0.95,
+  };
+
+  static const double _maxSeverityForScaling = 2.5;
+
+  static double _relativeDeviation(double value, Map<String, double> range) {
+    final min = range['min'] ?? double.negativeInfinity;
+    final max = range['max'] ?? double.infinity;
+    if (value >= min && value <= max) {
+      return 0.0;
+    }
+    final span = (max - min).abs();
+    final safeSpan = span <= 0 ? (max.abs() > 0 ? max.abs() : 1.0) : span;
+    if (value < min) {
+      return (min - value) / safeSpan;
+    } else {
+      return (value - max) / safeSpan;
+    }
+  }
+
+  static double _severityFromDeviation(double deviation) {
+    if (deviation <= 0) return 0.0;
+    double severity = deviation;
+    if (deviation > 0.25) severity += 0.15;
+    if (deviation > 0.5) severity += 0.25;
+    if (deviation > 1.0) severity += 0.35;
+    if (deviation > 1.5) severity += 0.45;
+    return severity.clamp(0.0, _maxSeverityForScaling);
+  }
+
+  static RiskEvaluation evaluateRisk(
+    Map<String, double> currentValues,
+    Map<String, Map<String, double>> ranges,
+  ) {
+    final flags = <ParameterFlag>[];
+    double weightedSeveritySum = 0;
+    double weightSum = 0;
+    int abnormalCount = 0;
+    bool hasCritical = false;
+
+    currentValues.forEach((key, value) {
+      final range = ranges[key];
+      final weight = parameterWeights[key] ?? 1.0;
+      weightSum += weight;
+      if (range == null) {
+        return;
+      }
+      final deviation = _relativeDeviation(value, range);
+      if (deviation <= 0) {
+        return;
+      }
+      abnormalCount += 1;
+      final severity = _severityFromDeviation(deviation);
+      weightedSeveritySum += severity * weight;
+
+      final direction = value > (range['max'] ?? value)
+          ? (severity >= 1.2 ? 'very_high' : 'high')
+          : 'low';
+      if (direction == 'very_high' || severity >= 1.6) {
+        hasCritical = true;
+      }
+      flags.add(ParameterFlag(
+        key: key,
+        direction: direction,
+        severity: severity,
+      ));
+    });
+
+    if (weightSum == 0) {
+      weightSum = currentValues.isEmpty ? 1 : currentValues.length.toDouble();
+    }
+
+    flags.sort((a, b) => b.severity.compareTo(a.severity));
+
+    final averageSeverity = weightedSeveritySum / weightSum;
+    final severityComponent = (averageSeverity / _maxSeverityForScaling).clamp(0.0, 1.0);
+    final abnormalRatio = currentValues.isEmpty
+        ? 0.0
+        : (abnormalCount / currentValues.length).clamp(0.0, 1.0);
+    final blended = (severityComponent * 0.7) + (abnormalRatio * 0.3);
+    double score = (blended * 100).clamp(0.0, 100.0);
+
+    String label;
+    if (score <= 20) {
+      label = 'low';
+    } else if (score <= 45) {
+      label = 'medium';
+    } else if (score <= 70) {
+      label = 'high';
+    } else {
+      label = 'very_high';
+    }
+    if (hasCritical && score > 45) {
+      label = 'very_high';
+    }
+
+    return RiskEvaluation(
+      score: score,
+      label: label,
+      flags: flags,
+      abnormalCount: abnormalCount,
+      severityComponent: severityComponent,
+      abnormalRatio: abnormalRatio,
+      hasCriticalDeviation: hasCritical,
+    );
+  }
+
   Map<String, Map<String, double>> _adjustRangesFor(int? age, String? gender) {
     // Copy base
     final ranges = baseRanges.map((k, v) => MapEntry(k, {...v}));
@@ -101,9 +248,12 @@ class AnalysisService {
 
   Future<AnalysisResult> analyze({
     required int userId,
-    required Map<String, double> currentValues,
+    Map<String, double>? currentValues,
+    // Backwards-compat: some tests call `values:` instead of `currentValues:`
+    Map<String, double>? values,
     DateTime? now,
   }) async {
+    final effectiveValues = currentValues ?? values ?? <String, double>{};
     final loc = LocalizationService();
     final prefs = await PreferencesService.getInstance();
     final info = await prefs.getUserInfoAsync();
@@ -140,7 +290,7 @@ class AnalysisService {
       }
     }
     // Include current values as the latest point
-    for (final e in currentValues.entries) {
+    for (final e in effectiveValues.entries) {
       (series[e.key] ??= []).add((nowDt, e.value));
     }
 
@@ -165,38 +315,20 @@ class AnalysisService {
     }
 
     // Flags and risk score
-    final List<ParameterFlag> flags = [];
-    int abnormal = 0;
-    int bonus = 0;
-    currentValues.forEach((key, value) {
-      final range = ranges[key];
-      if (range == null) return;
-      if (value < range['min']! || value > range['max']!) {
-        abnormal += 1;
-        if (value < range['min']!) {
-          final diff = (range['min']! - value) / max(range['min']!, 0.0001);
-          flags.add(ParameterFlag(key: key, direction: 'low', severity: diff));
-        } else if (value > range['max']!) {
-          final diff = (value - range['max']!) / max(range['max']!, 0.0001);
-          final isVery = value > range['max']! * 1.5;
-          flags.add(ParameterFlag(key: key, direction: isVery ? 'very_high' : 'high', severity: isVery ? diff + 0.5 : diff));
-          if (isVery) bonus += 20;
-        }
-      }
-    });
-    flags.sort((a, b) => b.severity.compareTo(a.severity));
-    double score = (abnormal * 15 + bonus).toDouble().clamp(0, 100);
-    final riskLabel = score <= 33
-        ? 'low'
-        : (score <= 66 ? 'medium' : (flags.any((f) => f.direction == 'very_high') ? 'very_high' : 'high'));
+  final riskEvaluation = evaluateRisk(effectiveValues, ranges);
+    final flags = riskEvaluation.flags;
+    final score = riskEvaluation.score;
+    final riskLabel = riskEvaluation.label;
 
     // Summary
-    final summary = abnormal == 0
+    final summary = riskEvaluation.abnormalCount == 0
         ? loc.getString('overall_assessment_normal')
-        : (abnormal <= 2 ? loc.getString('overall_assessment_some_abnormal') : loc.getString('overall_assessment_many_abnormal'));
+        : (riskEvaluation.abnormalCount <= 2
+            ? loc.getString('overall_assessment_some_abnormal')
+            : loc.getString('overall_assessment_many_abnormal'));
 
     // Recommendations (personalized)
-  final recs = _buildRecommendations(currentValues, ranges, trends, meds);
+  final recs = _buildRecommendations(effectiveValues, ranges, trends, meds);
 
     return AnalysisResult(
       referenceRanges: ranges,

@@ -3,8 +3,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'cloud_sync_service.dart';
 import 'preferences_service.dart';
 
-/// Automatic backup scheduler service
-/// Handles periodic encrypted backups to cloud storage
+/// Automatic backup and restore service
+/// Handles periodic encrypted backups to cloud storage and automatic restore on app startup
+/// All operations are silent and invisible to the user
 class AutoBackupService {
   static final AutoBackupService _instance = AutoBackupService._internal();
   factory AutoBackupService() => _instance;
@@ -146,6 +147,101 @@ class AutoBackupService {
     }
     
     return nextBackup.difference(now);
+  }
+
+  /// Automatic restore from cloud on app startup
+  /// Silent operation - no UI, no user interaction required
+  Future<void> autoRestoreOnStartup() async {
+    try {
+      if (!await isEnabled()) {
+        if (kDebugMode) {
+          debugPrint('📦 Auto restore skipped (backup disabled)');
+        }
+        return;
+      }
+
+      final prefs = await PreferencesService.getInstance();
+      final userId = prefs.getCurrentUserId();
+      if (userId == null) {
+        if (kDebugMode) {
+          debugPrint('📦 Auto restore skipped (no user logged in)');
+        }
+        return;
+      }
+
+      // Get stored password hash (if available) or use default
+      final storedPasswordHash = prefs.getCustomSetting<String>('backup_password_hash');
+      if (storedPasswordHash == null) {
+        // First time - generate and store a password hash
+        final defaultPassword = _generateDefaultPassword(userId);
+        await prefs.saveCustomSettings('backup_password_hash', defaultPassword);
+        if (kDebugMode) {
+          debugPrint('📦 Generated default backup password');
+        }
+        return; // No restore on first run
+      }
+
+      final cloudSync = CloudSyncService();
+      if (!cloudSync.isSignedIn) {
+        await cloudSync.signInAnonymously();
+      }
+
+      // Attempt silent restore (merge strategy to avoid data loss)
+      final success = await cloudSync.restoreLatest(storedPasswordHash, strategy: 'merge');
+      
+      if (success) {
+        if (kDebugMode) {
+          debugPrint('✅ Auto restore completed successfully');
+        }
+      } else {
+        if (kDebugMode) {
+          debugPrint('⚠️ Auto restore failed (no backup available or error)');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Auto restore error: $e');
+      }
+      // Fail silently - don't interrupt user experience
+    }
+  }
+
+  /// Automatic backup on app exit or data changes
+  /// Silent operation - no UI, no user interaction required
+  Future<void> autoBackupOnDataChange() async {
+    try {
+      if (!await isBackupDue()) {
+        return;
+      }
+
+      final prefs = await PreferencesService.getInstance();
+      final userId = prefs.getCurrentUserId();
+      if (userId == null) return;
+
+      final storedPasswordHash = prefs.getCustomSetting<String>('backup_password_hash');
+      if (storedPasswordHash == null) {
+        // Generate password on first backup
+        final defaultPassword = _generateDefaultPassword(userId);
+        await prefs.saveCustomSettings('backup_password_hash', defaultPassword);
+        await checkAndBackupIfDue(defaultPassword);
+      } else {
+        await checkAndBackupIfDue(storedPasswordHash);
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('❌ Auto backup on data change error: $e');
+      }
+      // Fail silently
+    }
+  }
+
+  /// Generate a default password based on user ID
+  /// This ensures the same password is used for the same user
+  String _generateDefaultPassword(int userId) {
+    // Simple hash-based password generation
+    // In production, use a more secure method
+    final hash = (userId * 7919 + 1000000).toString(); // Simple hash
+    return hash.substring(0, hash.length > 16 ? 16 : hash.length);
   }
 }
 

@@ -1,0 +1,46 @@
+name: Backend Uptime Monitor
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/30 * * * *' # every 30 minutes
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate configuration
+        run: |
+          if [ -z "${{ secrets.HEALTHCHECK_URL }}" ]; then
+            echo "❌ Missing HEALTHCHECK_URL secret. Configure it in the repository settings."
+            exit 1
+          fi
+      - name: Ping health endpoint
+        id: ping
+        run: |
+          START=$(date +%s%3N)
+          RESPONSE=$(curl --silent --show-error --fail --max-time 15 "${{ secrets.HEALTHCHECK_URL }}")
+          STATUS=$?
+          STOP=$(date +%s%3N)
+          LATENCY_MS=$((STOP - START))
+
+          if [ $STATUS -ne 0 ]; then
+            echo "❌ Health check failed"
+            exit $STATUS
+          fi
+
+          echo "response=$RESPONSE" >> $GITHUB_OUTPUT
+          echo "latency_ms=$LATENCY_MS" >> $GITHUB_OUTPUT
+          echo "✅ Health check ok in ${LATENCY_MS}ms"
+      - name: Append summary
+        if: always()
+        run: |
+          echo '### Uptime Monitor' >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.ping.outcome }}" = "success" ]; then
+            echo "* Status: ✅ Healthy" >> $GITHUB_STEP_SUMMARY
+            echo "* Latency: ${{ steps.ping.outputs.latency_ms }} ms" >> $GITHUB_STEP_SUMMARY
+            echo "* Payload: `${{ steps.ping.outputs.response }}`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "* Status: ❌ Failure" >> $GITHUB_STEP_SUMMARY
+          fi
+

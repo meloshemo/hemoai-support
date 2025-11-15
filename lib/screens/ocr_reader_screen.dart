@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../utils/color_compat.dart';
 import 'package:provider/provider.dart';
 import '../services/localization_service.dart';
 import 'data_import_screen.dart';
@@ -26,7 +25,7 @@ class OcrReaderScreen extends StatelessWidget {
     return Consumer<LocalizationService>(
       builder: (context, loc, child) => Scaffold(
         appBar: AppBar(
-          title: Text(loc.getString('loading') + ' OCR...'),
+          title: Text('${loc.getString('loading')} OCR...'),
         ),
         body: const Center(
           child: CircularProgressIndicator(),

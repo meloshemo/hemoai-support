@@ -1,5 +1,6 @@
+// ignore_for_file: use_build_context_synchronously
+import 'dart:async';
 import 'package:flutter/material.dart';
-import '../utils/color_compat.dart';
 import 'package:provider/provider.dart';
 import '../services/preferences_service.dart';
 import '../services/database_helper.dart';
@@ -13,7 +14,7 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class FamilyPanelScreen extends StatefulWidget {
-  const FamilyPanelScreen({Key? key}) : super(key: key);
+  const FamilyPanelScreen({super.key});
 
   @override
   State<FamilyPanelScreen> createState() => _FamilyPanelScreenState();
@@ -22,7 +23,6 @@ class FamilyPanelScreen extends StatefulWidget {
 class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
   PreferencesService? _prefsService;
   final DatabaseHelper _db = DatabaseHelper.instance;
-  final FamilyService _familyService = FamilyService();
   List<Map<String, dynamic>> familyMembers = [];
   List<Map<String, dynamic>> filteredMembers = [];
   List<Map<String, dynamic>> pendingInvitations = [];
@@ -802,7 +802,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
                     ),
                   ],
                 ),
-              )).toList(),
+              )),
         ],
       ),
     );
@@ -1493,7 +1493,7 @@ class _FamilyMemberCard extends StatelessWidget {
             const Spacer(),
             if (isConnected)
               FutureBuilder<Map<String, dynamic>?>(
-                future: FamilyService().getLatestHemogramForConnected(connectedUserId as int),
+                future: FamilyService().getLatestHemogramForConnected(connectedUserId),
                 builder: (context, snapshot) {
                   final hasData = snapshot.hasData && snapshot.data != null;
                   if (!hasData) {

@@ -14,7 +14,7 @@ https://meloshemo.github.io
 
 **Hosting:** GitHub Pages  
 **Son Güncelleme:** November 04, 2025  
-**İletişim:** HemoAI@hotmail.com
+**İletişim:** privacy@hemoai.org
 
 ---
 
@@ -24,6 +24,8 @@ https://meloshemo.github.io
 2. ✅ URL doğrulandı ve erişilebilir
 3. ✅ GDPR/KVKK uyumlu içerik mevcut
 4. ✅ İletişim bilgileri eklendi
+5. ✅ e-Devlet referansları Türkçe/İngilizce metinlerden kaldırıldı (2025-11-11)
+6. ✅ Yerel veri içe aktarma saklama politikası ve kullanıcı bilgilendirmesi eklendi
 
 ---
 
@@ -50,6 +52,8 @@ https://meloshemo.github.io
 - [x] Privacy Policy HTML dosyası hazır
 - [x] Privacy Policy GitHub Pages'de host edildi
 - [x] URL erişilebilir ve çalışıyor
+- [x] e-Devlet ve Türkiye'ye özgü ödeme metinleri temizlendi
+- [x] Veri saklama prosedürü güncellendi (docs/data_import_policy.md)
 - [ ] URL Play Store metadata'ya eklenecek (store submission sırasında)
 - [ ] URL App Store metadata'ya eklenecek (store submission sırasında)
 

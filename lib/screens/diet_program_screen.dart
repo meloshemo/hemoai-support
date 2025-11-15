@@ -1,5 +1,5 @@
-﻿import 'package:flutter/material.dart';
-import '../utils/color_compat.dart';
+// ignore_for_file: use_build_context_synchronously
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/services.dart';
@@ -12,6 +12,9 @@ import '../services/database_helper.dart';
 import '../utils/responsive_helper.dart';
 import '../services/wellness_service.dart';
 import '../services/ai_diet_menu_service.dart';
+import '../services/water_service.dart';
+import '../widgets/medical_disclaimer_banner.dart';
+import 'dart:async';
 
 class DietProgramScreen extends StatefulWidget {
   const DietProgramScreen({super.key});
@@ -20,13 +23,36 @@ class DietProgramScreen extends StatefulWidget {
   State<DietProgramScreen> createState() => _DietProgramScreenState();
 }
 
-class _DietProgramScreenState extends State<DietProgramScreen> with SingleTickerProviderStateMixin {
+class _DietProgramScreenState extends State<DietProgramScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   int? _userId;
-  Map<String, bool> _todayMeals = {'breakfast': false, 'lunch': false, 'dinner': false, 'snack': false};
+  Map<String, bool> _todayMeals = {
+    'breakfast': false,
+    'lunch': false,
+    'dinner': false,
+    'snack': false
+  };
   int _selectedWeekday = DateTime.now().weekday; // 1=Monday, 7=Sunday
   String _selectedFilter = 'all';
   List<Map<String, dynamic>>? _weeklyProgress;
+  final AIDietMenuService _aiMenuService = AIDietMenuService();
+  _DietData? _latestDietData;
+  Map<String, Map<String, List<String>>> _aiWeeklyPlan = {};
+  Map<String, String> _aiPlanDayTags = {};
+  String? _aiPlanFocusTag;
+  DateTime? _aiPlanGeneratedAt;
+  bool _aiPlanDynamic = true;
+  DietPlanSafetyReport? _aiPlanSafetyReport;
+  static const List<String> _weekdayKeys = [
+    'sunday',
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+  ];
   static const Map<String, Map<String, double>> _ref = {
     'hemoglobin': {'min': 12.0, 'max': 17.0},
     'iron': {'min': 60.0, 'max': 170.0},
@@ -52,8 +78,19 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
   Future<_DietData> _loadData() async {
     final prefs = await PreferencesService.getInstance();
     final user = prefs.getUserInfo();
-    final int age = (user != null && user['age'] is int) ? (user['age'] as int) : 30;
-    final Map<String, double>? lastValues = prefs.getLastHemogramValues();
+    final int age =
+        (user != null && user['age'] is int) ? (user['age'] as int) : 30;
+    Map<String, double>? lastValues = prefs.getLastHemogramValues();
+    if (lastValues == null || lastValues.isEmpty) {
+      lastValues = await prefs.loadActiveHemogramValues();
+    }
+    String? dateIso = prefs.getLastHemogramDate();
+    if ((dateIso == null || dateIso.isEmpty) && lastValues != null) {
+      dateIso = prefs.getLastHemogramDate();
+    }
+    final DateTime? lastTestDate = (dateIso != null && dateIso.isNotEmpty)
+        ? DateTime.tryParse(dateIso)
+        : null;
     _userId = prefs.getCurrentUserId();
 
     final service = DietProgramService();
@@ -66,6 +103,7 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
       programs: programs,
       hasMeasuredValues: lastValues != null && lastValues.isNotEmpty,
       values: Map<String, double>.from(lastValues ?? {}),
+      latestTestDate: lastTestDate,
     );
   }
 
@@ -74,7 +112,8 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     // Set Sunday as index 0 for Turkish week starting from Sunday
-    _selectedWeekday = (DateTime.now().weekday == 7) ? 0 : DateTime.now().weekday;
+    _selectedWeekday =
+        (DateTime.now().weekday == 7) ? 0 : DateTime.now().weekday;
     // Defer tracking load until after first frame to ensure context initialized
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadTracking();
@@ -168,18 +207,21 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
     final cs = theme.colorScheme;
     final canPop = Navigator.of(context).canPop();
     return Scaffold(
-  backgroundColor: cs.surface,
+      backgroundColor: cs.surface,
       drawer: canPop ? null : const AppDrawer(currentRoute: '/diet_program'),
       appBar: AppBar(
         leading: canPop
             ? IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () => Navigator.of(context).maybePop(),
-                tooltip: Provider.of<LocalizationService>(context, listen: false).getString('back'),
+                tooltip:
+                    Provider.of<LocalizationService>(context, listen: false)
+                        .getString('back'),
               )
             : null,
         title: Consumer<LocalizationService>(
-          builder: (context, localization, child) => Text(localization.getString('personal_diet_program')),
+          builder: (context, localization, child) =>
+              Text(localization.getString('ai_diet_assistant_title')),
         ),
         backgroundColor: cs.surface,
         foregroundColor: cs.onSurface,
@@ -188,27 +230,33 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
           // Copy current day's menu
           Builder(builder: (context) {
             return IconButton(
-              tooltip: Provider.of<LocalizationService>(context, listen: false).getString('copy_day_menu'),
+              tooltip: Provider.of<LocalizationService>(context, listen: false)
+                  .getString('copy_day_menu'),
               icon: const Icon(Icons.copy_all_rounded),
               onPressed: () async {
-                final loc = Provider.of<LocalizationService>(context, listen: false);
-                final text = await _buildSelectedDayShareTextAsync(loc, _selectedWeekday);
+                final messenger = ScaffoldMessenger.of(context);
+                final loc =
+                    Provider.of<LocalizationService>(context, listen: false);
+                final text = await _buildSelectedDayShareTextAsync(
+                    loc, _selectedWeekday);
                 await Clipboard.setData(ClipboardData(text: text));
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(loc.getString('day_menu_copied'))),
-                  );
-                }
+                if (!mounted) return;
+                messenger.showSnackBar(
+                  SnackBar(content: Text(loc.getString('day_menu_copied'))),
+                );
               },
             );
           }),
           Builder(builder: (context) {
             return IconButton(
-              tooltip: Provider.of<LocalizationService>(context, listen: false).getString('share_day_menu'),
+              tooltip: Provider.of<LocalizationService>(context, listen: false)
+                  .getString('share_day_menu'),
               icon: const Icon(Icons.ios_share),
               onPressed: () async {
-                final loc = Provider.of<LocalizationService>(context, listen: false);
-                final text = await _buildSelectedDayShareTextAsync(loc, _selectedWeekday);
+                final loc =
+                    Provider.of<LocalizationService>(context, listen: false);
+                final text = await _buildSelectedDayShareTextAsync(
+                    loc, _selectedWeekday);
                 Share.share(text);
               },
             );
@@ -218,8 +266,12 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
           controller: _tabController,
           labelColor: cs.primary,
           tabs: [
-            Tab(text: Provider.of<LocalizationService>(context, listen: true).getString('diet_recommendations')),
-            Tab(text: Provider.of<LocalizationService>(context, listen: true).getString('weekly_plan')),
+            Tab(
+                text: Provider.of<LocalizationService>(context, listen: true)
+                    .getString('diet_recommendations')),
+            Tab(
+                text: Provider.of<LocalizationService>(context, listen: true)
+                    .getString('weekly_plan')),
           ],
         ),
       ),
@@ -228,24 +280,36 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
           future: _loadData(),
           builder: (context, snapshot) {
             if (snapshot.connectionState != ConnectionState.done) {
-              return Center(child: CircularProgressIndicator(color: cs.primary));
+              return Center(
+                  child: CircularProgressIndicator(color: cs.primary));
             }
             if (!snapshot.hasData) {
-              return Center(child: Text(localization.getString('no_data_available')));
+              return Center(
+                  child: Text(localization.getString('no_data_available')));
             }
             final data = snapshot.data!;
+            _latestDietData = data;
 
             final ageGroupLabel = localization.getString(data.ageGroupKey);
-            final suitabilityText = localization.getStringWithParams('suitable_for_age', {
+            final suitabilityText =
+                localization.getStringWithParams('suitable_for_age', {
               'age_group': ageGroupLabel,
             });
 
             // Premium hero header + content
+            final planSafety = _aiPlanSafetyReport ??
+                _aiMenuService.evaluatePlanSafety(
+                  hemogramValues: data.values,
+                  focusTags:
+                      _aiPlanDayTags.isNotEmpty ? _aiPlanDayTags.values : null,
+                );
+
             Widget todayTab = ListView(
-              padding: ResponsiveHelper.getScreenPadding(context).copyWith(bottom: 8),
+              padding: ResponsiveHelper.getScreenPadding(context)
+                  .copyWith(bottom: 8),
               children: [
-                _premiumHero(localization, data),
-                const SizedBox(height: 12),
+                const MedicalDisclaimerBanner(),
+                DietPlanSafetyAlert(report: planSafety),
                 _kpiRow(localization),
                 if (_weeklyProgress != null) ...[
                   const SizedBox(height: 12),
@@ -254,134 +318,128 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
                 const SizedBox(height: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // AI Coach header row
-                      Row(
-                        children: [
-                          Icon(Icons.psychology, size: ResponsiveHelper.getIconSize(context, 26), color: cs.primary),
-                          const SizedBox(width: 8),
-                          Expanded(child: Text(localization.getString('ai_coach'), style: TextStyle(fontSize: ResponsiveHelper.getFontSize(context, 18), fontWeight: FontWeight.w700, color: cs.onSurface))),
-                          Text(localization.getString('view_all'), style: TextStyle(color: cs.primary)),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(localization.getString('ai_coach_sub'), style: TextStyle(fontSize: ResponsiveHelper.getFontSize(context, 14), color: cs.onSurface.withValues(alpha: 0.7))),
+                  children: [
+                    // AI Coach header row
+                    Row(
+                      children: [
+                        Icon(Icons.psychology,
+                            size: ResponsiveHelper.getIconSize(context, 26),
+                            color: cs.primary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                            child: Text(localization.getString('ai_coach'),
+                                style: TextStyle(
+                                    fontSize: ResponsiveHelper.getFontSize(
+                                        context, 18),
+                                    fontWeight: FontWeight.w700,
+                                    color: cs.onSurface))),
+                        Text(localization.getString('view_all'),
+                            style: TextStyle(color: cs.primary)),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(localization.getString('ai_coach_sub'),
+                        style: TextStyle(
+                            fontSize: ResponsiveHelper.getFontSize(context, 14),
+                            color: cs.onSurface.withValues(alpha: 0.85))),
 
-                      // Latest results card
-                      const SizedBox(height: 12),
-                      if (data.hasMeasuredValues)
-                        _buildLatestResultsCard(localization, data.values),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Icon(Icons.check_box_outlined, size: ResponsiveHelper.getIconSize(context, 20), color: cs.primary),
-                          const SizedBox(width: 8),
-                          Text(localization.getString('diet_toggle_hint'), style: TextStyle(color: cs.onSurface.withValues(alpha: 0.7))),
+                    // Latest results card
+                    const SizedBox(height: 12),
+                    if (data.hasMeasuredValues)
+                      _buildLatestResultsCard(localization, data.values),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Icon(Icons.check_box_outlined,
+                            size: ResponsiveHelper.getIconSize(context, 20),
+                            color: cs.primary),
+                        const SizedBox(width: 8),
+                        Text(localization.getString('diet_toggle_hint'),
+                            style: TextStyle(
+                                color: cs.onSurface.withValues(alpha: 0.85))),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: cs.outlineVariant),
+                        gradient: LinearGradient(
+                            colors: [cs.surface, cs.surfaceContainerHighest],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight),
+                        boxShadow: [
+                          BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4))
                         ],
                       ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(children: [
+                          _mealRow(context, 'meal_breakfast', 'breakfast'),
+                          const Divider(height: 20),
+                          _mealRow(context, 'meal_lunch', 'lunch'),
+                          const Divider(height: 20),
+                          _mealRow(context, 'meal_dinner', 'dinner'),
+                          const Divider(height: 20),
+                          _mealRow(context, 'meal_snack', 'snack'),
+                        ]),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Chip(
+                        avatar: Icon(Icons.cake, size: 18, color: cs.onPrimary),
+                        label: Text(suitabilityText,
+                            style: TextStyle(color: cs.onPrimary)),
+                        backgroundColor: cs.primary,
+                      ),
+                    ),
+                    if (!data.hasMeasuredValues) ...[
                       const SizedBox(height: 8),
                       Container(
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
+                          color: cs.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: cs.outlineVariant),
-                          gradient: LinearGradient(colors: [cs.surface, cs.surfaceContainerHighest], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0,4))],
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(children: [
-                            _mealRow(context, 'meal_breakfast', 'breakfast'),
-                            const Divider(height: 20),
-                            _mealRow(context, 'meal_lunch', 'lunch'),
-                            const Divider(height: 20),
-                            _mealRow(context, 'meal_dinner', 'dinner'),
-                            const Divider(height: 20),
-                            _mealRow(context, 'meal_snack', 'snack'),
-                          ]),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Chip(
-                          avatar: Icon(Icons.cake, size: 18, color: cs.onPrimary),
-                          label: Text(suitabilityText, style: TextStyle(color: cs.onPrimary)),
-                          backgroundColor: cs.primary,
-                        ),
-                      ),
-                      if (!data.hasMeasuredValues) ...[
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: cs.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: cs.outlineVariant),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.info_outline, color: cs.primary),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  localization.getString('enter_hemogram_values'),
-                                  style: TextStyle(fontSize: ResponsiveHelper.getFontSize(context, 14), color: cs.onSurface),
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: () => Navigator.pushNamed(context, '/hemogram_entry'),
-                                child: Text(localization.getString('go_to_hemogram_entry')),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-
-                      const SizedBox(height: 12),
-                      // Filters row
-                      Text(
-                        localization.getString('diet_filters_title'),
-                        style: TextStyle(fontWeight: FontWeight.w600, color: cs.onSurface),
-                      ),
-                      const SizedBox(height: 8),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
                         child: Row(
-                          children: _buildFilterChips(localization, cs),
+                          children: [
+                            Icon(Icons.info_outline, color: cs.primary),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                localization.getString('enter_hemogram_values'),
+                                style: TextStyle(
+                                    fontSize: ResponsiveHelper.getFontSize(
+                                        context, 14),
+                                    color: cs.onSurface),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pushNamed(
+                                  context, '/hemogram_entry'),
+                              child: Text(localization
+                                  .getString('go_to_hemogram_entry')),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      if (data.hasMeasuredValues)
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: cs.primary.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: cs.primary.withValues(alpha: 0.2)),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.recommend, color: cs.primary),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  localization.getString('diet_personalized_header'),
-                                  style: TextStyle(color: cs.onSurface),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      if (data.hasMeasuredValues) ...[
-                        const SizedBox(height: 12),
-                        // Smart suggestions also in Today tab (requested)
-                        Builder(builder: (_) {
-                          final weekday = DateTime.now().weekday; // 1..7
-                          final dayKey = _dayKeyFromWeekday(weekday);
-                          return _buildSmartSuggestions(localization, data, dayKey, chipCount: 12, tipCount: 2);
-                        }),
-                      ],
                     ],
+
+                    const SizedBox(height: 12),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: _buildFilterChips(localization, cs),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 ...(() {
@@ -390,13 +448,19 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
                   final dayKey = _dayKeyFromWeekday(weekday);
                   List<DietProgram> curated = _programsForDay(data, dayKey);
                   // Apply filter if any
-                  final filtered = curated.where((p) => _selectedFilter == 'all' ? true : p.riskTag == _selectedFilter).toList();
+                  final filtered = curated
+                      .where((p) => _selectedFilter == 'all'
+                          ? true
+                          : p.riskTag == _selectedFilter)
+                      .toList();
                   // Optionally limit to top N for a concise Today view
                   final limited = filtered.take(8).toList();
                   final widgets = <Widget>[];
                   for (int i = 0; i < limited.length; i++) {
                     widgets.add(_DietCard(program: limited[i]));
-                    if (i < limited.length - 1) widgets.add(const SizedBox(height: 12));
+                    if (i < limited.length - 1) {
+                      widgets.add(const SizedBox(height: 12));
+                    }
                   }
                   return widgets;
                 })(),
@@ -406,74 +470,127 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
             Widget weekTab = ListView(
               padding: ResponsiveHelper.getScreenPadding(context),
               children: [
-                _premiumHero(localization, data),
-                const SizedBox(height: 12),
-                // Header with toggle button
-                Row(
-                  children: [
-                    Icon(Icons.restaurant_menu, color: cs.primary),
-                    const SizedBox(width: 8),
-                    Text(
-                      localization.getString('diet_recommendations'),
-                      style: TextStyle(fontSize: ResponsiveHelper.getFontSize(context, 18), fontWeight: FontWeight.bold, color: cs.onSurface),
+                const MedicalDisclaimerBanner(),
+                DietPlanSafetyAlert(report: planSafety),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        cs.primary,
+                        cs.primaryContainer,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: cs.primary,
-                        borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: cs.primary.withValues(alpha: 0.25),
+                        blurRadius: 24,
+                        offset: const Offset(0, 12),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
-                          Icon(Icons.person, color: cs.onPrimary, size: 16),
-                          const SizedBox(width: 4),
-                          Text(
-                            localization.getString('for_you'),
-                            style: TextStyle(color: cs.onPrimary, fontSize: 12),
+                          Icon(Icons.auto_awesome,
+                              color: cs.onPrimary, size: 26),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              localization.getString('ai_diet_assistant_title'),
+                              style: TextStyle(
+                                color: cs.onPrimary,
+                                fontSize:
+                                    ResponsiveHelper.getFontSize(context, 20),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 12),
+                      Text(
+                        localization.getString('ai_diet_assistant_subtitle'),
+                        style: TextStyle(
+                          color: cs.onPrimary.withValues(alpha: 0.85),
+                          fontSize: ResponsiveHelper.getFontSize(context, 14),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          FilledButton.icon(
+                            onPressed: () =>
+                                _openAiAssistantDialog(localization),
+                            icon: const Icon(Icons.chat_bubble_outline),
+                            label: Text(localization
+                                .getString('ai_diet_assistant_action')),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: cs.onPrimary,
+                              foregroundColor: cs.primary,
+                            ),
+                          ),
+                          if (_aiWeeklyPlan.isNotEmpty)
+                            OutlinedButton.icon(
+                              icon: const Icon(Icons.restart_alt),
+                              label:
+                                  Text(localization.getString('ai_plan_clear')),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: cs.onPrimary,
+                                side: BorderSide(
+                                    color: cs.onPrimary.withValues(alpha: 0.6)),
+                              ),
+                              onPressed: _clearAiPlan,
+                            ),
+                        ],
+                      ),
+                      if (_aiWeeklyPlan.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        _buildAiPlanStatus(localization, cs),
+                      ],
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  localization.getString('hemogram_based_nutrition_plan'),
-                  style: TextStyle(fontSize: ResponsiveHelper.getFontSize(context, 14), color: cs.onSurface.withValues(alpha: 0.7)),
-                ),
-                const SizedBox(height: 16),
-
+                const SizedBox(height: 20),
                 // Weekly tabs as ChoiceChips
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: List.generate(7, (index) {
-                      final dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                      final dayKeys = [
+                        'sunday',
+                        'monday',
+                        'tuesday',
+                        'wednesday',
+                        'thursday',
+                        'friday',
+                        'saturday'
+                      ];
                       final selected = _selectedWeekday == index;
                       return Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: ChoiceChip(
                           label: Text(localization.getString(dayKeys[index])),
                           selected: selected,
-                          onSelected: (_) => setState(() => _selectedWeekday = index),
+                          onSelected: (_) =>
+                              setState(() => _selectedWeekday = index),
                           selectedColor: cs.primary,
-                          labelStyle: TextStyle(color: selected ? cs.onPrimary : cs.onSurface),
+                          labelStyle: TextStyle(
+                              color: selected ? cs.onPrimary : cs.onSurface),
                           backgroundColor: cs.surfaceContainerHighest,
                         ),
                       );
                     }),
                   ),
                 ),
-                const SizedBox(height: 16),
-
-                // Smart, actionable suggestions (integrated look)
-                Builder(builder: (_) {
-                  final dayKeys = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
-                  final dayKey = dayKeys[_selectedWeekday];
-                  return _buildSmartSuggestions(localization, data, dayKey, chipCount: 12, tipCount: 2);
-                }),
                 const SizedBox(height: 16),
 
                 // Daily menu for selected day (non-nested scroll)
@@ -483,7 +600,8 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
                   switchOutCurve: Curves.easeIn,
                   child: KeyedSubtree(
                     key: ValueKey(_selectedWeekday),
-                    child: _buildDailyMenu(localization, data, _selectedWeekday),
+                    child:
+                        _buildDailyMenu(localization, data, _selectedWeekday),
                   ),
                 ),
               ],
@@ -499,11 +617,30 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
     );
   }
 
-  Widget _buildLatestResultsCard(LocalizationService loc, Map<String, double> values) {
+  Widget _buildLatestResultsCard(
+      LocalizationService loc, Map<String, double> values) {
     final cs = Theme.of(context).colorScheme;
     // Order keys for display
     final ordered = [
-      'glucose','alt','ast','ggt','total_bilirubin','direct_bilirubin','crp','tsh','free_t3','free_t4','vitamin_d3','vitamin_b12','sodium','potassium','chloride','calcium','hemoglobin','iron','white_blood_cells'
+      'glucose',
+      'alt',
+      'ast',
+      'ggt',
+      'total_bilirubin',
+      'direct_bilirubin',
+      'crp',
+      'tsh',
+      'free_t3',
+      'free_t4',
+      'vitamin_d3',
+      'vitamin_b12',
+      'sodium',
+      'potassium',
+      'chloride',
+      'calcium',
+      'hemoglobin',
+      'iron',
+      'white_blood_cells'
     ].where((k) => values.containsKey(k)).toList();
 
     // AI-like summary: count abnormalities
@@ -512,12 +649,20 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
       final v = values[k]!;
       final min = _ref[k]!['min']!;
       final max = _ref[k]!['max']!;
-      if (v < min) low++; else if (v > max) high++;
+      if (v < min) {
+        low++;
+      } else if (v > max) {
+        high++;
+      }
     }
     String summaryKey;
-    if (low == 0 && high == 0) summaryKey = 'overall_assessment_normal';
-    else if (low + high <= 3) summaryKey = 'overall_assessment_some_abnormal';
-    else summaryKey = 'overall_assessment_many_abnormal';
+    if (low == 0 && high == 0) {
+      summaryKey = 'overall_assessment_normal';
+    } else if (low + high <= 3) {
+      summaryKey = 'overall_assessment_some_abnormal';
+    } else {
+      summaryKey = 'overall_assessment_many_abnormal';
+    }
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -533,12 +678,18 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: cs.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(
+                    color: cs.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8)),
                 child: Icon(Icons.science, color: cs.primary),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(loc.getString('latest_results_title'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: cs.onSurface)),
+                child: Text(loc.getString('latest_results_title'),
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSurface)),
               ),
               IconButton(
                 tooltip: loc.getString('copy_values'),
@@ -546,16 +697,28 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
                 onPressed: () async {
                   final buf = StringBuffer();
                   for (final k in ordered) {
-                    buf.writeln('${loc.getString(k)}: ${values[k]!.toStringAsFixed(2)}');
+                    buf.writeln(
+                        '${loc.getString(k)}: ${values[k]!.toStringAsFixed(2)}');
                   }
                   await Clipboard.setData(ClipboardData(text: buf.toString()));
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(loc.getString('values_copied'))));
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text(loc.getString('values_copied'))));
                   }
                 },
               ),
               TextButton.icon(
-                onPressed: () => Navigator.pushNamed(context, '/analysis', arguments: values),
+                onPressed: () {
+                  final args = <String, dynamic>{
+                    'values': Map<String, double>.from(values),
+                  };
+                  // Use the cached latest diet data for test date if available
+                  final date = _latestDietData?.latestTestDate;
+                  if (date != null) {
+                    args['testDate'] = date;
+                  }
+                  Navigator.pushNamed(context, '/analysis', arguments: args);
+                },
                 icon: const Icon(Icons.open_in_new),
                 label: Text(loc.getString('see_full_analysis')),
               ),
@@ -565,19 +728,26 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: ordered.map((k) => _buildValueChip(loc, k, values[k]!)).toList(),
+            children: ordered
+                .map((k) => _buildValueChip(loc, k, values[k]!))
+                .toList(),
           ),
           const SizedBox(height: 10),
           Row(
             children: [
               Icon(Icons.psychology, color: cs.secondary),
               const SizedBox(width: 6),
-              Text(loc.getString('ai_interpretation_title'), style: TextStyle(fontWeight: FontWeight.w600, color: cs.onSurface)),
+              Text(loc.getString('ai_interpretation_title'),
+                  style: TextStyle(
+                      fontWeight: FontWeight.w600, color: cs.onSurface)),
             ],
           ),
           const SizedBox(height: 4),
-          Text(loc.getString(summaryKey), style: TextStyle(color: cs.onSurface.withValues(alpha: 0.8))),
-          Text(loc.getString('ai_interpretation_hint'), style: TextStyle(color: cs.onSurface.withValues(alpha: 0.6), fontSize: 12)),
+          Text(loc.getString(summaryKey),
+              style: TextStyle(color: cs.onSurface.withValues(alpha: 0.8))),
+          Text(loc.getString('ai_interpretation_hint'),
+              style: TextStyle(
+                  color: cs.onSurface.withValues(alpha: 0.6), fontSize: 12)),
         ],
       ),
     );
@@ -587,88 +757,47 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
     final cs = Theme.of(context).colorScheme;
     final min = _ref[key]!['min']!;
     final max = _ref[key]!['max']!;
-    late Color bg; late Color fg; late IconData icon; late String statusKey;
-    if (value < min) { bg = Colors.orange.withValues(alpha: 0.12); fg = Colors.orange.shade700; icon = Icons.trending_down; statusKey = 'status_low'; }
-    else if (value > max) { bg = Colors.red.withValues(alpha: 0.12); fg = Colors.red.shade700; icon = Icons.trending_up; statusKey = 'status_high'; }
-    else { bg = Colors.green.withValues(alpha: 0.12); fg = Colors.green.shade700; icon = Icons.check_circle; statusKey = 'status_normal'; }
+    late Color bg;
+    late Color fg;
+    late IconData icon;
+    late String statusKey;
+    if (value < min) {
+      bg = Colors.orange.withValues(alpha: 0.12);
+      fg = Colors.orange.shade700;
+      icon = Icons.trending_down;
+      statusKey = 'status_low';
+    } else if (value > max) {
+      bg = Colors.red.withValues(alpha: 0.12);
+      fg = Colors.red.shade700;
+      icon = Icons.trending_up;
+      statusKey = 'status_high';
+    } else {
+      bg = Colors.green.withValues(alpha: 0.12);
+      fg = Colors.green.shade700;
+      icon = Icons.check_circle;
+      statusKey = 'status_normal';
+    }
 
     return GestureDetector(
       onTap: () => _showValueDetails(loc, key, value),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(16), border: Border.all(color: fg.withValues(alpha: 0.3))),
+        decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: fg.withValues(alpha: 0.3))),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, color: fg, size: 16),
             const SizedBox(width: 6),
-            Text('${loc.getString(key)}: ${value.toStringAsFixed(2)}', style: TextStyle(color: cs.onSurface)),
+            Text('${loc.getString(key)}: ${value.toStringAsFixed(2)}',
+                style: TextStyle(color: cs.onSurface)),
             const SizedBox(width: 6),
-            Text(loc.getString(statusKey), style: TextStyle(color: fg, fontWeight: FontWeight.w600)),
+            Text(loc.getString(statusKey),
+                style: TextStyle(color: fg, fontWeight: FontWeight.w600)),
           ],
         ),
-      ),
-    );
-  }
-
-  // Premium hero header with gradient, category chip and CTA
-  Widget _premiumHero(LocalizationService loc, _DietData data) {
-    final cs = Theme.of(context).colorScheme;
-    final weekday = DateTime.now().weekday;
-    final dayKey = _dayKeyFromWeekday(weekday);
-    final tag = data.hasMeasuredValues ? _tagForDay(data.values, dayKey) : 'general';
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(
-          colors: [cs.primary.withValues(alpha: 0.12), cs.secondary.withValues(alpha: 0.10)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        border: Border.all(color: cs.primary.withValues(alpha: 0.15)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(loc.getString('diet_premium_title'), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: cs.onSurface)),
-                const SizedBox(height: 4),
-                Text(loc.getString('diet_premium_sub'), style: TextStyle(color: cs.onSurface.withValues(alpha: 0.8))),
-                const SizedBox(height: 10),
-                Row(children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: cs.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: cs.primary.withValues(alpha: 0.25)),
-                    ),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(_iconFor(tag), color: cs.primary, size: 16),
-                      const SizedBox(width: 6),
-                      Text(loc.getString(_labelKeyFor(tag)), style: TextStyle(fontWeight: FontWeight.w600, color: cs.onSurface)),
-                    ]),
-                  ),
-                  const SizedBox(width: 8),
-                  OutlinedButton.icon(
-                    onPressed: () => Navigator.pushNamed(context, '/hemogram_entry'),
-                    icon: const Icon(Icons.fact_check),
-                    label: Text(loc.getString('edit_preferences')),
-                  ),
-                ]),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          FilledButton(
-            onPressed: () => _tabController.index = 1,
-            child: Text(loc.getString('start_today')),
-          ),
-        ],
       ),
     );
   }
@@ -699,15 +828,26 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
                 child: Row(children: [
                   Container(
                     padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: cs.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                    decoration: BoxDecoration(
+                        color: cs.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8)),
                     child: Icon(icon, color: cs.primary, size: 18),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(title, style: TextStyle(fontSize: 12, color: cs.onSurface.withValues(alpha: 0.8))),
-                      Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: cs.onSurface)),
-                    ]),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(title,
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: cs.onSurface.withValues(alpha: 0.8))),
+                          Text(value,
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: cs.onSurface)),
+                        ]),
                   ),
                 ]),
               ),
@@ -776,7 +916,10 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
     );
   }
 
-  Future<int?> _promptForInt(LocalizationService loc, {required String title, required int initial, required String unit}) async {
+  Future<int?> _promptForInt(LocalizationService loc,
+      {required String title,
+      required int initial,
+      required String unit}) async {
     final controller = TextEditingController(text: initial.toString());
     final cs = Theme.of(context).colorScheme;
     return showDialog<int>(
@@ -787,7 +930,8 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
           title: Text(title),
           content: TextField(
             controller: controller,
-            keyboardType: const TextInputType.numberWithOptions(signed: false, decimal: false),
+            keyboardType: const TextInputType.numberWithOptions(
+                signed: false, decimal: false),
             decoration: InputDecoration(
               labelText: loc.getString('enter_value'),
               suffixText: unit.isNotEmpty ? unit : null,
@@ -825,7 +969,8 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
       context: context,
       showDragHandle: true,
       backgroundColor: cs.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (_) {
         return Padding(
           padding: const EdgeInsets.all(16),
@@ -837,12 +982,17 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
                 children: [
                   Icon(Icons.analytics, color: cs.primary),
                   const SizedBox(width: 8),
-                  Text(loc.getString(key), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                  Text(loc.getString(key),
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                 ],
               ),
               const SizedBox(height: 8),
               Text('${loc.getString('value')}: ${value.toStringAsFixed(2)}'),
-              Text(loc.getStringWithParams('normal_range_template', {'min': min.toStringAsFixed(1), 'max': max.toStringAsFixed(1)})),
+              Text(loc.getStringWithParams('normal_range_template', {
+                'min': min.toStringAsFixed(1),
+                'max': max.toStringAsFixed(1)
+              })),
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -856,7 +1006,19 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
                   ),
                   const SizedBox(width: 8),
                   OutlinedButton.icon(
-                    onPressed: () => Navigator.pushNamed(context, '/analysis'),
+                    onPressed: () {
+                      final args = <String, dynamic>{
+                        'values': Map<String, double>.from(
+                          _latestDietData?.values ?? const {},
+                        ),
+                      };
+                      final date = _latestDietData?.latestTestDate;
+                      if (date != null) {
+                        args['testDate'] = date;
+                      }
+                      Navigator.pushNamed(context, '/analysis',
+                          arguments: args);
+                    },
                     icon: const Icon(Icons.open_in_new),
                     label: Text(loc.getString('see_full_analysis')),
                   ),
@@ -912,7 +1074,11 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
     final checked = _todayMeals[stateKey] ?? false;
     return Row(
       children: [
-        Expanded(child: Text(loc.getString(labelKey), style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface))),
+        Expanded(
+            child: Text(loc.getString(labelKey),
+                style: TextStyle(
+                    fontSize: 16,
+                    color: Theme.of(context).colorScheme.onSurface))),
         Builder(builder: (context) {
           final cs = Theme.of(context).colorScheme;
           return Switch(
@@ -932,13 +1098,121 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
     );
   }
 
-  Widget _buildDailyMenu(LocalizationService localization, _DietData data, int dayIndex) {
-  final cs = Theme.of(context).colorScheme;
-    final dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  Widget _buildAiPlanStatus(LocalizationService localization, ColorScheme cs) {
+    final focusTag = _aiPlanFocusTag ?? 'general';
+    final focusLabel = localization.getString(_labelKeyFor(focusTag));
+    final variantLabel = localization.getString(
+        _aiPlanDynamic ? 'ai_plan_auto_variant' : 'ai_plan_fixed_variant');
+    String generatedText = '';
+    if (_aiPlanGeneratedAt != null) {
+      final date = localization.formatDate(_aiPlanGeneratedAt!);
+      final time = localization.formatTime(_aiPlanGeneratedAt!);
+      generatedText = localization
+          .getStringWithParams('ai_plan_generated_at', {'time': '$date $time'});
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cs.onPrimary.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.onPrimary.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: cs.primary.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.auto_awesome, color: cs.primary, size: 18),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  localization.getString('ai_plan_active_label'),
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: cs.onSurface,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            localization
+                .getStringWithParams('ai_plan_focus', {'focus': focusLabel}),
+            style: TextStyle(color: cs.onSurface.withValues(alpha: 0.8)),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            variantLabel,
+            style: TextStyle(color: cs.onSurface.withValues(alpha: 0.85)),
+          ),
+          if (generatedText.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              generatedText,
+              style: TextStyle(
+                  color: cs.onSurface.withValues(alpha: 0.6), fontSize: 12),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String? _localizedAiMenu(
+      LocalizationService localization, String dayName, String mealType) {
+    final items = _aiWeeklyPlan[dayName]?[mealType];
+    if (items == null || items.isEmpty) return null;
+    final bulletLines = <String>[];
+    for (final key in items) {
+      final item = _localizeDietItem(localization, key);
+      if (item.isEmpty) continue;
+      bulletLines.add('• $item');
+    }
+    if (bulletLines.isEmpty) return null;
+    return bulletLines.join('\n');
+  }
+
+  String _localizeDietItem(LocalizationService localization, String key) {
+    try {
+      return localization.getString(key);
+    } catch (_) {
+      final sanitized =
+          key.replaceAll('diet_item_', '').replaceAll('_', ' ').trim();
+      if (sanitized.isEmpty) return key;
+      return sanitized
+          .split(' ')
+          .where((part) => part.isNotEmpty)
+          .map((part) => part[0].toUpperCase() + part.substring(1))
+          .join(' ');
+    }
+  }
+
+  Widget _buildDailyMenu(
+      LocalizationService localization, _DietData data, int dayIndex) {
+    final cs = Theme.of(context).colorScheme;
+    final dayNames = [
+      'sunday',
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday'
+    ];
     final selectedDay = dayNames[dayIndex];
-    
-    // Determine a single tag/program for the selected day to ensure consistency across meals,
-    // while still rotating by day for variety
+
+    final waterGoalMl = _currentWaterGoalMl();
+
     final dayTag = data.hasMeasuredValues
         ? _tagForDay(data.values, selectedDay)
         : _fallbackTags()[_dayIndex(selectedDay) % _fallbackTags().length];
@@ -949,95 +1223,107 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
         return data.programs.isNotEmpty ? data.programs.first : null;
       }
     }();
+    final overrideTag = _aiPlanDayTags[selectedDay];
+    final displayTag = overrideTag ?? dayProgram?.riskTag;
+    final focusTag = displayTag ?? 'general';
+    final dayInsights = _aiMenuService.generateDayInsights(
+      riskTag: focusTag,
+      dayIndex: dayIndex,
+      hemogramValues: data.values,
+      waterGoalMl: waterGoalMl,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: cs.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.calendar_today, color: cs.primary, size: 18),
-                const SizedBox(width: 8),
-                Text(
-                  '${localization.getString(selectedDay)} — ${localization.getString('daily_menu')}',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: cs.onSurface),
-                ),
-                const Spacer(),
-                if (dayProgram != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: cs.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.calendar_today, color: cs.primary, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                '${localization.getString(selectedDay)} — ${localization.getString('daily_menu')}',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: cs.onSurface),
+              ),
+              const Spacer(),
+              if (displayTag != null)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
                       color: cs.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: cs.primary.withValues(alpha: 0.25))
-                    ),
-                    child: Row(children: [
-                      Icon(_iconFor(dayProgram.riskTag), color: cs.primary, size: 16),
-                      const SizedBox(width: 6),
-                      Text(localization.getString(_labelKeyFor(dayProgram.riskTag)), style: TextStyle(color: cs.onSurface, fontSize: 12, fontWeight: FontWeight.w600)),
-                    ]),
-                  ),
-              ],
-            ),
+                      border: Border.all(
+                          color: cs.primary.withValues(alpha: 0.25))),
+                  child: Row(children: [
+                    Icon(_iconFor(displayTag), color: cs.primary, size: 16),
+                    const SizedBox(width: 6),
+                    Text(localization.getString(_labelKeyFor(displayTag)),
+                        style: TextStyle(
+                            color: cs.onSurface,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600)),
+                  ]),
+                ),
+            ],
           ),
-          const SizedBox(height: 16),
-          
-          // Breakfast
-          _buildMealSection(
-            localization,
-            Icons.wb_sunny,
-            'breakfast',
-            dayProgram != null
-                ? _getMealMenuFromProgram(localization, dayProgram, 'breakfast', selectedDay)
-                : _getMealMenu(localization, data, 'breakfast', selectedDay),
-            tag: dayProgram?.riskTag,
-          ),
-          const SizedBox(height: 12),
-          
-          // Lunch
-          _buildMealSection(
-            localization,
-            Icons.restaurant,
-            'lunch',
-            dayProgram != null
-                ? _getMealMenuFromProgram(localization, dayProgram, 'lunch', selectedDay)
-                : _getMealMenu(localization, data, 'lunch', selectedDay),
-            tag: dayProgram?.riskTag,
-          ),
-          const SizedBox(height: 12),
-          
-          // Snack
-          _buildMealSection(
-            localization,
-            Icons.coffee,
-            'snack',
-            dayProgram != null
-                ? _getMealMenuFromProgram(localization, dayProgram, 'snack', selectedDay)
-                : _getMealMenu(localization, data, 'snack', selectedDay),
-            tag: dayProgram?.riskTag,
-          ),
-          const SizedBox(height: 12),
-          
-          // Dinner
-          _buildMealSection(
-            localization,
-            Icons.dinner_dining,
-            'dinner',
-            dayProgram != null
-                ? _getMealMenuFromProgram(localization, dayProgram, 'dinner', selectedDay)
-                : _getMealMenu(localization, data, 'dinner', selectedDay),
-            tag: dayProgram?.riskTag,
-          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Breakfast
+        _buildMealSection(
+          localization,
+          Icons.wb_sunny,
+          'breakfast',
+          _getMealMenu(localization, data, 'breakfast', selectedDay),
+          tag: displayTag,
+        ),
+        const SizedBox(height: 12),
+
+        // Lunch
+        _buildMealSection(
+          localization,
+          Icons.restaurant,
+          'lunch',
+          _getMealMenu(localization, data, 'lunch', selectedDay),
+          tag: displayTag,
+        ),
+        const SizedBox(height: 12),
+
+        // Snack
+        _buildMealSection(
+          localization,
+          Icons.coffee,
+          'snack',
+          _getMealMenu(localization, data, 'snack', selectedDay),
+          tag: displayTag,
+        ),
+        const SizedBox(height: 12),
+
+        // Dinner
+        _buildMealSection(
+          localization,
+          Icons.dinner_dining,
+          'dinner',
+          _getMealMenu(localization, data, 'dinner', selectedDay),
+          tag: displayTag,
+        ),
+        _buildAiTips(localization, dayInsights),
       ],
     );
   }
 
-  Widget _buildMealSection(LocalizationService localization, IconData icon, String mealKey, String menuText, {String? tag}) {
+  Widget _buildMealSection(LocalizationService localization, IconData icon,
+      String mealKey, String menuText,
+      {String? tag}) {
     final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(12),
@@ -1047,7 +1333,10 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
         color: tag == null ? cs.surface : null,
         border: Border.all(color: cs.outlineVariant),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 4)),
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -1066,19 +1355,26 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
               const SizedBox(width: 8),
               Text(
                 localization.getString(mealKey),
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: cs.onSurface),
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: cs.onSurface),
               ),
               const Spacer(),
               if (tag != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: cs.primary,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     localization.getString(_labelKeyFor(tag)),
-                    style: TextStyle(color: cs.onPrimary, fontSize: 12, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                        color: cs.onPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600),
                   ),
                 ),
             ],
@@ -1093,54 +1389,168 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
     );
   }
 
-  String _getMealMenu(LocalizationService localization, _DietData data, String mealType, String dayName) {
+  Widget _buildAiTips(LocalizationService localization, DayInsights insights) {
+    final messages = _composeAiTipMessages(localization, insights);
+    if (messages.isEmpty) return const SizedBox.shrink();
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            localization.getString('ai_tip_section_title'),
+            style: TextStyle(fontWeight: FontWeight.w700, color: cs.onSurface),
+          ),
+          const SizedBox(height: 8),
+          ...messages.map((m) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(m.icon, size: 18, color: cs.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        m.text,
+                        style: TextStyle(
+                            color: cs.onSurface.withValues(alpha: 0.85)),
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+        ],
+      ),
+    );
+  }
+
+  List<_AiTipMessage> _composeAiTipMessages(
+      LocalizationService localization, DayInsights insights) {
+    final focusLabel = localization.getString(_labelKeyFor(insights.focusTag));
+    final messages = <_AiTipMessage>[];
+
+    if (insights.hasBoost) {
+      final items = _joinItems(insights.boostItems
+          .map<String>((key) => _localizeDietItem(localization, key))
+          .toList());
+      if (items.isNotEmpty) {
+        messages.add(_AiTipMessage(
+          icon: Icons.auto_awesome,
+          text: localization.getStringWithParams('ai_tip_boost_template', {
+            'focus': focusLabel,
+            'items': items,
+          }),
+        ));
+      }
+    }
+
+    if (insights.hasSwap) {
+      final items = _joinItems(insights.swapItems
+          .map<String>((key) => _localizeDietItem(localization, key))
+          .toList());
+      if (items.isNotEmpty) {
+        messages.add(_AiTipMessage(
+          icon: Icons.swap_horiz,
+          text: localization
+              .getStringWithParams('ai_tip_swap_template', {'items': items}),
+        ));
+      }
+    }
+
+    final hydrationText = localization.getStringWithParams(
+      'ai_tip_hydration_template',
+      {'water': '${insights.hydrationLiters.toStringAsFixed(1)}L'},
+    );
+    messages.add(_AiTipMessage(icon: Icons.water_drop, text: hydrationText));
+
+    final mindfulSource = localization.getString(insights.mindfulKey);
+    if (mindfulSource.isNotEmpty) {
+      messages.add(_AiTipMessage(
+        icon: Icons.lightbulb_outline,
+        text: localization.getStringWithParams(
+            'ai_tip_mindful_template', {'tip': mindfulSource}),
+      ));
+    }
+
+    return messages;
+  }
+
+  String _joinItems(List<String> items) {
+    final filtered = items.where((e) => e.isNotEmpty).toList();
+    if (filtered.isEmpty) return '';
+    return filtered.join(', ');
+  }
+
+  int? _currentWaterGoalMl() {
+    final waterService = Provider.of<WaterService>(context, listen: false);
+    final goal = waterService.goal;
+    if (goal <= 0) return null;
+    return goal * 250;
+  }
+
+  String _getMealMenu(LocalizationService localization, _DietData data,
+      String mealType, String dayName) {
+    final override = _localizedAiMenu(localization, dayName, mealType);
+    if (override != null) return override;
+
     // If we have measured values, generate dynamic, tag-aware menus per day
     if (data.hasMeasuredValues) {
       final tag = _tagForDay(data.values, dayName);
       final program = data.programs.firstWhere(
         (p) => p.riskTag == tag,
-        orElse: () => data.programs.isNotEmpty ? data.programs.first : (throw StateError('No diet programs')),
+        orElse: () => data.programs.isNotEmpty
+            ? data.programs.first
+            : (throw StateError('No diet programs')),
       );
-      return _getMealMenuFromProgram(localization, program, mealType, dayName);
+      return _getMealMenuFromProgram(
+          localization, program, mealType, dayName, data.values);
     }
 
     // Use localized per-day base menus when values are not measured
     return _baseMenuForDay(localization, mealType, dayName);
   }
 
-  String _getMealMenuFromProgram(LocalizationService localization, DietProgram program, String mealType, String dayName) {
+  String _getMealMenuFromProgram(
+    LocalizationService localization,
+    DietProgram program,
+    String mealType,
+    String dayName,
+    Map<String, double> values,
+  ) {
+    final override = _localizedAiMenu(localization, dayName, mealType);
+    if (override != null) return override;
+
     // Use AI-powered menu service for rich, varied daily meals
-    final aiService = AIDietMenuService();
     final dayIndex = _dayIndex(dayName);
-    
+
     // Generate AI-powered menu for this specific day
-    // Note: We use the hemogram values from the data context if available
-    final dailyMenu = aiService.generateDailyMenu(
+    final dailyMenu = _aiMenuService.generateDailyMenu(
       riskTag: program.riskTag,
       dayIndex: dayIndex,
-      hemogramValues: null, // Will be passed from context if needed
+      hemogramValues: values,
     );
-    
+
     // Get items for this meal type
     final mealItems = dailyMenu[mealType] ?? [];
-    
+
     // Localize and format the menu items
-    final localizedItems = mealItems.map((key) {
-      try {
-        return localization.getString(key);
-      } catch (_) {
-        // Fallback: return a readable version of the key
-        return key.replaceAll('diet_item_', '').replaceAll('_', ' ').split(' ').map((word) => 
-          word.isEmpty ? '' : word[0].toUpperCase() + word.substring(1)
-        ).join(' ');
-      }
-    }).where((item) => item.isNotEmpty).toList();
-    
+    final localizedItems = mealItems
+        .map((key) => _localizeDietItem(localization, key))
+        .where((item) => item.isNotEmpty)
+        .toList();
+
     if (localizedItems.isEmpty) {
       // Fallback to base menu if AI service returns empty
       return _baseMenuForDay(localization, mealType, dayName);
     }
-    
+
     // Format as bullet points
     final bullets = localizedItems.map((e) => '• $e').join('\n');
     return bullets;
@@ -1148,7 +1558,8 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
 
   // Returns the localized per-day base menu for the given meal type and day,
   // falling back to default_*_menu when a day-specific key is missing.
-  String _baseMenuForDay(LocalizationService localization, String mealType, String dayName) {
+  String _baseMenuForDay(
+      LocalizationService localization, String mealType, String dayName) {
     // Static key mapping to avoid dynamic string interpolation issues with validator
     const mealKeys = {
       'breakfast_sunday': 'breakfast_menu_sunday',
@@ -1206,79 +1617,504 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
     }
   }
 
-  List<String> _enrichmentPool(LocalizationService loc, DietProgram program) {
-    final lines = <String>[];
-    String tryGet(String key) {
-      try { return loc.getString(key); } catch (_) { return ''; }
-    }
-    if (program.sampleMenuKey != null) {
-      lines.addAll(_splitLines(tryGet(program.sampleMenuKey!)));
-    }
-    lines.addAll(_splitLines(tryGet(program.includeKey)));
-    // Deduplicate and sanitize
-    final seen = <String>{};
-    final result = <String>[];
-    for (final l in lines) {
-      final s = l.trim();
-      if (s.isEmpty) continue;
-      if (seen.add(s)) result.add(s);
-    }
-    return result;
-  }
-
-  List<String> _splitLines(String value) {
-    return value
-        .split('\n')
-        .map((e) => e.replaceAll(RegExp(r'^[-•]\s*'), ''))
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList();
-  }
-
-  List<String> _pickDeterministic(List<String> pool, int count, String seed) {
-    if (pool.isEmpty) return const [];
-    if (count >= pool.length) return List<String>.from(pool);
-    final picks = <String>[];
-    var idx = _hash(seed) % pool.length;
-    // choose a coprime step to traverse pool evenly
-    final steps = [3, 5, 7, 11];
-    final step = steps[_hash(seed + '#') % steps.length];
-    final used = <int>{};
-    while (picks.length < count) {
-      if (!used.contains(idx)) {
-        picks.add(pool[idx]);
-        used.add(idx);
-      }
-      idx = (idx + step) % pool.length;
-    }
-    return picks;
-  }
-
-  int _hash(String s) {
-    // Simple FNV-1a 32-bit
-    const int fnvOffset = 0x811C9DC5;
-    const int fnvPrime = 0x01000193;
-    int hash = fnvOffset;
-    for (int i = 0; i < s.length; i++) {
-      hash ^= s.codeUnitAt(i);
-      hash = (hash * fnvPrime) & 0xFFFFFFFF;
-    }
-    return hash & 0x7FFFFFFF;
-  }
-
   // Determine a priority tag for a given day based on abnormal values; rotate across tags for variety
   String _tagForDay(Map<String, double> values, String dayName) {
     final prioritized = _priorityTags(values);
-    final pool = <String>[]
-      ..addAll(prioritized)
-      ..addAll(_fallbackTags().where((t) => !prioritized.contains(t)));
+    final pool = <String>[
+      ...prioritized,
+      ..._fallbackTags().where((t) => !prioritized.contains(t))
+    ];
     final index = _dayIndex(dayName) % pool.length;
     return pool[index];
   }
 
   List<String> _fallbackTags() => const [
-        'glucose','liver','bilirubin','crp','thyroid','vitamin_d3','vitamin_b12','electrolytes','calcium','hemoglobin','iron','white_blood_cells'
+        'glucose',
+        'liver',
+        'bilirubin',
+        'crp',
+        'thyroid',
+        'vitamin_d3',
+        'vitamin_b12',
+        'electrolytes',
+        'calcium',
+        'hemoglobin',
+        'iron',
+        'white_blood_cells'
       ];
+
+  List<String> _availableFocusTags() {
+    final values = _latestDietData?.values ?? {};
+    final tags = <String>[];
+    void addTag(String tag) {
+      if (tag.isEmpty) return;
+      if (!tags.contains(tag)) tags.add(tag);
+    }
+
+    for (final tag in _priorityTags(values)) {
+      addTag(tag);
+    }
+    for (final tag in _fallbackTags()) {
+      addTag(tag);
+    }
+    addTag('general');
+    return tags;
+  }
+
+  _AiPlanPreview _buildAiPlanPreview(
+      String focusTag, bool dynamicByDay, Map<String, double> values) {
+    final menus = <String, Map<String, List<String>>>{};
+    final tags = <String, String>{};
+    for (var i = 0; i < _weekdayKeys.length; i++) {
+      final dayKey = _weekdayKeys[i];
+      String tag = focusTag.isEmpty ? 'general' : focusTag;
+      if (dynamicByDay) {
+        final computed = _tagForDay(values, dayKey);
+        if (computed.isNotEmpty) {
+          tag = computed;
+        }
+      }
+      if (tag.isEmpty) tag = 'general';
+      menus[dayKey] = _aiMenuService.generateDailyMenu(
+        riskTag: tag,
+        dayIndex: i,
+        hemogramValues: values.isEmpty ? null : values,
+      );
+      tags[dayKey] = tag;
+    }
+    final safety = _aiMenuService.evaluatePlanSafety(
+      focusTags: tags.values,
+      hemogramValues: values.isEmpty ? null : values,
+    );
+    return _AiPlanPreview(menus: menus, tags: tags, safety: safety);
+  }
+
+  void _commitAiPlan(_AiPlanPreview plan, String focusTag, bool dynamicByDay) {
+    if (!mounted) return;
+    setState(() {
+      _aiWeeklyPlan = plan.menus;
+      _aiPlanDayTags = plan.tags;
+      _aiPlanFocusTag = focusTag;
+      _aiPlanDynamic = dynamicByDay;
+      _aiPlanGeneratedAt = DateTime.now();
+      _aiPlanSafetyReport = plan.safety;
+    });
+  }
+
+  void _clearAiPlan() {
+    if (_aiWeeklyPlan.isEmpty) return;
+    final localization =
+        Provider.of<LocalizationService>(context, listen: false);
+    setState(() {
+      _aiWeeklyPlan = {};
+      _aiPlanDayTags = {};
+      _aiPlanFocusTag = null;
+      _aiPlanGeneratedAt = null;
+      _aiPlanDynamic = true;
+      _aiPlanSafetyReport = null;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(localization.getString('ai_plan_cleared'))),
+    );
+  }
+
+  List<Widget> _buildPlanPreviewWidgets(
+    LocalizationService localization,
+    _AiPlanPreview preview,
+    ColorScheme cs,
+    int? waterGoalMl,
+  ) {
+    final mealOrder = const ['breakfast', 'lunch', 'snack', 'dinner'];
+    final mealIcons = {
+      'breakfast': Icons.wb_sunny_outlined,
+      'lunch': Icons.restaurant,
+      'snack': Icons.coffee,
+      'dinner': Icons.dinner_dining,
+    };
+    final widgets = <Widget>[];
+
+    for (var i = 0; i < _weekdayKeys.length; i++) {
+      final dayKey = _weekdayKeys[i];
+      final meals = preview.menus[dayKey] ?? const <String, List<String>>{};
+      final dayTag = preview.tags[dayKey] ?? 'general';
+      final availableMeals = mealOrder
+          .where((key) => (meals[key] ?? const []).isNotEmpty)
+          .toList();
+      final insights = _aiMenuService.generateDayInsights(
+        riskTag: dayTag,
+        dayIndex: i,
+        hemogramValues: _latestDietData?.values,
+        waterGoalMl: waterGoalMl,
+      );
+      final tipMessages = _composeAiTipMessages(localization, insights);
+
+      widgets.add(
+        Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: cs.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: cs.outlineVariant),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    localization.getString(dayKey),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w700),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: cs.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      localization.getString(_labelKeyFor(dayTag)),
+                      style: TextStyle(
+                          color: cs.primary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              for (var idx = 0; idx < availableMeals.length; idx++) ...[
+                Builder(builder: (context) {
+                  final mealKey = availableMeals[idx];
+                  final items = meals[mealKey] ?? const <String>[];
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(mealIcons[mealKey], size: 18, color: cs.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              localization.getString('meal_$mealKey'),
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: cs.onSurface),
+                            ),
+                            const SizedBox(height: 4),
+                            ...items.map((itemKey) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 4),
+                                  child: Text(
+                                    '• ${_localizeDietItem(localization, itemKey)}',
+                                    style: TextStyle(
+                                        color: cs.onSurface
+                                            .withValues(alpha: 0.8)),
+                                  ),
+                                )),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+                if (idx < availableMeals.length - 1) const SizedBox(height: 12),
+              ],
+              if (tipMessages.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: tipMessages.map((m) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(m.icon, size: 16, color: cs.primary),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              m.text,
+                              style: TextStyle(
+                                  color: cs.onSurface.withValues(alpha: 0.8),
+                                  fontSize: 13),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (widgets.isEmpty) {
+      widgets.add(
+        Text(
+          localization.getString('ai_plan_no_preview'),
+          style: TextStyle(color: cs.onSurface.withValues(alpha: 0.85)),
+        ),
+      );
+    }
+
+    return widgets;
+  }
+
+  String _serializePlanForShare(LocalizationService localization,
+      _AiPlanPreview preview, int? waterGoalMl) {
+    final mealOrder = const ['breakfast', 'lunch', 'snack', 'dinner'];
+    final buffer = StringBuffer()
+      ..writeln(localization.getString('ai_diet_assistant_title'))
+      ..writeln();
+
+    for (final dayKey in _weekdayKeys) {
+      buffer.writeln(localization.getString(dayKey));
+      final meals = preview.menus[dayKey] ?? const <String, List<String>>{};
+      for (final mealKey in mealOrder) {
+        final items = meals[mealKey] ?? const <String>[];
+        if (items.isEmpty) continue;
+        buffer.writeln('  ${localization.getString('meal_$mealKey')}:');
+        for (final item in items) {
+          buffer.writeln('    - ${_localizeDietItem(localization, item)}');
+        }
+      }
+      final insights = _aiMenuService.generateDayInsights(
+        riskTag: preview.tags[dayKey] ?? 'general',
+        dayIndex: _weekdayKeys.indexOf(dayKey),
+        hemogramValues: _latestDietData?.values,
+        waterGoalMl: waterGoalMl,
+      );
+      final tips = _composeAiTipMessages(localization, insights);
+      if (tips.isNotEmpty) {
+        buffer.writeln('  ${localization.getString('ai_tip_section_title')}:');
+        for (final tip in tips) {
+          buffer.writeln('    • ${tip.text}');
+        }
+      }
+      buffer.writeln();
+    }
+
+    buffer
+      ..writeln(localization.getString('medical_disclaimer_desc'))
+      ..writeln(localization.getString('medical_disclaimer_body'))
+      ..writeln(localization.getString('medical_consult_prompt'))
+      ..writeln(localization.getString('medical_emergency_cta'));
+
+    final safety = preview.safety;
+    if (safety.shouldDisplay) {
+      buffer
+        ..writeln()
+        ..writeln(localization.getString('medical_review_required_title'));
+      for (final warningKey in safety.warningKeys) {
+        buffer.writeln('• ${localization.getString(warningKey)}');
+      }
+      if (safety.guidelineKeys.isNotEmpty) {
+        buffer.writeln();
+        buffer.writeln(
+            localization.getString('medical_guideline_reference_title'));
+        for (final guidelineKey in safety.guidelineKeys) {
+          buffer.writeln('• ${localization.getString(guidelineKey)}');
+        }
+      }
+    }
+
+    return buffer.toString().trim();
+  }
+
+  void _openAiAssistantDialog(LocalizationService localization) {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final cs = Theme.of(context).colorScheme;
+    final values = Map<String, double>.from(_latestDietData?.values ?? {});
+    final tags = _availableFocusTags();
+    String selectedTag =
+        _aiPlanFocusTag ?? (tags.isNotEmpty ? tags.first : 'general');
+    if (!tags.contains(selectedTag) && tags.isNotEmpty) {
+      selectedTag = tags.first;
+    }
+    bool canAdaptive =
+        (_latestDietData?.hasMeasuredValues ?? false) && values.isNotEmpty;
+    bool dynamicByDay = canAdaptive ? _aiPlanDynamic : false;
+    var preview = _buildAiPlanPreview(selectedTag, dynamicByDay, values);
+    final waterGoalMl = _currentWaterGoalMl();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final shareText =
+                _serializePlanForShare(localization, preview, waterGoalMl);
+            final availableTags = tags.isEmpty ? ['general'] : tags;
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 16,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: SizedBox(
+                height: MediaQuery.of(context).size.height * 0.82,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          localization.getString('ai_plan_builder_title'),
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getFontSize(context, 18),
+                            fontWeight: FontWeight.w700,
+                            color: cs.onSurface,
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.of(sheetContext).pop(),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      localization.getString('ai_plan_builder_desc'),
+                      style: TextStyle(
+                          color: cs.onSurface.withValues(alpha: 0.85)),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      localization.getString('ai_plan_focus_title'),
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600, color: cs.onSurface),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final tag in availableTags)
+                          ChoiceChip(
+                            label:
+                                Text(localization.getString(_labelKeyFor(tag))),
+                            selected: selectedTag == tag,
+                            onSelected: (selected) {
+                              if (!selected) return;
+                              setSheetState(() {
+                                selectedTag = tag;
+                                preview = _buildAiPlanPreview(
+                                    selectedTag, dynamicByDay, values);
+                              });
+                            },
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      value: dynamicByDay && canAdaptive,
+                      onChanged: canAdaptive
+                          ? (value) {
+                              setSheetState(() {
+                                dynamicByDay = value;
+                                preview = _buildAiPlanPreview(
+                                    selectedTag, dynamicByDay, values);
+                              });
+                            }
+                          : null,
+                      title: Text(
+                          localization.getString('ai_plan_adapt_each_day')),
+                      subtitle: Text(
+                        localization.getString(
+                          canAdaptive
+                              ? 'ai_plan_adapt_each_day_hint'
+                              : 'ai_plan_adapt_each_day_disabled',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: Scrollbar(
+                        child: ListView(
+                          children: [
+                            const MedicalDisclaimerBanner(
+                              margin: EdgeInsets.only(bottom: 12),
+                            ),
+                            DietPlanSafetyAlert(
+                              report: preview.safety,
+                              margin: const EdgeInsets.only(bottom: 12),
+                            ),
+                            ..._buildPlanPreviewWidgets(
+                              localization,
+                              preview,
+                              cs,
+                              waterGoalMl,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        TextButton.icon(
+                          onPressed: () async {
+                            await Clipboard.setData(
+                                ClipboardData(text: shareText));
+                            scaffoldMessenger.showSnackBar(
+                              SnackBar(
+                                  content: Text(localization
+                                      .getString('ai_plan_copied'))),
+                            );
+                          },
+                          icon: const Icon(Icons.copy_all),
+                          label: Text(localization.getString('ai_plan_copy')),
+                        ),
+                        const SizedBox(width: 8),
+                        TextButton.icon(
+                          onPressed: () => Share.share(shareText),
+                          icon: const Icon(Icons.ios_share),
+                          label: Text(localization.getString('ai_plan_share')),
+                        ),
+                        const Spacer(),
+                        FilledButton.icon(
+                          onPressed: () {
+                            final planToApply = preview;
+                            Navigator.of(sheetContext).pop();
+                            _commitAiPlan(planToApply, selectedTag,
+                                dynamicByDay && canAdaptive);
+                            if (mounted) {
+                              scaffoldMessenger.showSnackBar(
+                                SnackBar(
+                                    content: Text(localization
+                                        .getString('ai_plan_applied'))),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.check),
+                          label: Text(localization.getString('ai_plan_apply')),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   int _dayIndex(String dayName) {
     const order = {
@@ -1300,7 +2136,9 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
       final min = _ref[k]!['min']!;
       final max = _ref[k]!['max']!;
       if (v < min || v > max) {
-        final severity = v < min ? (min - v) / (min == 0 ? 1 : min) : (v - max) / (max == 0 ? 1 : max);
+        final severity = v < min
+            ? (min - v) / (min == 0 ? 1 : min)
+            : (v - max) / (max == 0 ? 1 : max);
         final tag = _riskTagForKey(k);
         entries.add({'tag': tag, 'severity': severity});
       }
@@ -1310,7 +2148,8 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
     for (final e in entries) {
       final t = e['tag'] as String;
       final s = e['severity'] as double;
-      byTag[t] = (byTag[t] ?? 0).clamp(0.0, double.infinity) < s ? s : byTag[t]!;
+      byTag[t] =
+          (byTag[t] ?? 0).clamp(0.0, double.infinity) < s ? s : byTag[t]!;
       byTag[t] ??= s;
     }
     final list = byTag.entries.toList()
@@ -1366,270 +2205,24 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
     return output;
   }
 
-  String _defaultMealBase(LocalizationService loc, String mealType) {
-    switch (mealType) {
-      case 'breakfast':
-        return loc.getString('default_breakfast_menu');
-      case 'lunch':
-        return loc.getString('default_lunch_menu');
-      case 'snack':
-        return loc.getString('default_snack_menu');
-      case 'dinner':
-      default:
-        return loc.getString('default_dinner_menu');
-    }
-  }
-
-  String _enrichmentLine(LocalizationService loc, DietProgram program, String mealType, String dayName) {
-    // Try to derive a short enrichment line from program.includeKey or sampleMenuKey
-    String source = '';
-    try {
-      source = loc.getString(program.sampleMenuKey ?? program.includeKey);
-    } catch (_) {
-      try {
-        source = loc.getString(program.includeKey);
-      } catch (_) {
-        source = '';
-      }
-    }
-    if (source.isEmpty) return '';
-    // Split and pick a deterministic line per meal+day
-    final lines = source.split('\n').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
-    if (lines.isEmpty) return '';
-    int base = _dayIndex(dayName);
-    switch (mealType) {
-      case 'breakfast':
-        base += 0; break;
-      case 'lunch':
-        base += 1; break;
-      case 'snack':
-        base += 2; break;
-      case 'dinner':
-        base += 3; break;
-    }
-    final pick = lines[base % lines.length];
-    return pick;
-  }
-
-  // New: Smart suggestions panel shown in Weekly Plan
-  Widget _buildSmartSuggestions(LocalizationService loc, _DietData data, String dayKey, {int chipCount = 12, int tipCount = 2}) {
-    final cs = Theme.of(context).colorScheme;
-    final tag = data.hasMeasuredValues
-        ? _tagForDay(data.values, dayKey)
-        : _fallbackTags()[_dayIndex(dayKey) % _fallbackTags().length];
-    DietProgram? program;
-    try {
-      program = data.programs.firstWhere((p) => p.riskTag == tag);
-    } catch (_) {
-      program = data.programs.isNotEmpty ? data.programs.first : null;
-    }
-
-    List<Widget> _chips(List<String> items, Color color) {
-      return items.take(chipCount).map((t) => Padding(
-        padding: const EdgeInsets.only(right: 6, bottom: 6),
-        child: Chip(
-          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          side: BorderSide(color: color.withValues(alpha: 0.35)),
-          backgroundColor: color.withValues(alpha: 0.12),
-          label: Text(t, style: TextStyle(color: cs.onSurface)),
-        ),
-      )).toList();
-    }
-
-    final includeLines = program != null ? _splitLines(_safeGet(loc, program.includeKey)) : const <String>[];
-    final limitLines = program != null ? _splitLines(_safeGet(loc, program.limitKey)) : const <String>[];
-    final tips = () {
-      if (program == null) return const <String>[];
-      final pool = _enrichmentPool(loc, program);
-      if (pool.isEmpty) return const <String>[];
-      return _pickDeterministic(pool, tipCount, 'tip|$dayKey');
-    }();
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: cs.primary, borderRadius: BorderRadius.circular(8)),
-                child: Icon(Icons.lightbulb, color: cs.onPrimary, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(loc.getString('smart_nutrition_title'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: cs.onSurface)),
-                    const SizedBox(height: 2),
-                    Text(loc.getString('smart_nutrition_subtitle'), style: TextStyle(color: cs.onSurface.withValues(alpha: 0.8))),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(color: cs.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(16), border: Border.all(color: cs.primary.withValues(alpha: 0.25))),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(_iconFor(tag), color: cs.primary, size: 16),
-                  const SizedBox(width: 6),
-                  Text(loc.getString(_labelKeyFor(tag)), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: cs.onSurface)),
-                ]),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          // Quick actions
-          Row(
-            children: [
-              Icon(Icons.flash_on, color: cs.primary),
-              const SizedBox(width: 8),
-              Text(loc.getString('quick_actions'), style: TextStyle(fontWeight: FontWeight.w600, color: cs.onSurface)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Wrap(spacing: 8, runSpacing: 8, children: [
-            OutlinedButton.icon(
-              onPressed: () => Navigator.pushNamed(context, '/add_reminder'),
-              icon: const Icon(Icons.alarm_add),
-              label: Text(loc.getString('add_reminder')),
-            ),
-            OutlinedButton.icon(
-              onPressed: () => Navigator.pushNamed(context, '/analysis', arguments: data.values),
-              icon: const Icon(Icons.analytics),
-              label: Text(loc.getString('analysis')),
-            ),
-          ]),
-          const SizedBox(height: 12),
-          // Prefer / Limit chips
-          if (includeLines.isNotEmpty) ...[
-            Row(children: [Icon(Icons.thumb_up, color: Colors.green.shade700), const SizedBox(width: 8), Text(loc.getString('foods_to_prefer'), style: TextStyle(fontWeight: FontWeight.w600, color: cs.onSurface))]),
-            const SizedBox(height: 6),
-            Wrap(children: _chips(includeLines, Colors.green.shade600)),
-            const SizedBox(height: 12),
-          ],
-          if (limitLines.isNotEmpty) ...[
-            Row(children: [Icon(Icons.block, color: Colors.orange.shade800), const SizedBox(width: 8), Text(loc.getString('foods_to_limit'), style: TextStyle(fontWeight: FontWeight.w600, color: cs.onSurface))]),
-            const SizedBox(height: 6),
-            Wrap(children: _chips(limitLines, Colors.orange.shade700)),
-            const SizedBox(height: 12),
-          ],
-          if (tips.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: cs.surface, borderRadius: BorderRadius.circular(8), border: Border.all(color: cs.outlineVariant)),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  Icon(Icons.tips_and_updates, color: cs.secondary),
-                  const SizedBox(width: 8),
-                  Text(loc.getString('today_tip'), style: TextStyle(fontWeight: FontWeight.w600, color: cs.onSurface)),
-                ]),
-                const SizedBox(height: 6),
-                ...tips.map((t) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('• '),
-                    Expanded(child: Text(t, style: TextStyle(color: cs.onSurface))),
-                  ]),
-                )),
-              ]),
-            ),
-
-          const SizedBox(height: 12),
-          // Expert dietitian suite per top markers
-          Row(children: [
-            Icon(Icons.local_hospital, color: cs.primary),
-            const SizedBox(width: 8),
-            Text(loc.getString('expert_suite_title'), style: TextStyle(fontWeight: FontWeight.w700, color: cs.onSurface)),
-          ]),
-          const SizedBox(height: 8),
-          ...(() {
-            final tags = data.hasMeasuredValues ? _priorityTags(data.values) : _fallbackTags();
-            final show = tags.take(3).toList();
-            return show.map((t) {
-              final tips = _getExpertTipLines(loc, t);
-              final weeks = _expertFollowupWeeks(t);
-              return Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: cs.surface,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: cs.outlineVariant),
-                ),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(children: [
-                    Icon(_iconFor(t), color: cs.primary),
-                    const SizedBox(width: 8),
-                    Text(loc.getString(_labelKeyFor(t)), style: TextStyle(fontWeight: FontWeight.w600, color: cs.onSurface)),
-                  ]),
-                  const SizedBox(height: 6),
-                  if (tips.isNotEmpty)
-                    ...tips.map((line) => Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        const Text('• '),
-                        Expanded(child: Text(line, style: TextStyle(color: cs.onSurface))),
-                      ]),
-                    )),
-                  const SizedBox(height: 6),
-                  Text(loc.getStringWithParams('expert_followup_template', {'weeks': weeks.toString()}), style: TextStyle(color: cs.onSurface.withValues(alpha: 0.8))),
-                ]),
-              );
-            }).toList();
-          })(),
-        ],
-      ),
-    );
-  }
-
-  String _safeGet(LocalizationService loc, String key) {
-    try { return loc.getString(key); } catch (_) { return ''; }
-  }
-
-  List<String> _getExpertTipLines(LocalizationService loc, String tag) {
-    final key = 'expert_tips_' + tag;
-    final v = _safeGet(loc, key);
-    if (v.isEmpty) return const <String>[];
-    return _splitLines(v);
-  }
-
-  int _expertFollowupWeeks(String tag) {
-    switch (tag) {
-      case 'iron':
-      case 'hemoglobin':
-      case 'vitamin_b12':
-      case 'vitamin_d3':
-        return 8;
-      case 'thyroid':
-        return 6;
-      case 'glucose':
-      case 'liver':
-      case 'bilirubin':
-      case 'calcium':
-        return 4;
-      case 'crp':
-      case 'electrolytes':
-      case 'white_blood_cells':
-        return 2;
-      default:
-        return 4;
-    }
-  }
-
-  Future<String> _buildSelectedDayShareTextAsync(LocalizationService localization, int dayIndex) async {
+  Future<String> _buildSelectedDayShareTextAsync(
+      LocalizationService localization, int dayIndex) async {
     // Load latest data to ensure dynamic menus reflect current values
     final data = await _loadData();
     return _buildSelectedDayShareTextFromData(localization, data, dayIndex);
   }
 
-  String _buildSelectedDayShareTextFromData(LocalizationService localization, _DietData data, int dayIndex) {
-    final dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  String _buildSelectedDayShareTextFromData(
+      LocalizationService localization, _DietData data, int dayIndex) {
+    final dayNames = [
+      'sunday',
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday'
+    ];
     final dayKey = dayNames[dayIndex];
     final title = localization.getString('share_day_menu_title');
     final dayLabel = localization.getString(dayKey);
@@ -1641,6 +2234,7 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
       final menu = _getMealMenu(localization, data, mealKey, dayKey);
       return '[$header]\n$menu';
     }
+
     b.writeln(mealLine('breakfast'));
     b.writeln();
     b.writeln(mealLine('lunch'));
@@ -1655,44 +2249,61 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
     if (_weeklyProgress == null || _weeklyProgress!.isEmpty) {
       return const SizedBox.shrink();
     }
-    
+
     final cs = Theme.of(context).colorScheme;
-    
+
     // Calculate streak and completion stats
     int streak = 0;
     int totalMeals = 0;
     int completedMeals = 0;
-    
+
     for (var day in _weeklyProgress!) {
       final breakfast = (day['breakfast'] ?? 0) == 1;
       final lunch = (day['lunch'] ?? 0) == 1;
       final dinner = (day['dinner'] ?? 0) == 1;
       final snack = (day['snack'] ?? 0) == 1;
-      
-      final dayTotal = (breakfast ? 1 : 0) + (lunch ? 1 : 0) + (dinner ? 1 : 0) + (snack ? 1 : 0);
+
+      final dayTotal = (breakfast ? 1 : 0) +
+          (lunch ? 1 : 0) +
+          (dinner ? 1 : 0) +
+          (snack ? 1 : 0);
       completedMeals += dayTotal;
       totalMeals += 4;
-      
+
       if (dayTotal == 4) streak++;
     }
-    
-    final completionPercent = totalMeals > 0 ? (completedMeals / totalMeals * 100).round() : 0;
-    final streakEmoji = streak >= 7 ? '🔥' : streak >= 4 ? '⭐' : streak >= 1 ? '✨' : '🌱';
-    final streakMessage = streak >= 7 ? loc.getString('diet_streak_fire')
-        : streak >= 4 ? loc.getString('diet_streak_great')
-        : streak >= 1 ? loc.getString('diet_streak_good')
-        : loc.getString('diet_streak_start');
-    
+
+    final completionPercent =
+        totalMeals > 0 ? (completedMeals / totalMeals * 100).round() : 0;
+    final streakEmoji = streak >= 7
+        ? '🔥'
+        : streak >= 4
+            ? '⭐'
+            : streak >= 1
+                ? '✨'
+                : '🌱';
+    final streakMessage = streak >= 7
+        ? loc.getString('diet_streak_fire')
+        : streak >= 4
+            ? loc.getString('diet_streak_great')
+            : streak >= 1
+                ? loc.getString('diet_streak_good')
+                : loc.getString('diet_streak_start');
+
     // Calculate current day completion
     final today = DateTime.now();
     final todayKey = today.toIso8601String().split('T')[0];
-    final todayData = _weeklyProgress!.firstWhere((d) => d['date'] == todayKey, orElse: () => {});
+    final todayData = _weeklyProgress!
+        .firstWhere((d) => d['date'] == todayKey, orElse: () => {});
     final todayBreakfast = (todayData['breakfast'] ?? 0) == 1;
     final todayLunch = (todayData['lunch'] ?? 0) == 1;
     final todayDinner = (todayData['dinner'] ?? 0) == 1;
     final todaySnack = (todayData['snack'] ?? 0) == 1;
-    final todayCompleted = (todayBreakfast ? 1 : 0) + (todayLunch ? 1 : 0) + (todayDinner ? 1 : 0) + (todaySnack ? 1 : 0);
-    
+    final todayCompleted = (todayBreakfast ? 1 : 0) +
+        (todayLunch ? 1 : 0) +
+        (todayDinner ? 1 : 0) +
+        (todaySnack ? 1 : 0);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1725,7 +2336,8 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
                   color: Colors.deepPurple.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.trending_up, color: Colors.deepPurple, size: 24),
+                child: const Icon(Icons.trending_up,
+                    color: Colors.deepPurple, size: 24),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1753,7 +2365,7 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
                       streakMessage,
                       style: TextStyle(
                         fontSize: 13,
-                        color: cs.onSurface.withValues(alpha: 0.7),
+                        color: cs.onSurface.withValues(alpha: 0.85),
                       ),
                     ),
                   ],
@@ -1762,7 +2374,7 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
             ],
           ),
           const SizedBox(height: 16),
-          
+
           // Today's progress
           Text(
             loc.getString('today_progress'),
@@ -1789,7 +2401,7 @@ class _DietProgramScreenState extends State<DietProgramScreen> with SingleTicker
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Weekly overview
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1865,7 +2477,8 @@ class _DietCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final localization = Provider.of<LocalizationService>(context, listen: false);
+    final localization =
+        Provider.of<LocalizationService>(context, listen: false);
     final cs = Theme.of(context).colorScheme;
     final icon = _iconFor(program.riskTag);
     final gradient = _gradientFor(context, program.riskTag);
@@ -1876,7 +2489,10 @@ class _DietCard extends StatelessWidget {
         gradient: gradient,
         border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.4)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 4)),
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: Material(
@@ -1900,18 +2516,25 @@ class _DietCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       localization.getString(program.titleKey),
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: cs.onSurface),
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: cs.onSurface),
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: cs.primary,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
                       localization.getString(tagKey),
-                      style: TextStyle(color: cs.onPrimary, fontSize: 12, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                          color: cs.onPrimary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600),
                     ),
                   )
                 ],
@@ -1919,14 +2542,16 @@ class _DietCard extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 localization.getString(program.descriptionKey),
-                style: TextStyle(fontSize: 14, color: cs.onSurface.withValues(alpha: 0.9)),
+                style: TextStyle(
+                    fontSize: 14, color: cs.onSurface.withValues(alpha: 0.9)),
               ),
               const SizedBox(height: 12),
               if (program.macrosKey != null) ...[
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.pie_chart_outline, color: Colors.deepPurple.shade400),
+                    Icon(Icons.pie_chart_outline,
+                        color: Colors.deepPurple.shade400),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -1988,15 +2613,25 @@ class _DietCard extends StatelessWidget {
                     onPressed: () async {
                       final text = StringBuffer()
                         ..writeln(localization.getString(program.titleKey))
-                        ..writeln(localization.getString(program.descriptionKey))
+                        ..writeln(
+                            localization.getString(program.descriptionKey))
                         ..writeln(localization.getString(program.includeKey))
                         ..writeln(localization.getString(program.limitKey));
-                      if (program.macrosKey != null) text.writeln(localization.getString(program.macrosKey!));
-                      if (program.sampleMenuKey != null) text.writeln(localization.getString(program.sampleMenuKey!));
-                      await Clipboard.setData(ClipboardData(text: text.toString()));
+                      if (program.macrosKey != null) {
+                        text.writeln(
+                            localization.getString(program.macrosKey!));
+                      }
+                      if (program.sampleMenuKey != null) {
+                        text.writeln(
+                            localization.getString(program.sampleMenuKey!));
+                      }
+                      await Clipboard.setData(
+                          ClipboardData(text: text.toString()));
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(localization.getString('diet_copy_plan'))),
+                          SnackBar(
+                              content: Text(
+                                  localization.getString('diet_copy_plan'))),
                         );
                       }
                     },
@@ -2009,11 +2644,18 @@ class _DietCard extends StatelessWidget {
                       final text = StringBuffer()
                         ..writeln(localization.getString(program.titleKey))
                         ..writeln()
-                        ..writeln(localization.getString(program.descriptionKey))
+                        ..writeln(
+                            localization.getString(program.descriptionKey))
                         ..writeln(localization.getString(program.includeKey))
                         ..writeln(localization.getString(program.limitKey));
-                      if (program.macrosKey != null) text.writeln(localization.getString(program.macrosKey!));
-                      if (program.sampleMenuKey != null) text.writeln(localization.getString(program.sampleMenuKey!));
+                      if (program.macrosKey != null) {
+                        text.writeln(
+                            localization.getString(program.macrosKey!));
+                      }
+                      if (program.sampleMenuKey != null) {
+                        text.writeln(
+                            localization.getString(program.sampleMenuKey!));
+                      }
                       Share.share(text.toString());
                     },
                     icon: const Icon(Icons.ios_share),
@@ -2068,31 +2710,56 @@ LinearGradient _gradientFor(BuildContext context, String tag) {
   Color b = cs.surface;
   switch (tag) {
     case 'glucose':
-      a = Colors.orange.withValues(alpha: 0.25); b = Colors.orange.withValues(alpha: 0.05); break;
+      a = Colors.orange.withValues(alpha: 0.25);
+      b = Colors.orange.withValues(alpha: 0.05);
+      break;
     case 'liver':
-      a = Colors.green.withValues(alpha: 0.25); b = Colors.green.withValues(alpha: 0.05); break;
+      a = Colors.green.withValues(alpha: 0.25);
+      b = Colors.green.withValues(alpha: 0.05);
+      break;
     case 'bilirubin':
-      a = Colors.amber.withValues(alpha: 0.25); b = Colors.amber.withValues(alpha: 0.05); break;
+      a = Colors.amber.withValues(alpha: 0.25);
+      b = Colors.amber.withValues(alpha: 0.05);
+      break;
     case 'crp':
-      a = Colors.deepPurple.withValues(alpha: 0.25); b = Colors.deepPurple.withValues(alpha: 0.05); break;
+      a = Colors.deepPurple.withValues(alpha: 0.25);
+      b = Colors.deepPurple.withValues(alpha: 0.05);
+      break;
     case 'thyroid':
-      a = Colors.purple.withValues(alpha: 0.25); b = Colors.purple.withValues(alpha: 0.05); break;
+      a = Colors.purple.withValues(alpha: 0.25);
+      b = Colors.purple.withValues(alpha: 0.05);
+      break;
     case 'vitamin_d3':
-      a = Colors.orangeAccent.withValues(alpha: 0.25); b = Colors.orangeAccent.withValues(alpha: 0.05); break;
+      a = Colors.orangeAccent.withValues(alpha: 0.25);
+      b = Colors.orangeAccent.withValues(alpha: 0.05);
+      break;
     case 'vitamin_b12':
-      a = Colors.blueGrey.withValues(alpha: 0.25); b = Colors.blueGrey.withValues(alpha: 0.05); break;
+      a = Colors.blueGrey.withValues(alpha: 0.25);
+      b = Colors.blueGrey.withValues(alpha: 0.05);
+      break;
     case 'electrolytes':
-      a = Colors.lightBlue.withValues(alpha: 0.25); b = Colors.lightBlue.withValues(alpha: 0.05); break;
+      a = Colors.lightBlue.withValues(alpha: 0.25);
+      b = Colors.lightBlue.withValues(alpha: 0.05);
+      break;
     case 'calcium':
-      a = Colors.teal.withValues(alpha: 0.25); b = Colors.teal.withValues(alpha: 0.05); break;
+      a = Colors.teal.withValues(alpha: 0.25);
+      b = Colors.teal.withValues(alpha: 0.05);
+      break;
     case 'hemoglobin':
-      a = Colors.red.withValues(alpha: 0.25); b = Colors.red.withValues(alpha: 0.05); break;
+      a = Colors.red.withValues(alpha: 0.25);
+      b = Colors.red.withValues(alpha: 0.05);
+      break;
     case 'iron':
-      a = Colors.brown.withValues(alpha: 0.25); b = Colors.brown.withValues(alpha: 0.05); break;
+      a = Colors.brown.withValues(alpha: 0.25);
+      b = Colors.brown.withValues(alpha: 0.05);
+      break;
     case 'white_blood_cells':
-      a = Colors.indigo.withValues(alpha: 0.25); b = Colors.indigo.withValues(alpha: 0.05); break;
+      a = Colors.indigo.withValues(alpha: 0.25);
+      b = Colors.indigo.withValues(alpha: 0.05);
+      break;
   }
-  return LinearGradient(colors: [a, b], begin: Alignment.topLeft, end: Alignment.bottomRight);
+  return LinearGradient(
+      colors: [a, b], begin: Alignment.topLeft, end: Alignment.bottomRight);
 }
 
 String _labelKeyFor(String tag) {
@@ -2126,12 +2793,35 @@ String _labelKeyFor(String tag) {
   }
 }
 
+class _AiTipMessage {
+  final IconData icon;
+  final String text;
+
+  const _AiTipMessage({
+    required this.icon,
+    required this.text,
+  });
+}
+
+class _AiPlanPreview {
+  final Map<String, Map<String, List<String>>> menus;
+  final Map<String, String> tags;
+  final DietPlanSafetyReport safety;
+
+  const _AiPlanPreview({
+    required this.menus,
+    required this.tags,
+    required this.safety,
+  });
+}
+
 class _DietData {
   final int age;
   final String ageGroupKey;
   final List<DietProgram> programs;
   final bool hasMeasuredValues;
   final Map<String, double> values;
+  final DateTime? latestTestDate;
 
   _DietData({
     required this.age,
@@ -2139,5 +2829,6 @@ class _DietData {
     required this.programs,
     required this.hasMeasuredValues,
     required this.values,
+    this.latestTestDate,
   });
 }

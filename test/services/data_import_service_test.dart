@@ -52,39 +52,6 @@ void main() {
       });
     });
 
-    group('e-Devlet Import', () {
-      test('should handle e-Devlet API request', () async {
-        final result = await importService.importFromEDevlet(
-          tcKimlik: '12345678901',
-          password: 'test123',
-        );
-        
-        expect(result.isSuccess, false); // API not implemented
-        expect(result.message, contains('e-Devlet'));
-      });
-
-      test('should import from e-Devlet snippet', () async {
-        const snippet = '''
-        Hemoglobin: 14.5
-        Glucose: 90
-        Iron: 100
-        ''';
-        
-        final result = await importService.importFromEDevletSnippet(snippet);
-        expect(result, isNotNull);
-      });
-
-      test('should handle HTML in e-Devlet snippet', () async {
-        const htmlSnippet = '''
-        <div>Hemoglobin: <strong>14.5</strong></div>
-        <div>Glucose: 90</div>
-        ''';
-        
-        final result = await importService.importFromEDevletSnippet(htmlSnippet);
-        expect(result, isNotNull);
-      });
-    });
-
     group('QR Code Import', () {
       test('should handle QR code data', () async {
         const qrData = '{"hemoglobin":14.5,"glucose":90}';
@@ -107,7 +74,7 @@ void main() {
       });
 
       test('should handle parsing errors gracefully', () async {
-        const malformedText = '!!!@@@###$$$';
+        const malformedText = r'!!!@@@###$$$';
         final result = await importService.importFromText(malformedText);
         expect(result, isNotNull);
         // Should not throw exception

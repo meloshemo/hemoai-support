@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../utils/color_compat.dart';
 import 'package:provider/provider.dart';
 import '../services/theme_service.dart';
 import '../services/localization_service.dart';
@@ -13,13 +12,13 @@ import '../screens/analysis_screen.dart';
 import '../screens/diet_program_screen.dart';
 import '../screens/alternative_medicine_screen.dart';
 import '../screens/personal_info_screen_new.dart' as personal_info;
-import '../screens/notification_screen.dart';
+import '../screens/enhanced_notification_screen.dart';
 import '../screens/settings_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   final String? currentRoute;
 
-  const AppDrawer({Key? key, this.currentRoute}) : super(key: key);
+  const AppDrawer({super.key, this.currentRoute});
 
   @override
   Widget build(BuildContext context) {
@@ -319,7 +318,7 @@ class AppDrawer extends StatelessWidget {
                 target = const personal_info.PersonalInfoScreen();
                 break;
               case '/notifications':
-                target = const NotificationScreen();
+                target = const EnhancedNotificationScreen();
                 break;
               case '/settings':
                 target = const SettingsScreen();

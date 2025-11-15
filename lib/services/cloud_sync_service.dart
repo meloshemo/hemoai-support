@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -12,6 +10,7 @@ import '../utils/backup_encryption.dart';
 import 'cloud_sync_config.dart';
 import 'database_helper.dart';
 import 'network_service.dart';
+import 'localization_service.dart';
 
 /// Minimal cloud-like sync built on top of BackupService + encrypted blob storage.
 ///
@@ -88,14 +87,19 @@ class CloudSyncService extends ChangeNotifier {
     final uid = _userId!;
 
     try {
-      // Check network connection first
-      final networkService = NetworkService();
-      if (!networkService.isInitialized) {
-        await networkService.initialize();
-      }
-      if (!networkService.isConnected) {
-        debugPrint('⚠️ No network connection - cannot backup');
-        throw NetworkException('No internet connection. Please check your network settings.');
+      // Skip network requirement for local Prefs provider (test/offline environments)
+      final requiresNetwork = _provider is! PrefsCloudSyncProvider;
+      if (requiresNetwork) {
+        final networkService = NetworkService();
+        if (!networkService.isInitialized) {
+          await networkService.initialize();
+        }
+        if (!networkService.isConnected) {
+          debugPrint('⚠️ No network connection - cannot backup');
+          throw NetworkException(LocalizationService().getString('network_exception_no_connection'));
+        }
+      } else {
+        debugPrint('ℹ️ Using local PrefsCloudSyncProvider - network check skipped');
       }
 
       final bytes = await BackupService().exportAll();
@@ -117,7 +121,7 @@ class CloudSyncService extends ChangeNotifier {
     } catch (e) {
       debugPrint('⚠️ CloudSync backup error: $e');
       if (e.toString().contains('Connection') || e.toString().contains('network') || e.toString().contains('failed')) {
-        throw NetworkException('Connection failed. Please check your internet connection or VPN settings.');
+        throw NetworkException(LocalizationService().getString('network_exception_connection_failed_vpn'));
       }
       return false;
     }
@@ -129,14 +133,19 @@ class CloudSyncService extends ChangeNotifier {
     final uid = _userId!;
 
     try {
-      // Check network connection first
-      final networkService = NetworkService();
-      if (!networkService.isInitialized) {
-        await networkService.initialize();
-      }
-      if (!networkService.isConnected) {
-        debugPrint('⚠️ No network connection - cannot restore');
-        throw NetworkException('No internet connection. Please check your network settings.');
+      // Skip network requirement for local Prefs provider (test/offline environments)
+      final requiresNetwork = _provider is! PrefsCloudSyncProvider;
+      if (requiresNetwork) {
+        final networkService = NetworkService();
+        if (!networkService.isInitialized) {
+          await networkService.initialize();
+        }
+        if (!networkService.isConnected) {
+          debugPrint('⚠️ No network connection - cannot restore');
+          throw NetworkException(LocalizationService().getString('network_exception_no_connection'));
+        }
+      } else {
+        debugPrint('ℹ️ Using local PrefsCloudSyncProvider - network check skipped');
       }
 
       final data = await _provider.downloadBackup(uid);
@@ -150,7 +159,7 @@ class CloudSyncService extends ChangeNotifier {
     } catch (e) {
       debugPrint('⚠️ CloudSync restore error: $e');
       if (e.toString().contains('Connection') || e.toString().contains('network') || e.toString().contains('failed')) {
-        throw NetworkException('Connection failed. Please check your internet connection or VPN settings.');
+        throw NetworkException(LocalizationService().getString('network_exception_connection_failed_vpn'));
       }
       return false;
     }
@@ -188,8 +197,8 @@ abstract class CloudSyncProvider {
 
 /// Preference-backed provider to simulate a remote store.
 class PrefsCloudSyncProvider implements CloudSyncProvider {
-  static String _blobKey(String userId) => 'cloud_blob_' + userId;
-  static String _metaKey(String userId) => 'cloud_meta_' + userId;
+  static String _blobKey(String userId) => 'cloud_blob_$userId';
+  static String _metaKey(String userId) => 'cloud_meta_$userId';
 
   @override
   Future<Uint8List?> downloadBackup(String userId) async {
@@ -269,7 +278,7 @@ class SupabaseCloudSyncProvider implements CloudSyncProvider {
           ).timeout(
             const Duration(seconds: 30),
             onTimeout: () {
-              throw TimeoutException('Backup upload timed out after 30 seconds');
+                throw TimeoutException(LocalizationService().getString('timeout_backup_upload'));
             },
           );
     } catch (e) {
@@ -278,7 +287,7 @@ class SupabaseCloudSyncProvider implements CloudSyncProvider {
         rethrow;
       } else if (e.toString().contains('Connection') || e.toString().contains('network') || e.toString().contains('failed')) {
         debugPrint('⚠️ Supabase storage upload connection error: $e');
-        throw NetworkException('Connection failed. Please check your internet connection or VPN settings.');
+          throw NetworkException(LocalizationService().getString('network_exception_connection_failed_vpn'));
       } else {
         debugPrint('⚠️ Supabase storage upload failed, will still write meta: $e');
         // Continue to try metadata write
@@ -296,7 +305,7 @@ class SupabaseCloudSyncProvider implements CloudSyncProvider {
       await _client.from(_metaTable).upsert(row, onConflict: 'user_id').timeout(
         const Duration(seconds: 15),
         onTimeout: () {
-          throw TimeoutException('Metadata update timed out after 15 seconds');
+            throw TimeoutException(LocalizationService().getString('timeout_metadata_update'));
         },
       );
     } catch (e) {
@@ -305,7 +314,7 @@ class SupabaseCloudSyncProvider implements CloudSyncProvider {
         rethrow;
       } else if (e.toString().contains('Connection') || e.toString().contains('network') || e.toString().contains('failed')) {
         debugPrint('⚠️ Supabase meta upsert connection error: $e');
-        throw NetworkException('Connection failed. Please check your internet connection or VPN settings.');
+          throw NetworkException(LocalizationService().getString('network_exception_connection_failed_vpn'));
       } else {
         debugPrint('⚠️ Supabase meta upsert failed: $e');
         rethrow;
@@ -324,7 +333,7 @@ class SupabaseCloudSyncProvider implements CloudSyncProvider {
       final data = await _client.storage.from(CloudSyncConfig.storageBucket).download(_storagePath(userId)).timeout(
         const Duration(seconds: 30),
         onTimeout: () {
-          throw TimeoutException('Backup download timed out after 30 seconds');
+            throw TimeoutException(LocalizationService().getString('timeout_backup_download'));
         },
       );
       return data;
@@ -334,7 +343,7 @@ class SupabaseCloudSyncProvider implements CloudSyncProvider {
         rethrow;
       } else if (e.toString().contains('Connection') || e.toString().contains('network') || e.toString().contains('failed')) {
         debugPrint('⚠️ Supabase storage download connection error: $e');
-        throw NetworkException('Connection failed. Please check your internet connection or VPN settings.');
+          throw NetworkException(LocalizationService().getString('network_exception_connection_failed_vpn'));
       } else {
         debugPrint('⚠️ Supabase storage download failed: $e');
         return null;
@@ -353,10 +362,10 @@ class SupabaseCloudSyncProvider implements CloudSyncProvider {
       final rows = await _client.from(_metaTable).select().eq('user_id', userId).limit(1).timeout(
         const Duration(seconds: 15),
         onTimeout: () {
-          throw TimeoutException('Metadata read timed out after 15 seconds');
+            throw TimeoutException(LocalizationService().getString('timeout_metadata_read'));
         },
       );
-      if (rows is List && rows.isNotEmpty) {
+      if (rows.isNotEmpty) {
         final m = (rows.first as Map).cast<String, dynamic>();
         return CloudBackupMeta(
           timestamp: DateTime.tryParse(m['ts']?.toString() ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0),
@@ -371,7 +380,7 @@ class SupabaseCloudSyncProvider implements CloudSyncProvider {
         rethrow;
       } else if (e.toString().contains('Connection') || e.toString().contains('network') || e.toString().contains('failed')) {
         debugPrint('⚠️ Supabase meta read connection error: $e');
-        throw NetworkException('Connection failed. Please check your internet connection or VPN settings.');
+          throw NetworkException(LocalizationService().getString('network_exception_connection_failed_vpn'));
       } else {
         debugPrint('⚠️ Supabase meta read failed: $e');
       }
@@ -423,6 +432,7 @@ extension _TableSync on CloudSyncService {
           'monocyte': r['monocyte'],
           'eosinophil': r['eosinophil'],
           'basophil': r['basophil'],
+          'values_json': r['values_json'],
           'risk_level': r['risk_level'],
           'doctor_notes': r['doctor_notes'],
           'last_updated': (r['created_at'] ?? DateTime.now().toIso8601String()),
@@ -436,7 +446,7 @@ extension _TableSync on CloudSyncService {
         await client.from('hemogram_tests').upsert(payload, onConflict: 'local_id').timeout(
           const Duration(seconds: 20),
           onTimeout: () {
-            throw TimeoutException('Hemogram sync timed out');
+            throw TimeoutException(LocalizationService().getString('timeout_hemogram_sync'));
           },
         );
       } catch (e) {
@@ -451,7 +461,7 @@ extension _TableSync on CloudSyncService {
           await client.from('hemogram_tests').upsert(payload).timeout(
             const Duration(seconds: 20),
             onTimeout: () {
-              throw TimeoutException('Hemogram sync timed out');
+              throw TimeoutException(LocalizationService().getString('timeout_hemogram_sync'));
             },
           );
         } catch (e2) {
@@ -480,10 +490,9 @@ extension _TableSync on CloudSyncService {
           .timeout(
             const Duration(seconds: 20),
             onTimeout: () {
-              throw TimeoutException('Hemogram pull timed out');
+              throw TimeoutException(LocalizationService().getString('timeout_hemogram_pull'));
             },
           );
-      if (rows is! List) return;
       final db = DatabaseHelper.instance;
       for (final row in rows.cast<Map>()) {
         final r = row.cast<String, dynamic>();
@@ -511,6 +520,7 @@ extension _TableSync on CloudSyncService {
             'monocyte': r['monocyte'],
             'eosinophil': r['eosinophil'],
             'basophil': r['basophil'],
+            'values_json': r['values_json'],
             'risk_level': r['risk_level'],
             'doctor_notes': r['doctor_notes'],
           };
@@ -550,7 +560,7 @@ extension _TableSync on CloudSyncService {
         await Supabase.instance.client.from('reminders').upsert(payload, onConflict: 'local_id').timeout(
           const Duration(seconds: 20),
           onTimeout: () {
-            throw TimeoutException('Reminders sync timed out');
+            throw TimeoutException(LocalizationService().getString('timeout_reminders_sync'));
           },
         );
       } catch (e) {
@@ -563,7 +573,7 @@ extension _TableSync on CloudSyncService {
           await Supabase.instance.client.from('reminders').upsert(payload).timeout(
             const Duration(seconds: 20),
             onTimeout: () {
-              throw TimeoutException('Reminders sync timed out');
+              throw TimeoutException(LocalizationService().getString('timeout_reminders_sync'));
             },
           );
         } catch (e2) {
@@ -591,10 +601,9 @@ extension _TableSync on CloudSyncService {
           .timeout(
             const Duration(seconds: 20),
             onTimeout: () {
-              throw TimeoutException('Reminders pull timed out');
+              throw TimeoutException(LocalizationService().getString('timeout_reminders_pull'));
             },
           );
-      if (rows is! List) return;
       final db = DatabaseHelper.instance;
       final existing = await db.getAllReminders(userId);
       for (final row in rows.cast<Map>()) {
@@ -652,7 +661,7 @@ extension _TableSync on CloudSyncService {
         await Supabase.instance.client.from('medications').upsert(payload, onConflict: 'local_id').timeout(
           const Duration(seconds: 20),
           onTimeout: () {
-            throw TimeoutException('Medications sync timed out');
+            throw TimeoutException(LocalizationService().getString('timeout_medications_sync'));
           },
         );
       } catch (e) {
@@ -665,7 +674,7 @@ extension _TableSync on CloudSyncService {
           await Supabase.instance.client.from('medications').upsert(payload).timeout(
             const Duration(seconds: 20),
             onTimeout: () {
-              throw TimeoutException('Medications sync timed out');
+              throw TimeoutException(LocalizationService().getString('timeout_medications_sync'));
             },
           );
         } catch (e2) {
@@ -693,10 +702,9 @@ extension _TableSync on CloudSyncService {
           .timeout(
             const Duration(seconds: 20),
             onTimeout: () {
-              throw TimeoutException('Medications pull timed out');
+              throw TimeoutException(LocalizationService().getString('timeout_medications_pull'));
             },
           );
-      if (rows is! List) return;
       final db = DatabaseHelper.instance;
       final existing = await db.getMedications(userId);
       for (final row in rows.cast<Map>()) {
@@ -752,7 +760,7 @@ extension _TableSync on CloudSyncService {
         await Supabase.instance.client.from('family_members').upsert(payload, onConflict: 'local_id').timeout(
           const Duration(seconds: 20),
           onTimeout: () {
-            throw TimeoutException('Family members sync timed out');
+            throw TimeoutException(LocalizationService().getString('timeout_family_members_sync'));
           },
         );
       } catch (e) {
@@ -765,7 +773,7 @@ extension _TableSync on CloudSyncService {
           await Supabase.instance.client.from('family_members').upsert(payload).timeout(
             const Duration(seconds: 20),
             onTimeout: () {
-              throw TimeoutException('Family members sync timed out');
+              throw TimeoutException(LocalizationService().getString('timeout_family_members_sync'));
             },
           );
         } catch (e2) {
@@ -793,10 +801,9 @@ extension _TableSync on CloudSyncService {
           .timeout(
             const Duration(seconds: 20),
             onTimeout: () {
-              throw TimeoutException('Family members pull timed out');
+              throw TimeoutException(LocalizationService().getString('timeout_family_members_pull'));
             },
           );
-      if (rows is! List) return;
       final db = DatabaseHelper.instance;
       final existing = await db.getFamilyMembers(userId);
       for (final row in rows.cast<Map>()) {

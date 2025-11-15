@@ -27,7 +27,7 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
   List<Map<String, dynamic>> _medications = [];
   List<Map<String, dynamic>> _reminders = [];
   int? _userId;
-  bool _consentGranted = true; // Assume granted; ideally read consent flag
+  final bool _consentGranted = true; // Assume granted; ideally read consent flag
   String _selectedMetric = 'HB';
 
   @override
@@ -85,12 +85,12 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
         title: Text(widget.member['name'] ?? loc.getString('family_member')),
         bottom: TabBar(
           controller: _tabs,
-          tabs: const [
-            Tab(icon: Icon(Icons.health_and_safety), text: 'Overview'),
-            Tab(icon: Icon(Icons.assignment), text: 'Tests'),
-            Tab(icon: Icon(Icons.medication), text: 'Medications'),
-            Tab(icon: Icon(Icons.event_note), text: 'Reminders'),
-            Tab(icon: Icon(Icons.restaurant_menu), text: 'Diet'),
+          tabs: [
+            Tab(icon: const Icon(Icons.health_and_safety), text: loc.getString('tab_overview')),
+            Tab(icon: const Icon(Icons.assignment), text: loc.getString('tab_tests')),
+            Tab(icon: const Icon(Icons.medication), text: loc.getString('tab_medications')),
+            Tab(icon: const Icon(Icons.event_note), text: loc.getString('tab_reminders')),
+            Tab(icon: const Icon(Icons.restaurant_menu), text: loc.getString('diet')),
           ],
         ),
       ),
@@ -114,9 +114,7 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Text(
-          loc.getString('family_consent_required') == 'family_consent_required'
-              ? 'This member has not granted permission to view data.'
-              : loc.getString('family_consent_required'),
+          loc.getString('family_consent_required'),
           textAlign: TextAlign.center,
         ),
       ),
@@ -127,39 +125,39 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _infoTile('Relation', widget.member['relation'] ?? '—'),
-        _infoTile('Age', (widget.member['age'] ?? '—').toString()),
-        _infoTile('Phone', widget.member['phone'] ?? '—'),
+  _infoTile(Provider.of<LocalizationService>(context, listen: false).getString('relation_label'), widget.member['relation']?.toString() ?? '—'),
+  _infoTile(Provider.of<LocalizationService>(context, listen: false).getString('age_label'), (widget.member['age'] ?? '—').toString()),
+  _infoTile(Provider.of<LocalizationService>(context, listen: false).getString('phone_label'), widget.member['phone']?.toString() ?? '—'),
         const SizedBox(height: 12),
         // Smart Alerts (Premium)
         if (_tests.isNotEmpty) _buildSmartAlerts(theme),
         const SizedBox(height: 12),
-        Text('Latest Test', style: theme.textTheme.titleMedium),
+  Text(Provider.of<LocalizationService>(context, listen: false).getString('latest_test'), style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         if (_tests.isEmpty)
-          const Text('No tests yet')
+          Text(Provider.of<LocalizationService>(context, listen: false).getString('no_tests_yet'))
         else
           _testCard(_tests.first),
         const SizedBox(height: 16),
-        if (_tests.length >= 1) ...[
+        if (_tests.isNotEmpty) ...[
           Row(
             children: [
-              const Text('Trend: '),
+              Text(Provider.of<LocalizationService>(context, listen: false).getString('trend_label') + ' '),
               const SizedBox(width: 8),
               ChoiceChip(
-                label: const Text('HB'),
+                label: Text(Provider.of<LocalizationService>(context, listen: false).getString('metric_hb')),
                 selected: _selectedMetric == 'HB',
                 onSelected: (_) => setState(() => _selectedMetric = 'HB'),
               ),
               const SizedBox(width: 6),
               ChoiceChip(
-                label: const Text('CRP'),
+                label: Text(Provider.of<LocalizationService>(context, listen: false).getString('metric_crp')),
                 selected: _selectedMetric == 'CRP',
                 onSelected: (_) => setState(() => _selectedMetric = 'CRP'),
               ),
               const SizedBox(width: 6),
               ChoiceChip(
-                label: const Text('Glucose'),
+                label: Text(Provider.of<LocalizationService>(context, listen: false).getString('metric_glucose')),
                 selected: _selectedMetric == 'Glucose',
                 onSelected: (_) => setState(() => _selectedMetric = 'Glucose'),
               ),
@@ -202,9 +200,9 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
       return Card(
         child: ListTile(
           leading: const Icon(Icons.lock),
-          title: const Text('Smart Alerts (Premium)'),
-          subtitle: const Text('Unlock personalized alerts and next test suggestions'),
-          trailing: TextButton(onPressed: () => Navigator.pushNamed(context, '/premium'), child: const Text('Upgrade')),
+          title: Text(Provider.of<LocalizationService>(context, listen: false).getString('smart_alerts_premium_title')),
+          subtitle: Text(Provider.of<LocalizationService>(context, listen: false).getString('smart_alerts_premium_subtitle')),
+          trailing: TextButton(onPressed: () => Navigator.pushNamed(context, '/premium'), child: Text(Provider.of<LocalizationService>(context, listen: false).getString('upgrade'))),
         ),
       );
     }
@@ -219,24 +217,24 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Smart Alerts (Premium)', style: theme.textTheme.titleMedium),
+                Text(Provider.of<LocalizationService>(context, listen: false).getString('smart_alerts_premium_title'), style: theme.textTheme.titleMedium),
                 TextButton.icon(
                   onPressed: () async {
                     final bundle = FhirService.buildObservationBundle(user: widget.member, test: latest);
                     final jsonStr = const JsonEncoder.withIndent('  ').convert(bundle);
                     await Clipboard.setData(ClipboardData(text: jsonStr));
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('FHIR JSON copied to clipboard')));
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(Provider.of<LocalizationService>(context, listen: false).getString('fhir_json_copied'))));
                     }
                   },
                   icon: const Icon(Icons.share),
-                  label: const Text('Export FHIR JSON'),
+                  label: Text(Provider.of<LocalizationService>(context, listen: false).getString('export_fhir_json')),
                 )
               ],
             ),
             const SizedBox(height: 8),
             if (result.alerts.isEmpty)
-              const Text('All key markers within normal range')
+              Text(Provider.of<LocalizationService>(context, listen: false).getString('all_markers_normal'))
             else
               Wrap(
                 spacing: 8,
@@ -244,7 +242,7 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
                 children: result.alerts.map((a) {
                   final dist = a.distanceToTarget;
                   return Chip(
-                    backgroundColor: a.color.withOpacity(.12),
+                    backgroundColor: a.color.withValues(alpha: 0.12),
                     label: Text('${a.message}${dist != null ? ' (Δ$dist)' : ''}'),
                     avatar: Icon(Icons.warning, color: a.color),
                   );
@@ -252,7 +250,7 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
               ),
             const SizedBox(height: 8),
             if (result.nextTestDate != null)
-              Text('Next test suggested: ${result.nextTestDate!.toLocal().toString().substring(0, 10)}',
+              Text('${Provider.of<LocalizationService>(context, listen: false).getString('next_test_suggested_prefix')} ${result.nextTestDate!.toLocal().toString().substring(0, 10)}',
                   style: theme.textTheme.bodySmall?.copyWith(color: cs.primary)),
           ],
         ),
@@ -283,7 +281,7 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
   }
 
   Widget _buildTests(ThemeData theme) {
-    if (_tests.isEmpty) return const Center(child: Text('No tests'));
+    if (_tests.isEmpty) return Center(child: Text(Provider.of<LocalizationService>(context, listen: false).getString('no_tests')));
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _tests.length,
@@ -326,7 +324,7 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
   }
 
   Widget _buildMedications(ThemeData theme) {
-    if (_medications.isEmpty) return const Center(child: Text('No medications'));
+    if (_medications.isEmpty) return Center(child: Text(Provider.of<LocalizationService>(context, listen: false).getString('no_medications')));
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: _medications.length,
@@ -343,7 +341,7 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
   }
 
   Widget _buildReminders(ThemeData theme) {
-    if (_reminders.isEmpty) return const Center(child: Text('No reminders'));
+    if (_reminders.isEmpty) return Center(child: Text(Provider.of<LocalizationService>(context, listen: false).getString('no_reminders')));
     return ListView(
       padding: const EdgeInsets.all(16),
       children: _reminders.map((r) => ListTile(leading: const Icon(Icons.alarm), title: Text(r['title'] ?? ''), subtitle: Text(r['time'] ?? ''))).toList(),
@@ -369,35 +367,35 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
     // Age baseline
     if (age < 18) {
       plans.addAll([
-        _DietPlan('Balanced teen plan', 'Adequate protein, fruits/veggies, hydration'),
-        _DietPlan('Iron-friendly snacks', 'Nuts, seeds, dried fruits, yogurt'),
+        _DietPlan(loc.getString('plan_balanced_teen'), loc.getString('subtitle_balanced_teen')),
+        _DietPlan(loc.getString('plan_iron_friendly_snacks'), loc.getString('subtitle_iron_friendly_snacks')),
       ]);
     } else if (age < 40) {
       plans.addAll([
-        _DietPlan('Mediterranean core', 'Olive oil, fish 2x/week, legumes, whole grains'),
-        _DietPlan('Lean protein focus', 'Chicken, turkey, eggs, legumes'),
+        _DietPlan(loc.getString('plan_mediterranean_core'), loc.getString('subtitle_mediterranean_core')),
+        _DietPlan(loc.getString('plan_lean_protein_focus'), loc.getString('subtitle_lean_protein_focus')),
       ]);
     } else if (age < 65) {
       plans.addAll([
-        _DietPlan('Cardio-friendly', 'Low saturated fat, high fiber, more omega-3'),
-        _DietPlan('Low-sodium plan', 'Limit processed foods, use herbs/spices'),
+        _DietPlan(loc.getString('plan_cardio_friendly'), loc.getString('subtitle_cardio_friendly')),
+        _DietPlan(loc.getString('plan_low_sodium_plan'), loc.getString('subtitle_low_sodium_plan')),
       ]);
     } else {
       plans.addAll([
-        _DietPlan('Senior soft menu', 'Easier-to-chew meals, soups, stews'),
-        _DietPlan('Bone health', 'Calcium+D3, dairy/fortified alternatives'),
+        _DietPlan(loc.getString('plan_senior_soft_menu'), loc.getString('subtitle_senior_soft_menu')),
+        _DietPlan(loc.getString('plan_bone_health'), loc.getString('subtitle_bone_health')),
       ]);
     }
 
     // Lab-personalization (Premium)
     if (possibleIronDef) {
-      plans.insert(0, _DietPlan('Iron-Boost Plan (Premium)', 'Red meat 2-3x/week, legumes, spinach, vitamin C with meals; limit tea/coffee with iron meals'));
+      plans.insert(0, _DietPlan(loc.getString('premium_plan_iron_boost'), loc.getString('subtitle_premium_plan_iron_boost')));
     }
     if (inflammation) {
-      plans.insert(0, _DietPlan('Anti-inflammatory Plan (Premium)', 'Omega-3 (salmon, walnuts), turmeric/ginger, berries; reduce ultra-processed, trans fat, added sugars'));
+      plans.insert(0, _DietPlan(loc.getString('premium_plan_anti_inflammatory'), loc.getString('subtitle_premium_plan_anti_inflammatory')));
     }
     if (highGlucose) {
-      plans.insert(0, _DietPlan('Low-GI Plan (Premium)', 'Whole grains, legumes, non-starchy veggies; avoid sugary drinks; balanced carb portions'));
+      plans.insert(0, _DietPlan(loc.getString('premium_plan_low_gi'), loc.getString('subtitle_premium_plan_low_gi')));
     }
 
     final weekly = _buildWeeklyMenu(plans);
@@ -405,10 +403,10 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
       padding: const EdgeInsets.all(16),
       children: [
         Row(
-          children: const [
-            Icon(Icons.workspace_premium, color: Colors.amber),
-            SizedBox(width: 8),
-            Text('Professional Diet Suggestions'),
+          children: [
+            const Icon(Icons.workspace_premium, color: Colors.amber),
+            const SizedBox(width: 8),
+            Text(loc.getString('professional_diet_suggestions')),
           ],
         ),
         const SizedBox(height: 8),
@@ -420,17 +418,17 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
               ),
             )),
         const SizedBox(height: 16),
-        Text('Weekly Plan', style: theme.textTheme.titleMedium),
+  Text(loc.getString('weekly_plan'), style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         _weeklyTable(weekly),
         const SizedBox(height: 12),
         ElevatedButton.icon(
           onPressed: () => _exportWeeklyPdf(weekly),
           icon: const Icon(Icons.picture_as_pdf),
-          label: const Text('Export PDF'),
+          label: Text(loc.getString('export_pdf')),
         ),
         const SizedBox(height: 12),
-        const Text('These suggestions are educational and do not replace medical advice.'),
+        Text(loc.getString('diet_disclaimer')),
       ],
     );
   }
@@ -454,20 +452,41 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
       border: TableBorder.all(color: Colors.grey.shade300),
       columnWidths: const {0: FixedColumnWidth(64)},
       children: [
-        const TableRow(children: [
-          Padding(padding: EdgeInsets.all(8), child: Text('Day', style: TextStyle(fontWeight: FontWeight.bold))),
-          Padding(padding: EdgeInsets.all(8), child: Text('Breakfast', style: TextStyle(fontWeight: FontWeight.bold))),
-          Padding(padding: EdgeInsets.all(8), child: Text('Lunch', style: TextStyle(fontWeight: FontWeight.bold))),
-          Padding(padding: EdgeInsets.all(8), child: Text('Dinner', style: TextStyle(fontWeight: FontWeight.bold))),
+        TableRow(children: [
+          Padding(padding: const EdgeInsets.all(8), child: Text(Provider.of<LocalizationService>(context, listen: false).getString('table_header_day'), style: const TextStyle(fontWeight: FontWeight.bold))),
+          Padding(padding: const EdgeInsets.all(8), child: Text(Provider.of<LocalizationService>(context, listen: false).getString('table_header_breakfast'), style: const TextStyle(fontWeight: FontWeight.bold))),
+          Padding(padding: const EdgeInsets.all(8), child: Text(Provider.of<LocalizationService>(context, listen: false).getString('table_header_lunch'), style: const TextStyle(fontWeight: FontWeight.bold))),
+          Padding(padding: const EdgeInsets.all(8), child: Text(Provider.of<LocalizationService>(context, listen: false).getString('table_header_dinner'), style: const TextStyle(fontWeight: FontWeight.bold))),
         ]),
         ...weekly.entries.map((e) => TableRow(children: [
-              Padding(padding: const EdgeInsets.all(8), child: Text(e.key, style: headerStyle)),
+              Padding(padding: const EdgeInsets.all(8), child: Text(_localizedDay(e.key), style: headerStyle)),
               Padding(padding: const EdgeInsets.all(8), child: Text(e.value[0])),
               Padding(padding: const EdgeInsets.all(8), child: Text(e.value[1])),
               Padding(padding: const EdgeInsets.all(8), child: Text(e.value[2])),
             ])),
       ],
     );
+  }
+
+  String _localizedDay(String engShort) {
+    final loc = Provider.of<LocalizationService>(context, listen: false);
+    switch (engShort) {
+      case 'Mon':
+        return loc.getString('day_mon');
+      case 'Tue':
+        return loc.getString('day_tue');
+      case 'Wed':
+        return loc.getString('day_wed');
+      case 'Thu':
+        return loc.getString('day_thu');
+      case 'Fri':
+        return loc.getString('day_fri');
+      case 'Sat':
+        return loc.getString('day_sat');
+      case 'Sun':
+        return loc.getString('day_sun');
+    }
+    return engShort;
   }
 
   Future<void> _exportWeeklyPdf(Map<String, List<String>> weekly) async {
@@ -477,20 +496,20 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
         build: (ctx) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            pw.Text('Weekly Diet Plan', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
+            pw.Text(Provider.of<LocalizationService>(context, listen: false).getString('weekly_diet_plan_pdf'), style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
             pw.SizedBox(height: 12),
             pw.Table(
               border: pw.TableBorder.all(),
               columnWidths: const {0: pw.FixedColumnWidth(60)},
               children: [
                 pw.TableRow(children: [
-                  pw.Padding(padding: pw.EdgeInsets.all(6), child: pw.Text('Day')),
-                  pw.Padding(padding: pw.EdgeInsets.all(6), child: pw.Text('Breakfast')),
-                  pw.Padding(padding: pw.EdgeInsets.all(6), child: pw.Text('Lunch')),
-                  pw.Padding(padding: pw.EdgeInsets.all(6), child: pw.Text('Dinner')),
+                  pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(Provider.of<LocalizationService>(context, listen: false).getString('table_header_day'))),
+                  pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(Provider.of<LocalizationService>(context, listen: false).getString('table_header_breakfast'))),
+                  pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(Provider.of<LocalizationService>(context, listen: false).getString('table_header_lunch'))),
+                  pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(Provider.of<LocalizationService>(context, listen: false).getString('table_header_dinner'))),
                 ]),
                 ...weekly.entries.map((e) => pw.TableRow(children: [
-                      pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(e.key)),
+                      pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(_localizedDay(e.key))),
                       pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(e.value[0])),
                       pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(e.value[1])),
                       pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(e.value[2])),
@@ -525,4 +544,5 @@ class _DietPlan {
   final String subtitle;
   const _DietPlan(this.title, this.subtitle);
 }
+
 

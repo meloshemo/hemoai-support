@@ -12,99 +12,6 @@ class DataImportService {
   // ignore: unused_field
   static const Duration _timeoutDuration = Duration(seconds: 30);
 
-  /// Import from Turkish e-Devlet (Government) system
-  /// This would be implemented based on official API documentation
-  Future<ImportResult> importFromEDevlet({
-    required String tcKimlik,
-    required String password,
-    String? sessionToken,
-  }) async {
-    try {
-      // In a real implementation, this would integrate with official e-Devlet APIs
-      // For now, we'll simulate the process
-      
-      if (kDebugMode) {
-        // No curly braces needed for single expression interpolation
-        debugPrint('🏛️ Attempting e-Devlet import for TC: ${tcKimlik.substring(0, 3)}***');
-      }
-      
-      // Simulate authentication
-      await Future.delayed(const Duration(seconds: 2));
-      
-  // In real implementation:
-  // 1. Authenticate with e-Devlet credentials
-  // 2. Navigate to health services (Health Services)
-  // 3. Access blood test results (Blood Test Results)
-  // 4. Parse the HTML/JSON response
-  // 5. Extract blood test values
-      
-      // For demonstration, return sample parsed data
-      return ImportResult.success(
-        source: 'e-devlet',
-        testResults: [
-          BloodTestResult(
-            userId: 0, // Will be set by caller
-            testDate: DateTime.now().subtract(const Duration(days: 7)).toIso8601String().split('T')[0],
-            laboratoryName: 'Ankara City Hospital',
-            testType: 'Complete Blood Count + Biochemistry',
-            importSource: 'e-devlet',
-            hemoglobin: 13.5,
-            hematocrit: 41.2,
-            whiteBloodCells: 7.8,
-            platelets: 280.0,
-            iron: 82.0,
-            glucose: 95.0,
-            creatinine: 0.9,
-            alt: 28.0,
-            ast: 24.0,
-            createdAt: DateTime.now(),
-          ),
-        ],
-      );
-    } catch (e) {
-      return ImportResult.error(
-        message: 'e-Devlet connection failed: $e',
-        source: 'e-devlet',
-      );
-    }
-  }
-
-  /// Import from e-Devlet by pasting exported text/HTML (no network)
-  /// Robust flow: HTML strip -> JSON-first -> boilerplate cleanup -> structured text
-  Future<ImportResult> importFromEDevletSnippet(String raw) async {
-    try {
-      String text = raw.trim();
-      if (text.isEmpty) {
-        return ImportResult.error(message: 'No text provided', source: 'e-devlet-snippet');
-      }
-
-      // If user pasted HTML, strip tags to get readable text
-      if (text.startsWith('<') && text.contains('</')) {
-        text = _stripHtmlTags(text);
-      }
-
-      // Try JSON first (some systems export JSON blobs)
-      if (text.startsWith('{') || text.startsWith('[')) {
-        final parsed = _parseJSONResults(text, 'e-devlet-snippet');
-        if (parsed.isSuccess && parsed.testResults.isNotEmpty) {
-          return parsed;
-        }
-      }
-
-      // Clean common e-Devlet or ministry boilerplate to boost signal
-      final cleaned = text
-          .replaceAll(RegExp(r'e-devlet\s*kapis[iı]', caseSensitive: false), '')
-          .replaceAll(RegExp(r'sa[ğg]lik\s*bakanli[gğ]i', caseSensitive: false), '')
-          .replaceAll(RegExp(r't\.c\.', caseSensitive: false), '')
-          .replaceAll(RegExp(r'\s{2,}'), ' ')
-          .trim();
-
-      return _parseStructuredText(cleaned.isNotEmpty ? cleaned : text, 'e-devlet-snippet');
-    } catch (e) {
-      return ImportResult.error(message: 'Text import failed: $e', source: 'e-devlet-snippet');
-    }
-  }
-
   /// Import from QR code (many labs provide QR codes on results)
   Future<ImportResult> importFromQR(String qrData) async {
     try {
@@ -546,40 +453,6 @@ class DataImportService {
     }
   }
 
-  /// Parse HTML results (for web scraping)
-  // ignore: unused_element
-  ImportResult _parseHTMLResults(String htmlData, String source) {
-    // HTML parsing implementation would go here
-    // This would extract data from laboratory web pages
-    return ImportResult.error(
-      message: 'HTML format not supported yet',
-      source: source,
-    );
-  }
-
-  // Strip basic HTML tags to extract text content for simple parsing
-  String _stripHtmlTags(String html) {
-    // Replace <br> and <p> with newlines to preserve structure a bit
-    String t = html
-        .replaceAll(RegExp(r'<\s*br\s*/?>', caseSensitive: false), '\n')
-        .replaceAll(RegExp(r'<\s*/p\s*>', caseSensitive: false), '\n');
-    // Remove all other tags
-    t = t.replaceAll(RegExp(r'<[^>]+>'), ' ');
-    // Decode common HTML entities minimally
-    t = t
-        .replaceAll('&nbsp;', ' ')
-        .replaceAll('&amp;', '&')
-        .replaceAll('&lt;', '<')
-        .replaceAll('&gt;', '>')
-        .replaceAll('&quot;', '"')
-        .replaceAll('&#39;', "'");
-    // Collapse multiple whitespaces
-    t = t.replaceAll(RegExp(r'[ \t\x0B\f\r]+'), ' ');
-    // Normalize newlines
-    t = t.replaceAll(RegExp(r'\n\s*\n+'), '\n');
-    return t.trim();
-  }
-
   /// Parse XML results
   // ignore: unused_element
   ImportResult _parseXMLResults(String xmlData, String source) {
@@ -918,12 +791,12 @@ class DataImportService {
 
   String _normalizeTurkish(String input) {
     return input
-        .replaceAll('\u0131', 'i') // ı
-        .replaceAll('\u011f', 'g') // ğ
-        .replaceAll('\u015f', 's') // ş
-        .replaceAll('\u00f6', 'o') // ö
-        .replaceAll('\u00e7', 'c') // ç
-        .replaceAll('\u00fc', 'u'); // ü
+        .replaceAll('\u0131', 'i') // dotless-i
+        .replaceAll('\u011f', 'g') // g-breve
+        .replaceAll('\u015f', 's') // s-cedilla
+        .replaceAll('\u00f6', 'o') // o-umlaut
+        .replaceAll('\u00e7', 'c') // c-cedilla
+        .replaceAll('\u00fc', 'u'); // u-umlaut
   }
 
   double? _parseDouble(dynamic value) {
@@ -978,6 +851,9 @@ class ImportResult {
       metadata: metadata,
     );
   }
+
+  // Backwards compatibility getter expected by tests
+  String? get message => errorMessage;
 
   @override
   String toString() {

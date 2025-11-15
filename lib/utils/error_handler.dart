@@ -1,3 +1,4 @@
+// ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import '../services/localization_service.dart';
@@ -65,7 +66,7 @@ class ErrorHandler {
     final errorString = error.toString().toLowerCase();
     if (errorString.contains('connection') && 
         (errorString.contains('failed') || errorString.contains('error'))) {
-      return 'Connection failed. Please check your internet connection or VPN settings.';
+      return loc.getString('network_exception_connection_failed_vpn');
     }
 
     if (error is ValidationException) {

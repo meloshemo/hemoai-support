@@ -1,13 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:package_info_plus/package_info_plus.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 
-import '../utils/app_constants.dart';
-import 'preferences_service.dart';
-
-/// Handles crash reporting configuration and exception forwarding.
+/// Minimal no-op crash reporting stub to avoid build-time errors when Sentry
+/// or related configuration isn't available. Preserves the public API expected
+/// by the app without introducing external dependencies.
 class CrashReportingService {
   CrashReportingService._();
 
@@ -22,78 +19,24 @@ class CrashReportingService {
 
   bool get isInitialized => _initialized;
 
-  /// Initializes crash reporting. If disabled or DSN missing, simply runs [appRunner].
+  /// Initializes crash reporting. In this stub, we simply run the app.
   Future<void> initializeAndRun(FutureOr<void> Function() appRunner) async {
-    final shouldEnable = AppConstants.enableCrashReporting;
-    final dsn = AppConstants.sentryDsn;
-
-    if (!shouldEnable || dsn.isEmpty) {
-      debugPrint('CrashReportingService: disabled (missing DSN or flag).');
-      _enabled = false;
-      await appRunner();
-      return;
-    }
-
-    final preferences = await PreferencesService.getInstance();
-    if (!preferences.allowCrashReporting()) {
-      debugPrint('CrashReportingService: disabled by user preference.');
-      _enabled = false;
-      await appRunner();
-      return;
-    }
-
-    await SentryFlutter.init(
-      (options) {
-        options.dsn = dsn;
-        options.environment = kReleaseMode ? 'production' : 'development';
-        options.release = AppConstants.sentryReleaseIdentifier;
-        options.enablePrintBreadcrumbs = !kReleaseMode;
-        options.tracesSampleRate =
-            kReleaseMode ? AppConstants.sentryTraceSampleRateProd : AppConstants.sentryTraceSampleRateDev;
-        options.attachScreenshot = kReleaseMode;
-        options.sendDefaultPii = false;
-        options.beforeSend = (event, {dynamic hint}) async {
-          final prefs = await PreferencesService.getInstance();
-          return prefs.allowCrashReporting() ? event : null;
-        };
-      },
-      appRunner: () async {
-        _enabled = true;
-        _initialized = true;
-        await _configureScope();
-        await appRunner();
-      },
-    );
+    debugPrint('CrashReportingService(stub): disabled. Running app without Sentry.');
+    _enabled = false;
+    _initialized = true;
+    await appRunner();
   }
 
-  Future<void> _configureScope() async {
-    if (!_enabled) return;
-
-    try {
-      final info = await PackageInfo.fromPlatform();
-      await Sentry.configureScope((scope) {
-        scope.setTag('build_number', info.buildNumber);
-        scope.setTag('package_name', info.packageName);
-        scope.setTag('app_name', info.appName);
-        scope.setTag('platform', describeEnum(defaultTargetPlatform));
-      });
-    } catch (error) {
-      debugPrint('CrashReportingService: scope configuration failed: $error');
-    }
-  }
-
+  /// Capture an exception (no-op in stub).
   Future<void> captureException(
     dynamic exception, {
     StackTrace? stackTrace,
     Map<String, dynamic>? hint,
   }) async {
-    if (!_enabled) return;
-
-    await Sentry.captureException(
-      exception,
-      stackTrace: stackTrace,
-      hint: hint,
-    );
+    // Intentionally no-op.
+    if (kDebugMode) {
+      debugPrint('CrashReportingService(stub): captureException called: $exception');
+    }
   }
 }
 

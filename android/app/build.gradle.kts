@@ -1,13 +1,22 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
+    id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Optionally enable Firebase Performance plugin when explicitly requested and available.
+// This avoids build failures in local/dev environments where the plugin isn't configured.
+if (providers.gradleProperty("enableFirebasePerf").orNull == "true") {
+    apply(plugin = "com.google.firebase.firebase-perf")
+}
+
 // Load release signing credentials from android/key.properties if present
-import java.util.Properties
-import java.io.FileInputStream
 
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
@@ -21,12 +30,12 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
     defaultConfig {
@@ -74,4 +83,13 @@ android {
 
 flutter {
     source = "../.."
+}
+
+kotlin {
+    jvmToolchain(17)
+}
+
+dependencies {
+    // Firebase dependencies are provided via Flutter plugins (firebase_core, etc.).
+    // Explicit native dependencies removed to avoid resolution issues during lightweight screenshot builds.
 }

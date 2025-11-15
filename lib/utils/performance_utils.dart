@@ -17,13 +17,12 @@ class PerformanceUtils {
 
   /// Throttle function to limit function calls
   static Function throttle(Function func, [Duration delay = const Duration(milliseconds: 300)]) {
-    Timer? timer;
     bool isThrottled = false;
     return () {
       if (!isThrottled) {
         func();
         isThrottled = true;
-        timer = Timer(delay, () {
+        Timer(delay, () {
           isThrottled = false;
         });
       }
@@ -53,8 +52,8 @@ class PerformanceUtils {
       width: width,
       height: height,
       fit: fit,
-      cacheWidth: width != null ? width.toInt() : null,
-      cacheHeight: height != null ? height.toInt() : null,
+      cacheWidth: width?.toInt(),
+      cacheHeight: height?.toInt(),
       errorBuilder: (context, error, stackTrace) {
         return placeholder != null
             ? Image.asset(placeholder, width: width, height: height, fit: fit)

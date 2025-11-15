@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/localization_service.dart';
 import '../services/daily_advice_service.dart';
@@ -36,7 +36,7 @@ class AllQuotesScreen extends StatelessWidget {
                     border: Border.all(color: Colors.grey.shade200),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
+                        color: Colors.black.withValues(alpha: 0.04),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -45,7 +45,7 @@ class AllQuotesScreen extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('“', style: TextStyle(fontSize: 24, color: Color(0xFFE53E3E))),
+                      const Text('â€œ', style: TextStyle(fontSize: 24, color: Color(0xFFE53E3E))),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -61,3 +61,4 @@ class AllQuotesScreen extends StatelessWidget {
     );
   }
 }
+

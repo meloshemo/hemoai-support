@@ -52,5 +52,13 @@ android/key.properties
 
 # Environment files (API keys, secrets)
 .env
-.env.local
-.env.production
+.env.*
+env.secrets.json
+env.secrets.enc.json
+env.vault.tmp
+
+# User data dumps / exports (PII) - do not commit
+data/backups/
+*.export.json
+*.dump.json
+*.pii.json

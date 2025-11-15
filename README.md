@@ -29,17 +29,27 @@ This app is **fully prepared** for production deployment. All builds, documentat
 - Localization: all new content is localized (TR/EN). See `docs/LOCALIZATION_CHANGELOG.md`.
 
 ## Run
-- Web (Edge): will open your default Edge
 	- From the repo root: run the app task in your editor or use `flutter run -d edge -t lib/main.dart`.
-- Windows desktop: `flutter run -d windows`
 
 If you see build issues after switching branches/tags, run: `flutter clean` then `flutter pub get`.
 
 To validate localization and code quickly:
-- Run i18n validator:
 	- `dart run tool/validate_localization.dart`
-- Static analysis:
 	- `flutter analyze`
+
+### CI
+GitHub Actions runs on pushes/PRs:
+- `.github/workflows/flutter-ci.yml`: analyze, tests, localization validator, and web build.
+- `.github/workflows/screenshots.yml`: integration test screenshot capture and artifact comparison.
+- `.github/workflows/uptime-monitor.yml`: monitors web endpoint.
+
+### Pre-commit & secrets
+Enable hooks to prevent committing secrets/PII and enforce hygiene:
+- Install pre-commit and run `pre-commit install` (see `docs/precommit_and_secrets.md`).
+- Use `env_vault.mjs` for local env var loading without committing secrets.
+
+### Publish checklist
+For store handoff and release readiness, see `docs/publish_checklist.md`.
 
 ## Project conventions
 - State and services use Provider + ChangeNotifier. Core singletons: `ThemeService`, `NotificationService`, `PushNotificationService`, `LocalizationService`, `ActiveProfileService` (see `lib/services/*`).

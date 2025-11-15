@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hemoai/services/diet_program_service.dart';
-import 'package:hemoai/models/diet_program.dart';
 
 void main() {
   group('DietProgramService', () {

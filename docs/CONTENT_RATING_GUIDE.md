@@ -421,7 +421,7 @@ After submission:
 If you have questions about content rating:
 
 **Play Console Help:** https://support.google.com/googleplay/android-developer
-**Email:** support@meloshemo.com
+**Email:** support@hemoai.org
 
 ---
 

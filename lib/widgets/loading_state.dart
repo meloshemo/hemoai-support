@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import '../services/localization_service.dart';
 import 'package:provider/provider.dart';
@@ -42,7 +42,7 @@ class LoadingState extends StatelessWidget {
               Text(
                 message ?? loc.getString('loading'),
                 style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -121,4 +121,5 @@ class ShimmerLoading extends StatelessWidget {
     );
   }
 }
+
 

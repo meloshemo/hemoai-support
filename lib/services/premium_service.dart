@@ -69,6 +69,10 @@ class PremiumService extends ChangeNotifier {
   static const String _trialStartKey = 'trial_start_date';
   static const String _subscriptionExpiryKey = 'subscription_expiry';
   static const String _lifetimeKey = 'lifetime_purchase';
+  // Product IDs to align with payment and tests
+  static const String productIdMonthly = 'hemoai_premium_monthly';
+  static const String productIdYearly = 'hemoai_premium_yearly';
+  static const String productIdLifetime = 'hemoai_premium_lifetime';
   
   SubscriptionTier _currentTier = SubscriptionTier.free;
   DateTime? _trialStartDate;
@@ -89,6 +93,24 @@ class PremiumService extends ChangeNotifier {
     final daysSinceTrial = DateTime.now().difference(_trialStartDate!).inDays;
     return daysSinceTrial < 7; // 7-day trial
   }
+
+  /// Activate premium based on a restored product ID (from store restore flow)
+  Future<void> activateFromRestoredPurchase({required String productId}) async {
+    if (productId == productIdLifetime) {
+      await setTier(SubscriptionTier.lifetime, isLifetime: true);
+      _subscriptionExpiry = null;
+    } else if (productId == productIdYearly) {
+      await setTier(SubscriptionTier.premium);
+      await setSubscriptionExpiry(DateTime.now().add(const Duration(days: 365)));
+    } else if (productId == productIdMonthly) {
+      await setTier(SubscriptionTier.premium);
+      await setSubscriptionExpiry(DateTime.now().add(const Duration(days: 30)));
+    } else {
+      // Unknown product, keep current tier
+      debugPrint('[PremiumService] Unknown restored product: $productId');
+    }
+    notifyListeners();
+  }
   
   // Check if subscription is expired
   bool get isSubscriptionExpired {
@@ -103,16 +125,46 @@ class PremiumService extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       
       // Load tier
-      final tierIndex = prefs.getInt(_tierKey) ?? 0;
+      // Support legacy string storage (tests may set string value)
+      final dynamic rawTier = prefs.get(_tierKey);
+      int tierIndex;
+      if (rawTier is int) {
+        tierIndex = rawTier;
+      } else if (rawTier is String) {
+        switch (rawTier) {
+          case 'premium':
+            tierIndex = SubscriptionTier.premium.index;
+            break;
+          case 'lifetime':
+            tierIndex = SubscriptionTier.lifetime.index;
+            break;
+          default:
+            tierIndex = SubscriptionTier.free.index;
+        }
+      } else {
+        tierIndex = SubscriptionTier.free.index;
+      }
       _currentTier = SubscriptionTier.values[tierIndex];
       
-      // Load trial start
-      final trialStartMs = prefs.getInt(_trialStartKey);
-      _trialStartDate = trialStartMs != null ? DateTime.fromMillisecondsSinceEpoch(trialStartMs) : null;
+      // Load trial start (support legacy ISO8601 string)
+      DateTime? trialDate;
+      final dynamic rawTrial = prefs.get(_trialStartKey);
+      if (rawTrial is int) {
+        trialDate = DateTime.fromMillisecondsSinceEpoch(rawTrial);
+      } else if (rawTrial is String) {
+        try { trialDate = DateTime.parse(rawTrial); } catch (_) {}
+      }
+      _trialStartDate = trialDate;
       
-      // Load subscription expiry
-      final expiryMs = prefs.getInt(_subscriptionExpiryKey);
-      _subscriptionExpiry = expiryMs != null ? DateTime.fromMillisecondsSinceEpoch(expiryMs) : null;
+      // Load subscription expiry (support legacy ISO8601 string)
+      DateTime? expiryDate;
+      final dynamic rawExpiry = prefs.get(_subscriptionExpiryKey);
+      if (rawExpiry is int) {
+        expiryDate = DateTime.fromMillisecondsSinceEpoch(rawExpiry);
+      } else if (rawExpiry is String) {
+        try { expiryDate = DateTime.parse(rawExpiry); } catch (_) {}
+      }
+      _subscriptionExpiry = expiryDate;
       
       // Load lifetime
       _isLifetime = prefs.getBool(_lifetimeKey) ?? false;
@@ -121,10 +173,55 @@ class PremiumService extends ChangeNotifier {
       if (isSubscriptionExpired && _currentTier == SubscriptionTier.premium) {
         await setTier(SubscriptionTier.free);
       }
+
+      // Perform lightweight revalidation (can be expanded with server verification)
+      // Ensures any inconsistent lifetime / expiry states are corrected at startup.
+      await _revalidateIfNeeded(prefs);
       
       notifyListeners();
     } catch (e) {
       debugPrint('[PremiumService] Initialize error: $e');
+    }
+  }
+
+  /// Public manual trigger for subscription revalidation (e.g., after login).
+  Future<void> revalidateNow() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await _revalidateIfNeeded(prefs, force: true);
+    } catch (e) {
+      debugPrint('[PremiumService] Revalidate error: $e');
+    }
+  }
+
+  /// Internal revalidation logic.
+  /// - If lifetime flag set but tier not lifetime, correct it.
+  /// - If premium but expiry missing/past, downgrade to free.
+  /// - If premium and expiry within 24h, could trigger proactive renewal check (placeholder).
+  Future<void> _revalidateIfNeeded(SharedPreferences prefs, {bool force = false}) async {
+    // Lifetime consistency check
+    if (_isLifetime && _currentTier != SubscriptionTier.lifetime) {
+      _currentTier = SubscriptionTier.lifetime;
+      await prefs.setInt(_tierKey, SubscriptionTier.lifetime.index);
+      notifyListeners();
+    }
+
+    if (_currentTier == SubscriptionTier.premium && !_isLifetime) {
+      // Missing expiry should invalidate subscription
+      if (_subscriptionExpiry == null) {
+        await setTier(SubscriptionTier.free);
+        return;
+      }
+      final now = DateTime.now();
+      if (now.isAfter(_subscriptionExpiry!)) {
+        await setTier(SubscriptionTier.free);
+        return;
+      }
+      // Placeholder: if within 24h of expiry and force flag set, we could call a backend to refresh.
+      if (force && _subscriptionExpiry!.difference(now) < const Duration(hours: 24)) {
+        // Backend renewal/verification hook (future implementation)
+        debugPrint('[PremiumService] Expiry within 24h - backend renewal check placeholder');
+      }
     }
   }
 
@@ -287,6 +384,12 @@ class PremiumService extends ChangeNotifier {
     } catch (e) {
       debugPrint('[PremiumService] Cancel error: $e');
     }
+  }
+
+  /// Override dispose for singleton safety in tests (avoid disposed errors)
+  @override
+  void dispose() {
+    super.dispose();
   }
 }
 

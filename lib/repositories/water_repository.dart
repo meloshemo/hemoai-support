@@ -31,4 +31,29 @@ class WaterRepository {
       return List<int>.filled(7, 0);
     }
   }
+
+  /// Increment water intake by 1 glass
+  Future<int> incrementWaterIntake(int userId) async {
+    try {
+      return await _db.logWaterIntake(userId, 1);
+    } catch (e) {
+      debugPrint('WaterRepository.incrementWaterIntake error: $e');
+      return 0;
+    }
+  }
+
+  /// Decrement water intake by 1 glass (minimum 0)
+  Future<int> decrementWaterIntake(int userId) async {
+    try {
+      final current = await getTodayWaterIntake(userId);
+      if (current > 0) {
+        // Log negative amount to decrease
+        return await _db.logWaterIntake(userId, -1);
+      }
+      return current;
+    } catch (e) {
+      debugPrint('WaterRepository.decrementWaterIntake error: $e');
+      return 0;
+    }
+  }
 }

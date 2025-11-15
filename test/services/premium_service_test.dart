@@ -13,11 +13,6 @@ void main() {
       premiumService = PremiumService();
       await premiumService.initialize();
     });
-
-    tearDown(() {
-      premiumService.dispose();
-    });
-
     test('should create singleton instance', () {
       final instance1 = PremiumService();
       final instance2 = PremiumService();

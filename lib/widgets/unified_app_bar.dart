@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import '../services/localization_service.dart';
-import 'app_drawer.dart';
 
 /// Unified AppBar that shows both hamburger menu and back button on all screens
 class UnifiedAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -28,7 +27,8 @@ class UnifiedAppBar extends StatelessWidget implements PreferredSizeWidget {
     final isRTL = loc.isRTL;
 
     return AppBar(
-      backgroundColor: isDark ? const Color(0xFF161B22) : const Color(0xFFE53E3E),
+      backgroundColor:
+          isDark ? const Color(0xFF161B22) : const Color(0xFFB91C1C),
       foregroundColor: Colors.white,
       elevation: 0,
       automaticallyImplyLeading: false,
@@ -39,12 +39,13 @@ class UnifiedAppBar extends StatelessWidget implements PreferredSizeWidget {
           // Back button if can pop
           if (kIsWeb && canPop)
             IconButton(
-              icon: Icon(isRTL ? Icons.arrow_forward_ios : Icons.arrow_back_ios),
+              icon:
+                  Icon(isRTL ? Icons.arrow_forward_ios : Icons.arrow_back_ios),
               color: Colors.white,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
               onPressed: () => Navigator.of(context).maybePop(),
-              tooltip: loc.getString('back') == 'back' ? 'Geri' : loc.getString('back'),
+              tooltip: loc.getString('back'),
             ),
           // Hamburger menu (always show)
           Builder(
@@ -54,13 +55,13 @@ class UnifiedAppBar extends StatelessWidget implements PreferredSizeWidget {
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
               onPressed: () => Scaffold.of(context).openDrawer(),
-              tooltip: loc.getString('menu') == 'menu' ? 'Menü' : loc.getString('menu'),
+              tooltip: loc.getString('menu'),
             ),
           ),
         ],
       ),
       title: Text(
-        title ?? loc.getString('app_name') ?? 'HemoAI',
+        title ?? loc.getString('app_name', defaultValue: 'HemoAI'),
         style: const TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: 20,
@@ -75,4 +76,3 @@ class UnifiedAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }
-

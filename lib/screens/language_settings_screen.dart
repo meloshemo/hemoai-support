@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../utils/color_compat.dart';
 import 'package:provider/provider.dart';
 import '../services/localization_service.dart';
 import '../services/theme_service.dart';
@@ -139,7 +138,10 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen>
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Current: ${localizationService.currentLanguageName}',
+                              localizationService.getStringWithParams(
+                                'language_current_label',
+                                {'language': localizationService.currentLanguageName},
+                              ),
                               style: const TextStyle(
                                 fontSize: 16,
                                 color: Colors.white70,
@@ -230,29 +232,29 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen>
                             _buildFeatureItem(
                               isDark: isDark,
                               icon: Icons.translate,
-                              title: 'Dynamic Text Translation',
-                              subtitle: 'All interface elements adapt to selected language',
+                              title: localizationService.getString('language_feature_dynamic_title'),
+                              subtitle: localizationService.getString('language_feature_dynamic_subtitle'),
                             ),
                             const SizedBox(height: 12),
                             _buildFeatureItem(
                               isDark: isDark,
                               icon: Icons.format_textdirection_l_to_r,
-                              title: 'RTL Support',
-                              subtitle: 'Right-to-left layout for Arabic language',
+                              title: localizationService.getString('language_feature_rtl_title'),
+                              subtitle: localizationService.getString('language_feature_rtl_subtitle'),
                             ),
                             const SizedBox(height: 12),
                             _buildFeatureItem(
                               isDark: isDark,
                               icon: Icons.calendar_month,
-                              title: 'Localized Formatting',
-                              subtitle: 'Date, time and number formats match locale',
+                              title: localizationService.getString('language_feature_format_title'),
+                              subtitle: localizationService.getString('language_feature_format_subtitle'),
                             ),
                             const SizedBox(height: 12),
                             _buildFeatureItem(
                               isDark: isDark,
                               icon: Icons.medical_information,
-                              title: 'Medical Terminology',
-                              subtitle: 'Hemogram parameters in native language',
+                              title: localizationService.getString('language_feature_medical_title'),
+                              subtitle: localizationService.getString('language_feature_medical_subtitle'),
                             ),
                           ],
                         ),

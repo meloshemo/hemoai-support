@@ -39,6 +39,12 @@ void main() {
           'name': 'Test User',
           'email': 'test@example.com',
           'phone': '5551234567',
+          // Required non-null schema fields for native SQLite implementation
+          'password_hash': 'test_hash',
+          'age': 30,
+          'gender': 'male',
+          'height': 175.0,
+          'weight': 70.0,
         };
         
         final userId = await userRepository.createUser(user);
@@ -51,6 +57,11 @@ void main() {
           'name': 'Test User',
           'email': 'test@example.com',
           'phone': '5551234567',
+          'password_hash': 'test_hash',
+          'age': 30,
+          'gender': 'male',
+          'height': 175.0,
+          'weight': 70.0,
         };
         
         await userRepository.createUser(user);
@@ -65,6 +76,11 @@ void main() {
           'name': 'Test User',
           'email': 'test@example.com',
           'phone': '5551234567',
+          'password_hash': 'test_hash',
+          'age': 30,
+          'gender': 'male',
+          'height': 175.0,
+          'weight': 70.0,
         };
         
         final userId = await userRepository.createUser(user);
@@ -79,6 +95,11 @@ void main() {
           'name': 'Test User',
           'email': 'test@example.com',
           'phone': '5551234567',
+          'password_hash': 'test_hash',
+          'age': 30,
+          'gender': 'male',
+          'height': 175.0,
+          'weight': 70.0,
         };
         
         final userId = await userRepository.createUser(user);
@@ -87,6 +108,11 @@ void main() {
           'name': 'Updated User',
           'email': 'test@example.com',
           'phone': '5551234567',
+          'password_hash': 'test_hash', // unchanged hash placeholder
+          'age': 31,
+          'gender': 'male',
+          'height': 176.0,
+          'weight': 71.0,
         };
         
         final result = await userRepository.updateUser(userId, updated);
@@ -108,6 +134,11 @@ void main() {
           'name': 'Test User',
           'email': 'test@example.com',
           'phone': '5551234567',
+          'password_hash': 'test_hash',
+          'age': 30,
+          'gender': 'male',
+          'height': 175.0,
+          'weight': 70.0,
         };
         
         final userId = await userRepository.createUser(user);

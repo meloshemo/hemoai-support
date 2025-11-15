@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'localization_service.dart';
 import '../services/database_helper.dart';
-import '../services/preferences_service.dart';
 
 /// 2 haftalık ortak diyet planı
 class SharedDietWeek {
@@ -196,167 +196,66 @@ class AISharedDietService {
   }
 
   String _generateBreakfast({required int dayIndex, required List<String> criticalAreas}) {
-    final meals = <String>[];
-    
+    final loc = LocalizationService();
+    List<String> list;
     if (criticalAreas.contains('iron_boost')) {
-      final ironMeals = [
-        'Yulaf ezmesi + pekmez + ceviz + kuru üzüm',
-        'Haşlanmış yumurta + tam buğday ekmeği + portakal',
-        'Ispanaklı omlet + tam tahıl ekmeği + domates',
-        'Mercimek çorbası + tam buğday ekmeği',
-        'Kırmızı et + yumurta + tam buğday ekmeği',
-        'Yulaf + badem + kuru kayısı',
-        'Tam tahıl gevrek + süt + çilek',
-      ];
-      meals.add(ironMeals[dayIndex % ironMeals.length]);
+      list = loc.getString('diet_breakfast_iron_list').split('\n');
     } else if (criticalAreas.contains('blood_sugar_control')) {
-      final sugarMeals = [
-        'Yumurta + avokado + tam buğday ekmeği',
-        'Yulaf + badem + yaban mersini',
-        'Peynir + tam tahıl ekmeği + domates',
-        'Yumurta + sebze + tam buğday',
-        'Yoğurt + kuru yemiş + meyve',
-        'Tam tahıl gevrek + süt',
-        'Sebzeli omlet + tam buğday',
-      ];
-      meals.add(sugarMeals[dayIndex % sugarMeals.length]);
+      list = loc.getString('diet_breakfast_sugar_list').split('\n');
     } else if (criticalAreas.contains('anti_inflammatory')) {
-      final antiInfMeals = [
-        'Yulaf + zerdeçal + zencefil + badem',
-        'Yumurta + avokado + yeşil sebzeler',
-        'Yoğurt + yaban mersini + chia tohumu',
-        'Tam tahıl ekmeği + zeytin + domates',
-        'Sebzeli omlet + tam buğday',
-        'Yulaf + ceviz + meyve',
-        'Yoğurt + kuru yemiş + meyve',
-      ];
-      meals.add(antiInfMeals[dayIndex % antiInfMeals.length]);
+      list = loc.getString('diet_breakfast_antiinf_list').split('\n');
     } else {
-      final balancedMeals = [
-        'Yumurta + tam buğday ekmeği + peynir + domates',
-        'Yulaf + süt + meyve + kuruyemiş',
-        'Yoğurt + granola + meyve',
-        'Sebzeli omlet + tam tahıl ekmeği',
-        'Tam tahıl gevrek + süt + meyve',
-        'Peynir + zeytin + tam buğday ekmeği',
-        'Yumurta + avokado + tam buğday',
-      ];
-      meals.add(balancedMeals[dayIndex % balancedMeals.length]);
+      list = loc.getString('diet_breakfast_balanced_list').split('\n');
     }
-
-    return meals.isNotEmpty ? meals.first : 'Dengeli kahvaltı';
+    if (list.isEmpty) {
+      return loc.getString('balanced_breakfast_label');
+    }
+    return list[dayIndex % list.length];
   }
 
   String _generateLunch({required int dayIndex, required List<String> criticalAreas}) {
+    final loc = LocalizationService();
+    List<String> list;
     if (criticalAreas.contains('iron_boost')) {
-      final ironMeals = [
-        'Izgara kırmızı et + yeşil salata + kinoa',
-        'Karaciğer + bulgur pilavı + salata',
-        'Balık + ıspanak + tam buğday',
-        'Kırmızı et + mercimek + salata',
-        'Tavuk + yeşil yapraklı sebze + bulgur',
-        'Balık + brokoli + kinoa',
-        'Kırmızı et + fasulye + salata',
-      ];
-      return ironMeals[dayIndex % ironMeals.length];
+      list = loc.getString('diet_lunch_iron_list').split('\n');
     } else if (criticalAreas.contains('blood_sugar_control')) {
-      final sugarMeals = [
-        'Izgara tavuk + yeşil salata + kinoa',
-        'Balık + sebze + tam buğday',
-        'Tavuk + sebze + bulgur',
-        'Izgara et + salata',
-        'Balık + salata + tam buğday',
-        'Tavuk + sebze + kinoa',
-        'Izgara et + yeşil sebze',
-      ];
-      return sugarMeals[dayIndex % sugarMeals.length];
+      list = loc.getString('diet_lunch_sugar_list').split('\n');
     } else if (criticalAreas.contains('anti_inflammatory')) {
-      final antiInfMeals = [
-        'Somon + yeşil salata + kinoa',
-        'Balık + zeytinyağlı sebze + tam buğday',
-        'Tavuk + antioksidan sebzeler + bulgur',
-        'Balık + salata + avokado',
-        'Somon + brokoli + kinoa',
-        'Balık + yeşil yapraklı + tam buğday',
-        'Tavuk + sebze + kinoa',
-      ];
-      return antiInfMeals[dayIndex % antiInfMeals.length];
+      list = loc.getString('diet_lunch_antiinf_list').split('\n');
     } else {
-      final balancedMeals = [
-        'Izgara tavuk + salata + bulgur',
-        'Balık + sebze + tam buğday',
-        'Tavuk + sebze + kinoa',
-        'Izgara et + salata + bulgur',
-        'Balık + yeşil sebze + tam buğday',
-        'Tavuk + salata + kinoa',
-        'Izgara et + sebze + bulgur',
-      ];
-      return balancedMeals[dayIndex % balancedMeals.length];
+      list = loc.getString('diet_lunch_balanced_list').split('\n');
     }
+    return list.isEmpty ? '' : list[dayIndex % list.length];
   }
 
   String _generateDinner({required int dayIndex, required List<String> criticalAreas}) {
+    final loc = LocalizationService();
+    List<String> list;
     if (criticalAreas.contains('iron_boost')) {
-      final ironMeals = [
-        'Kırmızı et + mercimek çorbası + salata',
-        'Balık + ıspanak + tam buğday',
-        'Tavuk + yeşil yapraklı + bulgur',
-        'Kırmızı et + fasulye + salata',
-        'Balık + brokoli + kinoa',
-        'Tavuk + mercimek + salata',
-        'Kırmızı et + sebze + tam buğday',
-      ];
-      return ironMeals[dayIndex % ironMeals.length];
+      list = loc.getString('diet_dinner_iron_list').split('\n');
     } else if (criticalAreas.contains('blood_sugar_control')) {
-      final sugarMeals = [
-        'Izgara tavuk + sebze + salata',
-        'Balık + yeşil sebze',
-        'Tavuk + salata',
-        'Izgara et + sebze',
-        'Balık + salata',
-        'Tavuk + sebze',
-        'Izgara et + salata',
-      ];
-      return sugarMeals[dayIndex % sugarMeals.length];
+      list = loc.getString('diet_dinner_sugar_list').split('\n');
     } else if (criticalAreas.contains('anti_inflammatory')) {
-      final antiInfMeals = [
-        'Somon + yeşil salata',
-        'Balık + zeytinyağlı sebze',
-        'Tavuk + antioksidan sebzeler',
-        'Balık + salata',
-        'Somon + brokoli',
-        'Balık + yeşil yapraklı',
-        'Tavuk + sebze',
-      ];
-      return antiInfMeals[dayIndex % antiInfMeals.length];
+      list = loc.getString('diet_dinner_antiinf_list').split('\n');
     } else {
-      final balancedMeals = [
-        'Izgara tavuk + salata',
-        'Balık + sebze',
-        'Tavuk + salata',
-        'Izgara et + sebze',
-        'Balık + salata',
-        'Tavuk + sebze',
-        'Izgara et + salata',
-      ];
-      return balancedMeals[dayIndex % balancedMeals.length];
+      list = loc.getString('diet_dinner_balanced_list').split('\n');
     }
+    return list.isEmpty ? '' : list[dayIndex % list.length];
   }
 
   String _generateSnack({required int dayIndex, required List<String> criticalAreas}) {
+    final loc = LocalizationService();
+    List<String> list;
     if (criticalAreas.contains('iron_boost')) {
-      final snacks = ['Kuru kayısı + ceviz', 'Pekmez + tahin', 'Kuru üzüm + badem', 'Hurma + ceviz', 'Kuru incir + fındık', 'Pekmez + tam buğday', 'Kuru meyve + kuruyemiş'];
-      return snacks[dayIndex % snacks.length];
+      list = loc.getString('diet_snack_iron_list').split('\n');
     } else if (criticalAreas.contains('blood_sugar_control')) {
-      final snacks = ['Badem + meyve', 'Yoğurt + meyve', 'Kuru yemiş', 'Sebze çubukları', 'Badem + elma', 'Yoğurt', 'Kuru yemiş karışımı'];
-      return snacks[dayIndex % snacks.length];
+      list = loc.getString('diet_snack_sugar_list').split('\n');
     } else if (criticalAreas.contains('anti_inflammatory')) {
-      final snacks = ['Ceviz + yaban mersini', 'Badem + meyve', 'Chia pudingi', 'Kuru yemiş', 'Meyve + kuruyemiş', 'Yoğurt + meyve', 'Kuru yemiş karışımı'];
-      return snacks[dayIndex % snacks.length];
+      list = loc.getString('diet_snack_antiinf_list').split('\n');
     } else {
-      final snacks = ['Meyve + kuruyemiş', 'Yoğurt + meyve', 'Kuru yemiş', 'Sebze çubukları', 'Badem + meyve', 'Yoğurt', 'Kuru yemiş karışımı'];
-      return snacks[dayIndex % snacks.length];
+      list = loc.getString('diet_snack_balanced_list').split('\n');
     }
+    return list.isEmpty ? '' : list[dayIndex % list.length];
   }
 
   Map<String, double> _calculateNutrition({

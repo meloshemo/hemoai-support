@@ -186,7 +186,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                 return SwitchListTile(
                   secondary: Icon(Icons.animation, color: scheme.primary),
                   title: Text(loc.getString('enable_animations')),
-                  subtitle: Text(enabled ? 'Animations enabled' : 'Animations disabled'),
+                  subtitle: Text(enabled ? loc.getString('animations_enabled') : loc.getString('animations_disabled')),
                   value: enabled,
                   onChanged: (value) async {
                     await _optimizer.setAnimationsEnabled(value);
@@ -204,7 +204,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                 return SwitchListTile(
                   secondary: Icon(Icons.accessibility, color: scheme.primary),
                   title: Text(loc.getString('reduce_motion')),
-                  subtitle: Text(reduce ? 'Motion reduced for accessibility' : 'Normal motion'),
+                  subtitle: Text(reduce ? loc.getString('motion_reduced_accessibility') : loc.getString('motion_normal')),
                   value: reduce,
                   onChanged: (value) async {
                     await _optimizer.setReduceMotion(value);
@@ -335,7 +335,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
               ))
             else
               Text(
-                'No recommendations available',
+                loc.getString('no_recommendations_available'),
                 style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.7)),
               ),
           ],

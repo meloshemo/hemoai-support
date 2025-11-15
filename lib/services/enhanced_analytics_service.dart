@@ -14,9 +14,10 @@ class EnhancedAnalyticsService {
   bool _optedIn = false;
   static const String _prefKey = 'analytics_opt_in';
 
-  // Analytics providers
-  bool _firebaseEnabled = false;
-  bool _localOnlyEnabled = true; // Default: local-only analytics
+  // ignore: unused_field
+  final bool _firebaseEnabled = false;
+  // ignore: unused_field
+  final bool _localOnlyEnabled = true; // Default: local-only analytics
 
   // Event queue for batch processing
   final List<AnalyticsEvent> _eventQueue = [];

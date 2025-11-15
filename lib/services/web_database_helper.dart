@@ -7,7 +7,18 @@ class WebDatabaseHelper {
   SharedPreferences? _prefs;
 
   WebDatabaseHelper._internal();
-  
+
+  int _boolToInt(dynamic value, {int defaultValue = 0}) {
+    if (value is bool) return value ? 1 : 0;
+    if (value is num) return value != 0 ? 1 : 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized == 'true' || normalized == '1') return 1;
+      if (normalized == 'false' || normalized == '0') return 0;
+    }
+    return defaultValue;
+  }
+
   static WebDatabaseHelper get instance {
     _instance ??= WebDatabaseHelper._internal();
     return _instance!;
@@ -17,31 +28,37 @@ class WebDatabaseHelper {
     _prefs = await SharedPreferences.getInstance();
   }
 
-  // Kullanıcı işlemleri
+  // User operations
   Future<int> insertUser(Map<String, dynamic> user) async {
     if (_prefs == null) await init();
-    
-    // Unique ID oluştur
+
+    // Generate unique ID
     int userId = DateTime.now().millisecondsSinceEpoch;
     user['id'] = userId;
     user['created_at'] = DateTime.now().toIso8601String();
     user['updated_at'] = DateTime.now().toIso8601String();
-    
-    // Kullanıcıları kaydet
+    user['email_verified'] =
+        _boolToInt(user['email_verified'], defaultValue: 0);
+    user['phone_verified'] =
+        _boolToInt(user['phone_verified'], defaultValue: 0);
+
+    // Persist users
     List<String> users = _prefs!.getStringList('users') ?? [];
     users.add(json.encode(user));
     await _prefs!.setStringList('users', users);
-    
+
     return userId;
   }
 
   Future<Map<String, dynamic>?> getUser(String email) async {
     if (_prefs == null) await init();
-    
+
     List<String> users = _prefs!.getStringList('users') ?? [];
-    
+
     for (String userStr in users) {
       Map<String, dynamic> user = json.decode(userStr);
+      user.putIfAbsent('email_verified', () => 0);
+      user.putIfAbsent('phone_verified', () => 0);
       if (user['email'] == email) {
         return user;
       }
@@ -51,11 +68,13 @@ class WebDatabaseHelper {
 
   Future<Map<String, dynamic>?> getUserById(int id) async {
     if (_prefs == null) await init();
-    
+
     List<String> users = _prefs!.getStringList('users') ?? [];
-    
+
     for (String userStr in users) {
       Map<String, dynamic> user = json.decode(userStr);
+      user.putIfAbsent('email_verified', () => 0);
+      user.putIfAbsent('phone_verified', () => 0);
       if (user['id'] == id) {
         return user;
       }
@@ -65,19 +84,26 @@ class WebDatabaseHelper {
 
   Future<int> updateUser(int id, Map<String, dynamic> userData) async {
     if (_prefs == null) await init();
-    
+
     List<String> users = _prefs!.getStringList('users') ?? [];
     List<String> updatedUsers = [];
-    
+
     for (String userStr in users) {
       Map<String, dynamic> user = json.decode(userStr);
       if (user['id'] == id) {
         user.addAll(userData);
         user['updated_at'] = DateTime.now().toIso8601String();
+        user['email_verified'] =
+            _boolToInt(user['email_verified'], defaultValue: 0);
+        user['phone_verified'] =
+            _boolToInt(user['phone_verified'], defaultValue: 0);
+      } else {
+        user.putIfAbsent('email_verified', () => 0);
+        user.putIfAbsent('phone_verified', () => 0);
       }
       updatedUsers.add(json.encode(user));
     }
-    
+
     await _prefs!.setStringList('users', updatedUsers);
     return 1;
   }
@@ -85,78 +111,146 @@ class WebDatabaseHelper {
   // Hemogram testleri
   Future<int> insertHemogramTest(Map<String, dynamic> test) async {
     if (_prefs == null) await init();
-    
-    int testId = DateTime.now().millisecondsSinceEpoch;
+    final nowIso = DateTime.now().toIso8601String();
+    final int testId = DateTime.now().millisecondsSinceEpoch;
+    final int? userId = (test['user_id'] as num?)?.toInt();
     test['id'] = testId;
-    test['created_at'] = DateTime.now().toIso8601String();
-    
-    List<String> tests = _prefs!.getStringList('hemogram_tests') ?? [];
-    tests.add(json.encode(test));
-    await _prefs!.setStringList('hemogram_tests', tests);
-    
+    test['created_at'] = test['created_at'] ?? nowIso;
+
+    String status =
+        (test['status'] ?? 'active').toString().toLowerCase().trim();
+    if (status != 'archived') {
+      status = 'active';
+    }
+
+    final tests = await _loadAllHemogramTests();
+    Map<String, dynamic>? currentActive;
+    if (userId != null) {
+      for (final existing in tests) {
+        final existingUserId = (existing['user_id'] as num?)?.toInt();
+        final existingStatus =
+            (existing['status'] ?? 'active').toString().toLowerCase().trim();
+        if (existingUserId == userId && existingStatus == 'active') {
+          currentActive = existing;
+          break;
+        }
+      }
+    }
+
+    DateTime? newTestDate;
+    final rawTestDate = test['test_date'];
+    if (rawTestDate is String && rawTestDate.isNotEmpty) {
+      newTestDate = DateTime.tryParse(rawTestDate);
+    }
+
+    if (userId != null &&
+        status == 'active' &&
+        currentActive != null &&
+        newTestDate != null) {
+      final currentDate = DateTime.tryParse(
+        (currentActive['test_date'] ?? '') as String,
+      );
+      if (currentDate != null && newTestDate.isBefore(currentDate)) {
+        status = 'archived';
+      }
+    }
+
+    if (status == 'archived') {
+      test['status'] = 'archived';
+      test['archived_at'] = test['archived_at'] ?? nowIso;
+    } else {
+      test['status'] = 'active';
+      test.remove('archived_at');
+    }
+
+    if (userId != null && status == 'active') {
+      bool mutated = false;
+      for (final existing in tests) {
+        final existingUserId = (existing['user_id'] as num?)?.toInt();
+        if (existingUserId == userId &&
+            (existing['status'] == 'active' || existing['status'] == null)) {
+          existing['status'] = 'archived';
+          existing['archived_at'] =
+              existing['archived_at'] ?? existing['created_at'] ?? nowIso;
+          mutated = true;
+        }
+      }
+      if (mutated) {
+        await _persistHemogramTests(tests);
+      }
+    }
+
+    tests.add(test);
+    await _persistHemogramTests(tests);
+
     return testId;
   }
 
   Future<List<Map<String, dynamic>>> getHemogramTests(int userId) async {
     if (_prefs == null) await init();
-    
-    List<String> tests = _prefs!.getStringList('hemogram_tests') ?? [];
-    List<Map<String, dynamic>> userTests = [];
-    
-    for (String testStr in tests) {
-      Map<String, dynamic> test = json.decode(testStr);
-      if (test['user_id'] == userId) {
-        userTests.add(test);
-      }
+    final allTests = await _loadAllHemogramTests();
+    final userTests = allTests
+        .where((test) => (test['user_id'] as num?)?.toInt() == userId)
+        .map((test) => Map<String, dynamic>.from(test))
+        .toList();
+
+    userTests.sort((a, b) {
+      final aDate = (a['test_date'] ?? '') as String;
+      final bDate = (b['test_date'] ?? '') as String;
+      return bDate.compareTo(aDate);
+    });
+
+    final bool changed =
+        _normalizeUserHemogramStatuses(userId, allTests, userTests);
+    if (changed) {
+      await _persistHemogramTests(allTests);
     }
-    
-    // Tarihe göre sırala (yeniden eskiye)
-    userTests.sort((a, b) => b['test_date'].compareTo(a['test_date']));
+
     return userTests;
   }
 
   Future<Map<String, dynamic>?> getLatestHemogramTest(int userId) async {
-    List<Map<String, dynamic>> tests = await getHemogramTests(userId);
-    return tests.isNotEmpty ? tests.first : null;
+    return await getActiveHemogramTest(userId);
   }
 
-  // Aile üyeleri
+  // Family members
   Future<int> insertFamilyMember(Map<String, dynamic> member) async {
     if (_prefs == null) await init();
-    
+
     int memberId = DateTime.now().millisecondsSinceEpoch;
     member['id'] = memberId;
     member['created_at'] = DateTime.now().toIso8601String();
-    
+
     List<String> members = _prefs!.getStringList('family_members') ?? [];
     members.add(json.encode(member));
     await _prefs!.setStringList('family_members', members);
-    
+
     return memberId;
   }
 
   Future<List<Map<String, dynamic>>> getFamilyMembers(int userId) async {
     if (_prefs == null) await init();
-    
+
     List<String> members = _prefs!.getStringList('family_members') ?? [];
     List<Map<String, dynamic>> userMembers = [];
-    
+
     for (String memberStr in members) {
       Map<String, dynamic> member = json.decode(memberStr);
       if (member['user_id'] == userId) {
         userMembers.add(member);
       }
     }
-    
+
     return userMembers;
   }
 
-  Future<int> updateFamilyMember(int id, Map<String, dynamic> memberData) async {
+  Future<int> updateFamilyMember(
+      int id, Map<String, dynamic> memberData) async {
     if (_prefs == null) await init();
-    
+
     List<String> members = _prefs!.getStringList('family_members') ?? [];
     List<String> updatedMembers = [];
-    
+
     for (String memberStr in members) {
       Map<String, dynamic> member = json.decode(memberStr);
       if (member['id'] == id) {
@@ -165,24 +259,24 @@ class WebDatabaseHelper {
       }
       updatedMembers.add(json.encode(member));
     }
-    
+
     await _prefs!.setStringList('family_members', updatedMembers);
     return 1;
   }
 
   Future<int> deleteFamilyMember(int id) async {
     if (_prefs == null) await init();
-    
+
     List<String> members = _prefs!.getStringList('family_members') ?? [];
     List<String> filteredMembers = [];
-    
+
     for (String memberStr in members) {
       Map<String, dynamic> member = json.decode(memberStr);
       if (member['id'] != id) {
         filteredMembers.add(memberStr);
       }
     }
-    
+
     await _prefs!.setStringList('family_members', filteredMembers);
     return 1;
   }
@@ -191,7 +285,7 @@ class WebDatabaseHelper {
   Future<Map<String, dynamic>> getUserStats(int userId) async {
     List<Map<String, dynamic>> tests = await getHemogramTests(userId);
     List<Map<String, dynamic>> family = await getFamilyMembers(userId);
-    
+
     return {
       'total_tests': tests.length,
       'family_members': family.length,
@@ -203,65 +297,69 @@ class WebDatabaseHelper {
   // Davet sistemi
   Future<int> sendFamilyInvitation(Map<String, dynamic> invitation) async {
     if (_prefs == null) await init();
-    
+
     int invitationId = DateTime.now().millisecondsSinceEpoch;
     invitation['id'] = invitationId;
     invitation['created_at'] = DateTime.now().toIso8601String();
     invitation['status'] = 'pending'; // pending, accepted, rejected
-    
-    List<String> invitations = _prefs!.getStringList('family_invitations') ?? [];
+
+    List<String> invitations =
+        _prefs!.getStringList('family_invitations') ?? [];
     invitations.add(json.encode(invitation));
     await _prefs!.setStringList('family_invitations', invitations);
-    
+
     return invitationId;
   }
 
   Future<List<Map<String, dynamic>>> getPendingInvitations(int userId) async {
     if (_prefs == null) await init();
-    
-    List<String> invitations = _prefs!.getStringList('family_invitations') ?? [];
+
+    List<String> invitations =
+        _prefs!.getStringList('family_invitations') ?? [];
     List<Map<String, dynamic>> userInvitations = [];
-    
+
     for (String invitationStr in invitations) {
       Map<String, dynamic> invitation = json.decode(invitationStr);
-      if (invitation['to_user_id'] == userId && invitation['status'] == 'pending') {
+      if (invitation['to_user_id'] == userId &&
+          invitation['status'] == 'pending') {
         userInvitations.add(invitation);
       }
     }
-    
+
     return userInvitations;
   }
 
   Future<int> respondToInvitation(int invitationId, String response) async {
     if (_prefs == null) await init();
-    
-    List<String> invitations = _prefs!.getStringList('family_invitations') ?? [];
+
+    List<String> invitations =
+        _prefs!.getStringList('family_invitations') ?? [];
     List<String> updatedInvitations = [];
-    
+
     for (String invitationStr in invitations) {
       Map<String, dynamic> invitation = json.decode(invitationStr);
       if (invitation['id'] == invitationId) {
         invitation['status'] = response; // 'accepted' or 'rejected'
         invitation['responded_at'] = DateTime.now().toIso8601String();
-        
-        // Eğer kabul edildiyse, aile üyesi olarak ekle
+
+        // If accepted, add as a family connection
         if (response == 'accepted') {
           await _addFamilyConnection(invitation);
         }
       }
       updatedInvitations.add(json.encode(invitation));
     }
-    
+
     await _prefs!.setStringList('family_invitations', updatedInvitations);
     return 1;
   }
 
   Future<void> _addFamilyConnection(Map<String, dynamic> invitation) async {
-    // Çift yönlü bağlantı oluştur
+    // Create a bi-directional connection
     int fromUserId = invitation['from_user_id'];
     int toUserId = invitation['to_user_id'];
-    
-  // From user's family list add the other user
+
+    // From user's family list add the other user
     Map<String, dynamic>? toUser = await getUserById(toUserId);
     if (toUser != null) {
       await insertFamilyMember({
@@ -270,15 +368,17 @@ class WebDatabaseHelper {
         'name': toUser['name'],
         'phone': toUser['phone'],
         // store relation as a code for localization-agnostic persistence
-        'relation': _normalizeRelationCode(invitation['relation'] as String? ?? 'other'),
+        'relation': _normalizeRelationCode(
+            invitation['relation'] as String? ?? 'other'),
         'is_real_user': true,
       });
     }
-    
-  // To user's family list add the from user  
+
+    // To user's family list add the from user
     Map<String, dynamic>? fromUser = await getUserById(fromUserId);
     if (fromUser != null) {
-      String reverseRelation = _getReverseRelationCode(invitation['relation'] as String? ?? 'other');
+      String reverseRelation =
+          _getReverseRelationCode(invitation['relation'] as String? ?? 'other');
       await insertFamilyMember({
         'user_id': toUserId,
         'connected_user_id': fromUserId,
@@ -294,24 +394,33 @@ class WebDatabaseHelper {
   String _normalizeRelationCode(String relation) {
     // Accept canonical codes directly
     const allowed = {
-      'father', 'mother', 'child', 'spouse', 'sibling',
-      'grandfather', 'grandmother', 'grandchild', 'parent', 'grandparent', 'other'
+      'father',
+      'mother',
+      'child',
+      'spouse',
+      'sibling',
+      'grandfather',
+      'grandmother',
+      'grandchild',
+      'parent',
+      'grandparent',
+      'other'
     };
     final raw = relation.trim();
     if (allowed.contains(raw)) return raw;
 
-    // Diacritic-insensitive normalization for some common Turkish inputs (ASCII only here)
-  String ascii = raw
-    .toLowerCase()
-    .replaceAll('\u0131', 'i') // ı
-    .replaceAll('\u011f', 'g') // ğ
-    .replaceAll('\u015f', 's') // ş
-    .replaceAll('\u00f6', 'o') // ö
-    .replaceAll('\u00e7', 'c') // ç
-    .replaceAll('\u00fc', 'u') // ü
-    .replaceAll('\u00e2', 'a') // â
-    .replaceAll('\u00ee', 'i') // î
-    .replaceAll('\u00fb', 'u'); // û
+    // Diacritic-insensitive normalization for some common inputs (ASCII only here)
+    String ascii = raw
+        .toLowerCase()
+        .replaceAll('\u0131', 'i') // i-dotless
+        .replaceAll('\u011f', 'g') // g-breve
+        .replaceAll('\u015f', 's') // s-cedilla
+        .replaceAll('\u00f6', 'o') // o-umlaut
+        .replaceAll('\u00e7', 'c') // c-cedilla
+        .replaceAll('\u00fc', 'u') // u-umlaut
+        .replaceAll('\u00e2', 'a') // a-circumflex
+        .replaceAll('\u00ee', 'i') // i-circumflex
+        .replaceAll('\u00fb', 'u'); // u-circumflex
 
     switch (ascii) {
       case 'baba':
@@ -343,7 +452,8 @@ class WebDatabaseHelper {
     const Map<String, String> reverse = {
       'father': 'child',
       'mother': 'child',
-      'child': 'parent', // map to parent generic; will display localized label accordingly
+      'child':
+          'parent', // map to parent generic; will display localized label accordingly
       'spouse': 'spouse',
       'sibling': 'sibling',
       'grandfather': 'grandchild',
@@ -358,30 +468,156 @@ class WebDatabaseHelper {
 
   Future<Map<String, dynamic>?> findUserByPhone(String phone) async {
     if (_prefs == null) await init();
-    
-    String email = '$phone@hemoai.com';
-    return await getUser(email);
+
+    // Normalize the input phone: remove all non-digit characters
+    final normalizedPhone = phone.replaceAll(RegExp(r'\D'), '');
+
+    final users = _prefs!.getStringList('users') ?? [];
+    for (final userStr in users) {
+      final user = Map<String, dynamic>.from(json.decode(userStr));
+      // Ensure required fields exist
+      if (!user.containsKey('id') || user['id'] == null) {
+        // Generate a fallback ID if missing (shouldn't happen, but safety check)
+        user['id'] = DateTime.now().millisecondsSinceEpoch;
+      }
+      user.putIfAbsent('phone', () => '');
+      user.putIfAbsent('email_verified', () => 0);
+      user.putIfAbsent('phone_verified', () => 0);
+      
+      final storedPhone = (user['phone'] ?? '').toString();
+      // Try exact match first
+      if (storedPhone == phone) {
+        return user;
+      }
+      // Try normalized match
+      final normalizedStored = storedPhone.replaceAll(RegExp(r'\D'), '');
+      if (normalizedStored == normalizedPhone && normalizedPhone.isNotEmpty) {
+        return user;
+      }
+    }
+    return null;
   }
 
-  // İlaç yönetimi
-  Future<int> addMedication(int userId, String name, String dosage, String frequency, String time) async {
+  Future<List<Map<String, dynamic>>> _loadAllHemogramTests() async {
+    if (_prefs == null) await init();
+    final raw = _prefs!.getStringList('hemogram_tests') ?? [];
+    return raw
+        .map((entry) => Map<String, dynamic>.from(json.decode(entry)))
+        .toList();
+  }
+
+  Future<void> _persistHemogramTests(List<Map<String, dynamic>> tests) async {
+    final encoded = tests.map((test) => json.encode(test)).toList();
+    await _prefs!.setStringList('hemogram_tests', encoded);
+  }
+
+  bool _normalizeUserHemogramStatuses(
+    int userId,
+    List<Map<String, dynamic>> allTests,
+    List<Map<String, dynamic>> userTests,
+  ) {
+    bool changed = false;
+    bool activeAssigned = false;
+
+    for (var i = 0; i < userTests.length; i++) {
+      final test = userTests[i];
+      String status = (test['status'] ?? '').toString().toLowerCase().trim();
+      if (!activeAssigned) {
+        if (status != 'active') {
+          status = 'active';
+          changed = true;
+        }
+        activeAssigned = true;
+        test.remove('archived_at');
+      } else {
+        if (status != 'archived') {
+          status = 'archived';
+          changed = true;
+        }
+        if (test['archived_at'] == null) {
+          test['archived_at'] =
+              test['created_at'] ?? DateTime.now().toIso8601String();
+          changed = true;
+        }
+      }
+
+      if ((test['status'] ?? '') != status) {
+        test['status'] = status;
+        changed = true;
+      }
+
+      if (_updateHemogramStatusInAll(
+        allTests,
+        (test['id'] as num?)?.toInt(),
+        status,
+        test['archived_at'],
+      )) {
+        changed = true;
+      }
+    }
+
+    return changed;
+  }
+
+  bool _updateHemogramStatusInAll(
+    List<Map<String, dynamic>> allTests,
+    int? id,
+    String status,
+    dynamic archivedAt,
+  ) {
+    if (id == null) return false;
+    for (final test in allTests) {
+      if ((test['id'] as num?)?.toInt() == id) {
+        bool mutated = false;
+        if (test['status'] != status) {
+          test['status'] = status;
+          mutated = true;
+        }
+        if (status == 'archived') {
+          if (test['archived_at'] != archivedAt) {
+            test['archived_at'] = archivedAt;
+            mutated = true;
+          }
+        } else if (test.containsKey('archived_at')) {
+          test.remove('archived_at');
+          mutated = true;
+        }
+        return mutated;
+      }
+    }
+    return false;
+  }
+
+  Future<Map<String, dynamic>?> getActiveHemogramTest(int userId) async {
+    final userTests = await getHemogramTests(userId);
+    return userTests.isNotEmpty ? userTests.first : null;
+  }
+
+  // Medication management
+  Future<int> addMedication(int userId, String name, String dosage,
+      String frequency, String time) async {
     try {
+      if (_prefs == null) await init();
       List<Map<String, dynamic>> medications = await getMedications(userId);
-      int newId = medications.length + 1;
-      
+      final int newId = DateTime.now().millisecondsSinceEpoch;
+
       Map<String, dynamic> medication = {
         'id': newId,
         'user_id': userId,
         'name': name,
         'dosage': dosage,
         'frequency': frequency,
-        'time': time,
-        'is_active': true,
+        'time_to_take': time,
+        // Align with native schema expectations for sync consistency
+        'total_days': 1,
+        'completed_days': 0,
+        'is_active': 1,
         'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
       };
-      
+
       medications.add(medication);
-      await _prefs!.setString('medications_$userId', jsonEncode(medications));
+      await persistMedications(userId, medications);
       return newId;
     } catch (e) {
       debugPrint('Medication add error: $e');
@@ -391,6 +627,7 @@ class WebDatabaseHelper {
 
   Future<List<Map<String, dynamic>>> getMedications(int userId) async {
     try {
+      if (_prefs == null) await init();
       String? data = _prefs!.getString('medications_$userId');
       if (data != null) {
         List<dynamic> decoded = jsonDecode(data);
@@ -405,12 +642,14 @@ class WebDatabaseHelper {
 
   Future<int> updateMedicationStatus(int medicationId, bool isActive) async {
     try {
-      // Tüm kullanıcıların ilaçlarını kontrol et
+      if (_prefs == null) await init();
+      // Check all users' medications
       for (String key in _prefs!.getKeys()) {
         if (key.startsWith('medications_')) {
           String? data = _prefs!.getString(key);
           if (data != null) {
-            List<Map<String, dynamic>> medications = (jsonDecode(data) as List).cast<Map<String, dynamic>>();
+            List<Map<String, dynamic>> medications =
+                (jsonDecode(data) as List).cast<Map<String, dynamic>>();
             for (int i = 0; i < medications.length; i++) {
               if (medications[i]['id'] == medicationId) {
                 medications[i]['is_active'] = isActive;
@@ -428,14 +667,109 @@ class WebDatabaseHelper {
     }
   }
 
-  // İlaç alım kaydı (web): Günlük alınma durumunu bayrak olarak sakla
-  Future<void> updateMedicationTaken(int medicationId, int userId, bool taken) async {
+  Future<int> insertMedicationFromMap(Map<String, dynamic> medication) async {
+    if (_prefs == null) await init();
+    final userId = medication['user_id'] as int? ?? 0;
+    final meds = await getMedications(userId);
+    final int assignedId =
+        medication['id'] as int? ?? DateTime.now().millisecondsSinceEpoch;
+    final payload = <String, dynamic>{
+      'id': assignedId,
+      'user_id': userId,
+      'name': medication['name'],
+      'dosage': medication['dosage'],
+      'frequency': medication['frequency'],
+      'time_to_take': medication['time_to_take'] ?? medication['time'],
+      'total_days': (medication['total_days'] is num)
+          ? (medication['total_days'] as num).toInt()
+          : 1,
+      'completed_days': (medication['completed_days'] is num)
+          ? (medication['completed_days'] as num).toInt()
+          : 0,
+      'is_active':
+          (medication['is_active'] == 0 || medication['is_active'] == false)
+              ? 0
+              : 1,
+      'created_at':
+          medication['created_at'] ?? DateTime.now().toIso8601String(),
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+    meds.removeWhere((m) => m['id'] == assignedId);
+    meds.add(payload);
+    await persistMedications(userId, meds);
+    return assignedId;
+  }
+
+  Future<int> updateMedicationFromMap(
+      int medicationId, Map<String, dynamic> medication) async {
+    if (_prefs == null) await init();
+    for (final key in _prefs!.getKeys()) {
+      if (!key.startsWith('medications_')) continue;
+      final data = _prefs!.getString(key);
+      if (data == null) continue;
+      final List<dynamic> decoded = jsonDecode(data);
+      bool updated = false;
+      for (var i = 0; i < decoded.length; i++) {
+        final entry = Map<String, dynamic>.from(decoded[i] as Map);
+        if (entry['id'] == medicationId) {
+          final merged = {
+            ...entry,
+            ...medication,
+          };
+          merged['time_to_take'] =
+              merged['time_to_take'] ?? merged['time'] ?? entry['time_to_take'];
+          merged['is_active'] =
+              (merged['is_active'] == 0 || merged['is_active'] == false)
+                  ? 0
+                  : 1;
+          merged['updated_at'] = DateTime.now().toIso8601String();
+          decoded[i] = merged;
+          updated = true;
+          break;
+        }
+      }
+      if (updated) {
+        await _prefs!.setString(key, jsonEncode(decoded));
+        return 1;
+      }
+    }
+    return 0;
+  }
+
+  Future<List<Map<String, dynamic>>> getMedicationsNormalized(
+      int userId) async {
+    final meds = await getMedications(userId);
+    meds.sort((a, b) {
+      final nameA = (a['name'] as String? ?? '').toLowerCase();
+      final nameB = (b['name'] as String? ?? '').toLowerCase();
+      return nameA.compareTo(nameB);
+    });
+    return meds
+        .where((m) => !(m['is_active'] == 0 || m['is_active'] == false))
+        .map((m) => {
+              ...m,
+              'time_to_take': m['time_to_take'] ?? m['time'],
+              'is_active':
+                  (m['is_active'] == 0 || m['is_active'] == false) ? 0 : 1,
+            })
+        .toList();
+  }
+
+  Future<void> persistMedications(
+      int userId, List<Map<String, dynamic>> medications) async {
+    if (_prefs == null) await init();
+    await _prefs!.setString('medications_$userId', jsonEncode(medications));
+  }
+
+  // Medication intake record (web): store per-day flag for taken/not-taken
+  Future<void> updateMedicationTaken(
+      int medicationId, int userId, bool taken) async {
     if (_prefs == null) await init();
     final today = DateTime.now().toIso8601String().split('T')[0];
     final key = 'med_taken_${medicationId}_$today';
     await _prefs!.setBool(key, taken);
     // Optionally append to a lightweight log list for simple history
-    final logKey = 'med_logs_${medicationId}';
+    final logKey = 'med_logs_$medicationId';
     final existing = _prefs!.getStringList(logKey) ?? <String>[];
     final entry = jsonEncode({
       'date': today,
@@ -463,12 +797,13 @@ class WebDatabaseHelper {
     return _prefs!.getBool(key) ?? false;
   }
 
-  // Bildirim yönetimi
-  Future<int> createNotification(int userId, String title, String message, String type) async {
+  // Notification management
+  Future<int> createNotification(
+      int userId, String title, String message, String type) async {
     try {
       List<Map<String, dynamic>> notifications = await getNotifications(userId);
       int newId = notifications.length + 1;
-      
+
       Map<String, dynamic> notification = {
         'id': newId,
         'user_id': userId,
@@ -478,9 +813,10 @@ class WebDatabaseHelper {
         'is_read': false,
         'created_at': DateTime.now().toIso8601String(),
       };
-      
-      notifications.insert(0, notification); // En başa ekle
-      await _prefs!.setString('notifications_$userId', jsonEncode(notifications));
+
+      notifications.insert(0, notification); // Insert at the top
+      await _prefs!
+          .setString('notifications_$userId', jsonEncode(notifications));
       return newId;
     } catch (e) {
       debugPrint('Notification create error: $e');
@@ -504,12 +840,13 @@ class WebDatabaseHelper {
 
   Future<int> markNotificationAsRead(int notificationId) async {
     try {
-      // Tüm kullanıcıların bildirimlerini kontrol et
+      // Check all users' notifications
       for (String key in _prefs!.getKeys()) {
         if (key.startsWith('notifications_')) {
           String? data = _prefs!.getString(key);
           if (data != null) {
-            List<Map<String, dynamic>> notifications = (jsonDecode(data) as List).cast<Map<String, dynamic>>();
+            List<Map<String, dynamic>> notifications =
+                (jsonDecode(data) as List).cast<Map<String, dynamic>>();
             for (int i = 0; i < notifications.length; i++) {
               if (notifications[i]['id'] == notificationId) {
                 notifications[i]['is_read'] = true;
@@ -529,12 +866,13 @@ class WebDatabaseHelper {
 
   Future<int> deleteNotification(int notificationId) async {
     try {
-      // Tüm kullanıcıların bildirimlerini kontrol et
+      // Check all users' notifications
       for (String key in _prefs!.getKeys()) {
         if (key.startsWith('notifications_')) {
           String? data = _prefs!.getString(key);
           if (data != null) {
-            List<Map<String, dynamic>> notifications = (jsonDecode(data) as List).cast<Map<String, dynamic>>();
+            List<Map<String, dynamic>> notifications =
+                (jsonDecode(data) as List).cast<Map<String, dynamic>>();
             notifications.removeWhere((n) => n['id'] == notificationId);
             await _prefs!.setString(key, jsonEncode(notifications));
             return 1;
@@ -548,7 +886,7 @@ class WebDatabaseHelper {
     }
   }
 
-  // Hatırlatıcılar (Reminders)
+  // Reminders
   Future<int> createReminder(Map<String, dynamic> reminder) async {
     try {
       if (_prefs == null) await init();
@@ -590,12 +928,14 @@ class WebDatabaseHelper {
     }
   }
 
-  Future<int> updateReminderStatus(int userId, int reminderId, bool isActive) async {
+  Future<int> updateReminderStatus(
+      int userId, int reminderId, bool isActive) async {
     try {
       if (_prefs == null) await init();
       String? data = _prefs!.getString('reminders_$userId');
       if (data == null) return 0;
-      List<Map<String, dynamic>> reminders = (jsonDecode(data) as List).cast<Map<String, dynamic>>();
+      List<Map<String, dynamic>> reminders =
+          (jsonDecode(data) as List).cast<Map<String, dynamic>>();
       bool updated = false;
       for (int i = 0; i < reminders.length; i++) {
         if (reminders[i]['id'] == reminderId) {
@@ -619,7 +959,8 @@ class WebDatabaseHelper {
       if (_prefs == null) await init();
       String? data = _prefs!.getString('reminders_$userId');
       if (data == null) return 0;
-      List<Map<String, dynamic>> reminders = (jsonDecode(data) as List).cast<Map<String, dynamic>>();
+      List<Map<String, dynamic>> reminders =
+          (jsonDecode(data) as List).cast<Map<String, dynamic>>();
       int before = reminders.length;
       reminders.removeWhere((r) => r['id'] == reminderId);
       if (reminders.length == before) return 0;
@@ -631,7 +972,7 @@ class WebDatabaseHelper {
     }
   }
 
-  // Su takibi
+  // Water tracking
   Future<int> logWaterIntake(int userId, int glassCount) async {
     try {
       String today = DateTime.now().toIso8601String().split('T')[0];
@@ -659,7 +1000,8 @@ class WebDatabaseHelper {
       final now = DateTime.now();
       final List<int> values = [];
       for (int i = 6; i >= 0; i--) {
-        final day = now.subtract(Duration(days: i)).toIso8601String().split('T')[0];
+        final day =
+            now.subtract(Duration(days: i)).toIso8601String().split('T')[0];
         final v = _prefs!.getInt('water_${userId}_$day') ?? 0;
         values.add(v);
       }
@@ -671,7 +1013,8 @@ class WebDatabaseHelper {
   }
 
   // Diet tracking (web): store per-day booleans for meals
-  Future<Map<String, dynamic>?> getDietTrackingForDate(int userId, String date) async {
+  Future<Map<String, dynamic>?> getDietTrackingForDate(
+      int userId, String date) async {
     try {
       if (_prefs == null) await init();
       final key = 'diet_${userId}_$date';
@@ -714,27 +1057,15 @@ class WebDatabaseHelper {
     }
   }
 
-
-
-  // Advanced Analytics metodları
+  // Advanced analytics helpers
   Future<List<Map<String, dynamic>>> getHemogramTestsByUser(int userId) async {
-    try {
-      String? data = _prefs!.getString('hemogram_tests');
-      if (data != null) {
-        List<Map<String, dynamic>> tests = (jsonDecode(data) as List).cast<Map<String, dynamic>>();
-        return tests.where((test) => test['user_id'] == userId).toList();
-      }
-      return [];
-    } catch (e) {
-      debugPrint('Hemogram tests load error: $e');
-      return [];
-    }
+    return await getHemogramTests(userId);
   }
 
-  // Veritabanını temizle
+  // Clear the database
   Future<void> clearDatabase() async {
     if (_prefs == null) await init();
-    
+
     await _prefs!.remove('users');
     await _prefs!.remove('hemogram_tests');
     await _prefs!.remove('family_members');
@@ -767,7 +1098,7 @@ class WebDatabaseHelper {
       if (_prefs == null) await init();
       List<Map<String, dynamic>> contacts = await getEmergencyContacts(userId);
       int newId = contacts.length + 1;
-      
+
       Map<String, dynamic> contact = {
         'id': newId,
         'user_id': userId,
@@ -776,9 +1107,10 @@ class WebDatabaseHelper {
         'relation': relation,
         'created_at': DateTime.now().toIso8601String(),
       };
-      
+
       contacts.add(contact);
-      await _prefs!.setString('emergency_contacts_$userId', jsonEncode(contacts));
+      await _prefs!
+          .setString('emergency_contacts_$userId', jsonEncode(contacts));
       return newId;
     } catch (e) {
       debugPrint('Emergency contact add error: $e');
@@ -796,7 +1128,8 @@ class WebDatabaseHelper {
           final userId = contact['user_id'];
           final contacts = await getEmergencyContacts(userId);
           contacts.removeWhere((c) => c['id'] == id);
-          await _prefs!.setString('emergency_contacts_$userId', jsonEncode(contacts));
+          await _prefs!
+              .setString('emergency_contacts_$userId', jsonEncode(contacts));
           return 1;
         }
       }
@@ -808,7 +1141,8 @@ class WebDatabaseHelper {
   }
 
   // Reminder streaks & logs (web)
-  Future<Map<String, dynamic>> getReminderStreak(int reminderId, {int? userId}) async {
+  Future<Map<String, dynamic>> getReminderStreak(int reminderId,
+      {int? userId}) async {
     if (_prefs == null) await init();
     final key = 'streak_${userId ?? 0}_$reminderId';
     final str = _prefs!.getString(key);
