@@ -294,9 +294,11 @@ class HemoAIApp extends StatelessWidget {
             media.textScaler.clamp(minScaleFactor: 0.9, maxScaleFactor: 1.6);
         // Screenshot overlay: shown only when enabled via ScreenshotOverlayService (used in automated screenshots)
         final ss = Provider.of<ScreenshotOverlayService>(context);
-        Widget composed = Directionality(
-          textDirection: localization.textDirection,
-          child: MediaQuery(
+        Widget composed = RepaintBoundary(
+          // Wrap in RepaintBoundary for screenshot capture in integration tests
+          child: Directionality(
+            textDirection: localization.textDirection,
+            child: MediaQuery(
             data: media.copyWith(textScaler: clampedTextScaler),
             child: child ?? const SizedBox.shrink(),
           ),
