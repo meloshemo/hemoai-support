@@ -38,52 +38,91 @@ Future<void> main() async {
   final appStoreIcon = img.copyResize(baseIcon, width: 1024, height: 1024, interpolation: img.Interpolation.linear);
   await File('$outIos/app_store_icon_1024.png').writeAsBytes(img.encodePng(appStoreIcon));
 
-  // 2) Play Store Feature Graphic 1024x500
-  const featureW = 1024;
-  const featureH = 500;
-  final feature = img.Image(width: featureW, height: featureH);
-
-  // Background gradient (brand colors: #B91C1C → #E53E3E)
-  final start = img.ColorRgb8(185, 28, 28); // #B91C1C
-  final end = img.ColorRgb8(229, 62, 62);   // #E53E3E
-  for (int y = 0; y < featureH; y++) {
-    final t = y / (featureH - 1);
-    final r = (start.r + (end.r - start.r) * t).toInt();
-    final g = (start.g + (end.g - start.g) * t).toInt();
-    final b = (start.b + (end.b - start.b) * t).toInt();
-    final rowColor = img.ColorRgb8(r, g, b);
-    for (int x = 0; x < featureW; x++) {
-      feature.setPixel(x, y, rowColor);
-    }
-  }
-
-  // Simple edge fade (vignette-lite)
-  for (int y = 0; y < featureH; y++) {
-    for (int x = 0; x < featureW; x++) {
-      final px = feature.getPixel(x, y);
-      final edgeX = (x < featureW / 2) ? x : (featureW - 1 - x);
-      final edgeY = (y < featureH / 2) ? y : (featureH - 1 - y);
-      final edge = (edgeX < edgeY ? edgeX : edgeY) / (featureH / 2);
-      final fade = (0.85 + edge * 0.15).clamp(0.0, 1.0);
-      feature.setPixelRgb(x, y, (px.r * fade).toInt(), (px.g * fade).toInt(), (px.b * fade).toInt());
-    }
-  }
-
-  // Place icon centered (scale to 60% of height)
-  final targetIconH = (featureH * 0.6).toInt();
-  final targetIconW = targetIconH; // square
-  final iconResized = img.copyResize(baseIcon, width: targetIconW, height: targetIconH, interpolation: img.Interpolation.cubic);
-  final offsetX = ((featureW - targetIconW) / 2).round();
-  final offsetY = ((featureH - targetIconH) / 2).round();
-
-  // Composite icon
-  img.compositeImage(feature, iconResized, dstX: offsetX, dstY: offsetY);
-
-  await File('$outAndroid/feature_graphic_1024x500.png').writeAsBytes(img.encodePng(feature));
+  // 2) Multiple Play Store Feature Graphic variants
+  await _generateFeatureGraphicV1(baseIcon, outAndroid);
+  await _generateFeatureGraphicV2(baseIcon, outAndroid);
+  await _generateFeatureGraphicV3(baseIcon, outAndroid);
 
   stdout.writeln('✓ Generated:');
   stdout.writeln('  - $outIos/app_store_icon_1024.png');
-  stdout.writeln('  - $outAndroid/feature_graphic_1024x500.png');
+  stdout.writeln('  - $outAndroid/feature_graphic_1024x500_v1.png');
+  stdout.writeln('  - $outAndroid/feature_graphic_1024x500_v2.png');
+  stdout.writeln('  - $outAndroid/feature_graphic_1024x500_v3.png');
 }
 
 
+Future<void> _generateFeatureGraphicV1(img.Image baseIcon, String outAndroid) async {
+  const w = 1024, h = 500;
+  final canvas = img.Image(width: w, height: h);
+  // Brand gradient
+  final start = img.ColorRgb8(185, 28, 28), end = img.ColorRgb8(229, 62, 62);
+  _fillVerticalGradient(canvas, start, end);
+  _applyEdgeVignette(canvas);
+  // Center icon
+  final ih = (h * 0.6).toInt(), iw = ih;
+  final icon = img.copyResize(baseIcon, width: iw, height: ih, interpolation: img.Interpolation.cubic);
+  img.compositeImage(canvas, icon, dstX: ((w - iw) / 2).round(), dstY: ((h - ih) / 2).round());
+  await File('$outAndroid/feature_graphic_1024x500_v1.png').writeAsBytes(img.encodePng(canvas));
+}
+
+Future<void> _generateFeatureGraphicV2(img.Image baseIcon, String outAndroid) async {
+  const w = 1024, h = 500;
+  final canvas = img.Image(width: w, height: h);
+  // Dark gradient
+  final start = img.ColorRgb8(13, 17, 23), end = img.ColorRgb8(48, 54, 61);
+  _fillVerticalGradient(canvas, start, end);
+  // Left icon
+  final ih = (h * 0.65).toInt(), iw = ih;
+  final icon = img.copyResize(baseIcon, width: iw, height: ih, interpolation: img.Interpolation.cubic);
+  final offY = ((h - ih) / 2).round();
+  img.compositeImage(canvas, icon, dstX: 80, dstY: offY);
+  // Title/subtitle overlay skipped to avoid font dependency; keep clean visual
+  await File('$outAndroid/feature_graphic_1024x500_v2.png').writeAsBytes(img.encodePng(canvas));
+}
+
+Future<void> _generateFeatureGraphicV3(img.Image baseIcon, String outAndroid) async {
+  const w = 1024, h = 500;
+  final canvas = img.Image(width: w, height: h);
+  // Light background
+  final bg = img.ColorRgb8(248, 250, 252);
+  for (int y = 0; y < h; y++) {
+    for (int x = 0; x < w; x++) {
+      canvas.setPixel(x, y, bg);
+    }
+  }
+  // Right icon
+  final ih = (h * 0.6).toInt(), iw = ih;
+  final icon = img.copyResize(baseIcon, width: iw, height: ih, interpolation: img.Interpolation.cubic);
+  final offY = ((h - ih) / 2).round();
+  img.compositeImage(canvas, icon, dstX: w - iw - 80, dstY: offY);
+  // Left-side caption removed (no font dependency); minimal layout
+  await File('$outAndroid/feature_graphic_1024x500_v3.png').writeAsBytes(img.encodePng(canvas));
+}
+
+void _fillVerticalGradient(img.Image image, img.ColorRgb8 start, img.ColorRgb8 end) {
+  final w = image.width, h = image.height;
+  for (int y = 0; y < h; y++) {
+    final t = y / (h - 1);
+    final r = (start.r + (end.r - start.r) * t).toInt();
+    final g = (start.g + (end.g - start.g) * t).toInt();
+    final b = (start.b + (end.b - start.b) * t).toInt();
+    final row = img.ColorRgb8(r, g, b);
+    for (int x = 0; x < w; x++) {
+      image.setPixel(x, y, row);
+    }
+  }
+}
+
+void _applyEdgeVignette(img.Image image) {
+  final w = image.width, h = image.height;
+  for (int y = 0; y < h; y++) {
+    for (int x = 0; x < w; x++) {
+      final px = image.getPixel(x, y);
+      final edgeX = (x < w / 2) ? x : (w - 1 - x);
+      final edgeY = (y < h / 2) ? y : (h - 1 - y);
+      final edge = (edgeX < edgeY ? edgeX : edgeY) / (h / 2);
+      final fade = (0.85 + edge * 0.15).clamp(0.0, 1.0);
+      image.setPixelRgb(x, y, (px.r * fade).toInt(), (px.g * fade).toInt(), (px.b * fade).toInt());
+    }
+  }
+}
