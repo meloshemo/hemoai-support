@@ -308,14 +308,123 @@ class SocialChallengeService extends ChangeNotifier {
   /// Get competition data for today
   FriendCompetition? getTodayCompetition(int myUserId, int friendUserId) {
     final today = DateTime.now();
-    return _competitions.firstWhere(
-      (c) => c.myUserId == myUserId && 
-             c.friendUserId == friendUserId && 
-             c.date.year == today.year &&
-             c.date.month == today.month &&
-             c.date.day == today.day,
-      orElse: () => throw StateError('No competition found'),
-    );
+    try {
+      return _competitions.firstWhere(
+        (c) => c.myUserId == myUserId && 
+               c.friendUserId == friendUserId && 
+               c.date.year == today.year &&
+               c.date.month == today.month &&
+               c.date.day == today.day,
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Get weekly leaderboard (all friends + current user)
+  List<Map<String, dynamic>> getWeeklyLeaderboard(int currentUserId, {DateTime? startDate}) {
+    final start = startDate ?? DateTime.now().subtract(const Duration(days: 7));
+    final end = DateTime.now();
+    final Map<int, Map<String, dynamic>> userStats = {};
+    
+    // Add current user
+    userStats[currentUserId] = {
+      'userId': currentUserId,
+      'userName': 'You',
+      'totalPoints': 0,
+      'totalSteps': 0,
+      'totalWater': 0,
+      'totalSleep': 0,
+    };
+    
+    // Add friends
+    for (final friend in activeFriends) {
+      userStats[friend.friendUserId] = {
+        'userId': friend.friendUserId,
+        'userName': friend.friendName,
+        'userAvatar': friend.friendAvatar,
+        'totalPoints': 0,
+        'totalSteps': 0,
+        'totalWater': 0,
+        'totalSleep': 0,
+      };
+    }
+    
+    // Calculate weekly totals
+    for (int i = 0; i <= end.difference(start).inDays; i++) {
+      final date = start.add(Duration(days: i));
+      final dateKey = '${date.year}_${date.month}_${date.day}';
+      
+      for (final userId in userStats.keys) {
+        final key = '${userId}_$dateKey';
+        final activity = _activityData[key];
+        if (activity != null) {
+          userStats[userId]!['totalPoints'] = (userStats[userId]!['totalPoints'] as int) + activity.points;
+          userStats[userId]!['totalSteps'] = (userStats[userId]!['totalSteps'] as int) + activity.steps;
+          userStats[userId]!['totalWater'] = (userStats[userId]!['totalWater'] as int) + activity.water;
+          userStats[userId]!['totalSleep'] = (userStats[userId]!['totalSleep'] as int) + activity.sleep;
+        }
+      }
+    }
+    
+    // Sort by total points
+    final leaderboard = userStats.values.toList();
+    leaderboard.sort((a, b) => (b['totalPoints'] as int).compareTo(a['totalPoints'] as int));
+    
+    return leaderboard;
+  }
+
+  /// Get monthly leaderboard
+  List<Map<String, dynamic>> getMonthlyLeaderboard(int currentUserId, {DateTime? startDate}) {
+    final start = startDate ?? DateTime.now().subtract(const Duration(days: 30));
+    final end = DateTime.now();
+    final Map<int, Map<String, dynamic>> userStats = {};
+    
+    // Add current user
+    userStats[currentUserId] = {
+      'userId': currentUserId,
+      'userName': 'You',
+      'totalPoints': 0,
+      'totalSteps': 0,
+      'totalWater': 0,
+      'totalSleep': 0,
+    };
+    
+    // Add friends
+    for (final friend in activeFriends) {
+      userStats[friend.friendUserId] = {
+        'userId': friend.friendUserId,
+        'userName': friend.friendName,
+        'userAvatar': friend.friendAvatar,
+        'totalPoints': 0,
+        'totalSteps': 0,
+        'totalWater': 0,
+        'totalSleep': 0,
+      };
+    }
+    
+    // Calculate monthly totals
+    for (int i = 0; i <= end.difference(start).inDays; i++) {
+      final date = start.add(Duration(days: i));
+      final dateKey = '${date.year}_${date.month}_${date.day}';
+      
+      for (final userId in userStats.keys) {
+        final key = '${userId}_$dateKey';
+        final activity = _activityData[key];
+        if (activity != null) {
+          userStats[userId]!['totalPoints'] = (userStats[userId]!['totalPoints'] as int) + activity.points;
+          userStats[userId]!['totalSteps'] = (userStats[userId]!['totalSteps'] as int) + activity.steps;
+          userStats[userId]!['totalWater'] = (userStats[userId]!['totalWater'] as int) + activity.water;
+          userStats[userId]!['totalSleep'] = (userStats[userId]!['totalSleep'] as int) + activity.sleep;
+        }
+      }
+    }
+    
+    // Sort by total points
+    final leaderboard = userStats.values.toList();
+    leaderboard.sort((a, b) => (b['totalPoints'] as int).compareTo(a['totalPoints'] as int));
+    
+    return leaderboard;
   }
 
   /// Update competitions when activity changes

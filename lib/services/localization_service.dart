@@ -449,6 +449,18 @@ class LocalizationService extends ChangeNotifier {
       'pt': 'Horário de motivação diária',
       'ru': 'Время ежедневной мотивации',
     },
+    // Card/Header label used on EnhancedNotificationScreen
+    'daily_motivation': {
+      'en': 'Daily Motivation',
+      'tr': 'Günlük Motivasyon',
+      'es': 'Motivación diaria',
+      'fr': 'Motivation quotidienne',
+      'de': 'Tägliche Motivation',
+      'ar': 'التحفيز اليومي',
+      'it': 'Motivazione giornaliera',
+      'pt': 'Motivação diária',
+      'ru': 'Ежедневная мотивация',
+    },
     'monthly_check_subtitle': {
       'en': 'Monthly health check-in reminders',
       'tr': 'Aylık sağlık kontrol hatırlatmaları',
@@ -15407,7 +15419,32 @@ class LocalizationService extends ChangeNotifier {
       'es': '{name} añadido al panel familiar',
       'fr': '{name} ajouté au panneau familial',
       'de': '{name} zum Familienpanel hinzugefügt',
-      'ar': 'تمت إضافة {name} إلى لوحة العائلة',
+      'ar': '{name} تمت إضافته إلى لوحة العائلة',
+      'it': '{name} aggiunto al pannello familiare',
+      'pt': '{name} adicionado ao painel familiar',
+      'ru': '{name} добавлен в семейную панель',
+    },
+    'family_member_added_success': {
+      'tr': 'Başarıyla Eklendi! 🎉',
+      'en': 'Successfully Added! 🎉',
+      'es': '¡Añadido con Éxito! 🎉',
+      'fr': 'Ajouté avec Succès ! 🎉',
+      'de': 'Erfolgreich Hinzugefügt! 🎉',
+      'ar': 'تمت الإضافة بنجاح! 🎉',
+      'it': 'Aggiunto con Successo! 🎉',
+      'pt': 'Adicionado com Sucesso! 🎉',
+      'ru': 'Успешно Добавлено! 🎉',
+    },
+    'got_it': {
+      'tr': 'Anladım',
+      'en': 'Got It',
+      'es': 'Entendido',
+      'fr': 'Compris',
+      'de': 'Verstanden',
+      'ar': 'فهمت',
+      'it': 'Capito',
+      'pt': 'Entendi',
+      'ru': 'Понятно',
     },
     'family_invite_sent': {
       'tr': '{name} kişisine davet gönderildi!',
@@ -15433,6 +15470,55 @@ class LocalizationService extends ChangeNotifier {
       'de': 'Fehler beim Senden der Einladung: {error}',
       'ar': 'خطأ أثناء إرسال الدعوة: {error}',
     },
+    // Contacts & selection
+    'family_contacts_permission_required': {
+      'tr': 'Kişi seçmek için kişiler izni gereklidir',
+      'en': 'Contacts permission is required to select a contact',
+      'es': 'Se requiere permiso de contactos para seleccionar un contacto',
+      'fr': 'L\'autorisation des contacts est requise pour sélectionner un contact',
+      'de': 'Kontakte-Berechtigung ist erforderlich, um einen Kontakt auszuwählen',
+      'ar': 'يلزم إذن جهات الاتصال لاختيار جهة اتصال',
+    },
+    'family_contacts_permission_denied': {
+      'tr': 'Kişiler izni reddedildi',
+      'en': 'Contacts permission denied',
+      'es': 'Permiso de contactos denegado',
+      'fr': 'Autorisation des contacts refusée',
+      'de': 'Kontakte-Berechtigung verweigert',
+      'ar': 'تم رفض إذن جهات الاتصال',
+    },
+    'family_select_contact': {
+      'tr': 'Kişi Seç',
+      'en': 'Select Contact',
+      'es': 'Seleccionar contacto',
+      'fr': 'Sélectionner un contact',
+      'de': 'Kontakt auswählen',
+      'ar': 'اختر جهة اتصال',
+    },
+    'family_no_phone': {
+      'tr': 'Telefon yok',
+      'en': 'No phone',
+      'es': 'Sin teléfono',
+      'fr': 'Pas de téléphone',
+      'de': 'Kein Telefon',
+      'ar': 'لا يوجد هاتف',
+    },
+    'family_select_from_contacts': {
+      'tr': 'Kişilerden seç',
+      'en': 'Select from contacts',
+      'es': 'Seleccionar de contactos',
+      'fr': 'Sélectionner depuis les contacts',
+      'de': 'Aus Kontakten auswählen',
+      'ar': 'اختر من جهات الاتصال',
+    },
+    'family_error_selecting_contact': {
+      'tr': 'Kişi seçilirken hata: {error}',
+      'en': 'Error selecting contact: {error}',
+      'es': 'Error al seleccionar contacto: {error}',
+      'fr': 'Erreur lors de la sélection du contact : {error}',
+      'de': 'Fehler beim Auswählen des Kontakts: {error}',
+      'ar': 'خطأ أثناء اختيار جهة الاتصال: {error}',
+    },
     'family_pending_invitations': {
       'tr': 'Bekleyen Davetler ({count})',
       'en': 'Pending Invitations ({count})',
@@ -15448,6 +15534,28 @@ class LocalizationService extends ChangeNotifier {
       'fr': 'Utilisateur Inconnu',
       'de': 'Unbekannter Benutzer',
       'ar': 'مستخدم غير معروف',
+    },
+    'family_permission_request_title': {
+      'tr': 'İzin İsteği',
+      'en': 'Permission Request',
+      'es': 'Solicitud de Permiso',
+      'fr': 'Demande d\'Autorisation',
+      'de': 'Berechtigungsanfrage',
+      'ar': 'طلب الإذن',
+      'it': 'Richiesta di Autorizzazione',
+      'pt': 'Solicitação de Permissão',
+      'ru': 'Запрос разрешения',
+    },
+    'family_permission_request_message': {
+      'tr': 'Bu kullanıcı sizin sağlık durumunuzu, diyetinizi ve uygulamanın diğer özelliklerini görmek istiyor. İzin veriyor musunuz?',
+      'en': 'This user wants to view your health status, diet, and other app features. Do you grant permission?',
+      'es': 'Este usuario quiere ver su estado de salud, dieta y otras funciones de la aplicación. ¿Concede permiso?',
+      'fr': 'Cet utilisateur souhaite consulter votre état de santé, votre régime alimentaire et d\'autres fonctionnalités de l\'application. Accordez-vous la permission?',
+      'de': 'Dieser Benutzer möchte Ihren Gesundheitsstatus, Ihre Ernährung und andere App-Funktionen einsehen. Gewähren Sie die Berechtigung?',
+      'ar': 'يريد هذا المستخدم عرض حالتك الصحية ونظامك الغذائي وميزات التطبيق الأخرى. هل تمنح الإذن؟',
+      'it': 'Questo utente vuole visualizzare il tuo stato di salute, la tua dieta e altre funzionalità dell\'app. Concedi il permesso?',
+      'pt': 'Este usuário deseja visualizar seu status de saúde, dieta e outros recursos do aplicativo. Você concede permissão?',
+      'ru': 'Этот пользователь хочет просматривать ваше состояние здоровья, диету и другие функции приложения. Вы предоставляете разрешение?',
     },
     'family_invited_as_relation': {
       'tr': '{relation} olarak davet etti',
@@ -15472,6 +15580,72 @@ class LocalizationService extends ChangeNotifier {
       'fr': 'Accepter',
       'de': 'Akzeptieren',
       'ar': 'قبول',
+    },
+    'family_add_hemogram_manual': {
+      'tr': 'Manuel Hemogram Girişi',
+      'en': 'Manual Hemogram Entry',
+      'es': 'Entrada Manual de Hemograma',
+      'fr': 'Saisie Manuelle d\'Hémogramme',
+      'de': 'Manuelle Hämogramm-Eingabe',
+      'ar': 'إدخال الهيموجرام اليدوي',
+      'it': 'Inserimento Manuale Emogramma',
+      'pt': 'Entrada Manual de Hemograma',
+      'ru': 'Ручной ввод гемограммы',
+    },
+    'family_add_hemogram_manual_desc': {
+      'tr': 'Bu aile üyesi için hemogram değerlerini manuel olarak girebilirsiniz',
+      'en': 'You can manually enter hemogram values for this family member',
+      'es': 'Puede ingresar manualmente los valores del hemograma para este miembro de la familia',
+      'fr': 'Vous pouvez saisir manuellement les valeurs d\'hémogramme pour ce membre de la famille',
+      'de': 'Sie können Hämogramm-Werte für dieses Familienmitglied manuell eingeben',
+      'ar': 'يمكنك إدخال قيم الهيموجرام يدوياً لهذا العضو في العائلة',
+      'it': 'Puoi inserire manualmente i valori dell\'emogramma per questo membro della famiglia',
+      'pt': 'Você pode inserir manualmente os valores do hemograma para este membro da família',
+      'ru': 'Вы можете вручную ввести значения гемограммы для этого члена семьи',
+    },
+    'family_add_hemogram_button': {
+      'tr': 'Hemogram Ekle',
+      'en': 'Add Hemogram',
+      'es': 'Agregar Hemograma',
+      'fr': 'Ajouter Hémogramme',
+      'de': 'Hämogramm Hinzufügen',
+      'ar': 'إضافة الهيموجرام',
+      'it': 'Aggiungi Emogramma',
+      'pt': 'Adicionar Hemograma',
+      'ru': 'Добавить гемограмму',
+    },
+    'family_premium_limit_info': {
+      'tr': 'Ücretsiz plan: Aile üyeleri için sınırlı özellikler. Premium ile sınırsız!',
+      'en': 'Free plan: Limited features for family members. Unlimited with Premium!',
+      'es': 'Plan gratuito: Funciones limitadas para miembros de la familia. ¡Ilimitado con Premium!',
+      'fr': 'Plan gratuit : Fonctionnalités limitées pour les membres de la famille. Illimité avec Premium !',
+      'de': 'Kostenloser Plan: Begrenzte Funktionen für Familienmitglieder. Unbegrenzt mit Premium!',
+      'ar': 'الخطة المجانية: ميزات محدودة لأفراد العائلة. غير محدود مع Premium!',
+      'it': 'Piano gratuito: Funzionalità limitate per i membri della famiglia. Illimitato con Premium!',
+      'pt': 'Plano gratuito: Recursos limitados para membros da família. Ilimitado com Premium!',
+      'ru': 'Бесплатный план: Ограниченные функции для членов семьи. Безлимитно с Premium!',
+    },
+    'family_premium_limit_reached': {
+      'tr': 'Ücretsiz plan limitine ulaştınız. Premium ile aile üyeleri için sınırsız hemogram ekleyebilirsiniz!',
+      'en': 'You\'ve reached the free plan limit. With Premium, you can add unlimited hemograms for family members!',
+      'es': 'Has alcanzado el límite del plan gratuito. ¡Con Premium, puedes agregar hemogramas ilimitados para miembros de la familia!',
+      'fr': 'Vous avez atteint la limite du plan gratuit. Avec Premium, vous pouvez ajouter des hémogrammes illimités pour les membres de la famille !',
+      'de': 'Sie haben das Limit des kostenlosen Plans erreicht. Mit Premium können Sie unbegrenzte Hämogramme für Familienmitglieder hinzufügen!',
+      'ar': 'لقد وصلت إلى حد الخطة المجانية. مع Premium، يمكنك إضافة هيموجرامات غير محدودة لأفراد العائلة!',
+      'it': 'Hai raggiunto il limite del piano gratuito. Con Premium, puoi aggiungere emogrammi illimitati per i membri della famiglia!',
+      'pt': 'Você atingiu o limite do plano gratuito. Com Premium, você pode adicionar hemogramas ilimitados para membros da família!',
+      'ru': 'Вы достигли лимита бесплатного плана. С Premium вы можете добавлять неограниченное количество гемограмм для членов семьи!',
+    },
+    'family_hemogram_added_success': {
+      'tr': 'Hemogram başarıyla eklendi!',
+      'en': 'Hemogram added successfully!',
+      'es': '¡Hemograma agregado con éxito!',
+      'fr': 'Hémogramme ajouté avec succès !',
+      'de': 'Hämogramm erfolgreich hinzugefügt!',
+      'ar': 'تمت إضافة الهيموجرام بنجاح!',
+      'it': 'Emogramma aggiunto con successo!',
+      'pt': 'Hemograma adicionado com sucesso!',
+      'ru': 'Гемограмма успешно добавлена!',
     },
     'family_invite_accepted': {
       'tr': 'Davet kabul edildi!',
@@ -16790,9 +16964,130 @@ class LocalizationService extends ChangeNotifier {
       'ar': '{count} إشعارات غير مقروءة',
     },
     'clear_all': {'tr': 'Tümünü Temizle', 'en': 'Clear All'},
+    'clear_all_confirmation': {
+      'tr': 'Tüm girilen değerleri temizlemek istediğinizden emin misiniz? Bu işlem geri alınamaz.',
+      'en': 'Are you sure you want to clear all entered values? This action cannot be undone.',
+      'de': 'Sind Sie sicher, dass Sie alle eingegebenen Werte löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.',
+      'fr': 'Êtes-vous sûr de vouloir effacer toutes les valeurs saisies? Cette action ne peut pas être annulée.',
+      'es': '¿Está seguro de que desea borrar todos los valores ingresados? Esta acción no se puede deshacer.',
+      'it': 'Sei sicuro di voler cancellare tutti i valori inseriti? Questa azione non può essere annullata.',
+      'pt': 'Tem certeza de que deseja limpar todos os valores inseridos? Esta ação não pode ser desfeita.',
+      'ru': 'Вы уверены, что хотите очистить все введенные значения? Это действие нельзя отменить.',
+      'ar': 'هل أنت متأكد أنك تريد مسح جميع القيم المدخلة؟ لا يمكن التراجع عن هذا الإجراء.',
+    },
+    'all_values_cleared': {
+      'tr': 'Tüm değerler temizlendi',
+      'en': 'All values cleared',
+      'de': 'Alle Werte gelöscht',
+      'fr': 'Toutes les valeurs effacées',
+      'es': 'Todos los valores borrados',
+      'it': 'Tutti i valori cancellati',
+      'pt': 'Todos os valores limpos',
+      'ru': 'Все значения очищены',
+      'ar': 'تم مسح جميع القيم',
+    },
+    'clear': {
+      'tr': 'Temizle',
+      'en': 'Clear',
+      'de': 'Löschen',
+      'fr': 'Effacer',
+      'es': 'Borrar',
+      'it': 'Cancella',
+      'pt': 'Limpar',
+      'ru': 'Очистить',
+      'ar': 'مسح',
+    },
     'all_notifications_cleared': {
       'tr': 'Tüm bildirimler temizlendi',
       'en': 'All notifications cleared',
+    },
+    'view_hemogram_history': {
+      'tr': 'Hemogram Geçmişi',
+      'en': 'View Hemogram History',
+      'es': 'Ver Historial de Hemograma',
+      'fr': 'Voir l\'historique de l\'hémogramme',
+      'de': 'Hämogramm-Verlauf anzeigen',
+      'ar': 'عرض سجل الهيموجرام',
+      'it': 'Visualizza cronologia emogramma',
+      'pt': 'Ver histórico do hemograma',
+      'ru': 'Просмотр истории гемограммы',
+    },
+    'new_hemogram': {
+      'tr': 'Yeni Hemogram',
+      'en': 'New Hemogram',
+      'es': 'Nuevo Hemograma',
+      'fr': 'Nouvel hémogramme',
+      'de': 'Neues Hämogramm',
+      'ar': 'هيموجرام جديد',
+      'it': 'Nuovo emogramma',
+      'pt': 'Novo hemograma',
+      'ru': 'Новая гемограмма',
+    },
+    'ready_for_new_hemogram': {
+      'tr': 'Yeni hemogram girişi için hazır',
+      'en': 'Ready for new hemogram entry',
+      'es': 'Listo para nueva entrada de hemograma',
+      'fr': 'Prêt pour une nouvelle entrée d\'hémogramme',
+      'de': 'Bereit für neuen Hämogramm-Eintrag',
+      'ar': 'جاهز لإدخال هيموجرام جديد',
+      'it': 'Pronto per nuovo inserimento emogramma',
+      'pt': 'Pronto para nova entrada de hemograma',
+      'ru': 'Готово для новой записи гемограммы',
+    },
+    'hemogram_history': {
+      'tr': 'Hemogram Geçmişi',
+      'en': 'Hemogram History',
+      'es': 'Historial de Hemograma',
+      'fr': 'Historique de l\'hémogramme',
+      'de': 'Hämogramm-Verlauf',
+      'ar': 'سجل الهيموجرام',
+      'it': 'Cronologia emogramma',
+      'pt': 'Histórico do hemograma',
+      'ru': 'История гемограммы',
+    },
+    'no_hemogram_history': {
+      'tr': 'Hemogram geçmişi bulunamadı',
+      'en': 'No hemogram history found',
+      'es': 'No se encontró historial de hemograma',
+      'fr': 'Aucun historique d\'hémogramme trouvé',
+      'de': 'Kein Hämogramm-Verlauf gefunden',
+      'ar': 'لم يتم العثور على سجل الهيموجرام',
+      'it': 'Nessuna cronologia emogramma trovata',
+      'pt': 'Nenhum histórico de hemograma encontrado',
+      'ru': 'История гемограммы не найдена',
+    },
+    'test_loaded': {
+      'tr': 'Test formuna yüklendi',
+      'en': 'Test loaded into form',
+      'es': 'Prueba cargada en el formulario',
+      'fr': 'Test chargé dans le formulaire',
+      'de': 'Test in Formular geladen',
+      'ar': 'تم تحميل الاختبار في النموذج',
+      'it': 'Test caricato nel modulo',
+      'pt': 'Teste carregado no formulário',
+      'ru': 'Тест загружен в форму',
+    },
+    'unknown_date': {
+      'tr': 'Bilinmeyen tarih',
+      'en': 'Unknown date',
+      'es': 'Fecha desconocida',
+      'fr': 'Date inconnue',
+      'de': 'Unbekanntes Datum',
+      'ar': 'تاريخ غير معروف',
+      'it': 'Data sconosciuta',
+      'pt': 'Data desconhecida',
+      'ru': 'Неизвестная дата',
+    },
+    'no_values_available': {
+      'tr': 'Değer mevcut değil',
+      'en': 'No values available',
+      'es': 'No hay valores disponibles',
+      'fr': 'Aucune valeur disponible',
+      'de': 'Keine Werte verfügbar',
+      'ar': 'لا توجد قيم متاحة',
+      'it': 'Nessun valore disponibile',
+      'pt': 'Nenhum valor disponível',
+      'ru': 'Нет доступных значений',
     },
     'unread': {'tr': 'Okunmamış', 'en': 'Unread'},
     'all': {'tr': 'Tümü', 'en': 'All'},
@@ -17939,8 +18234,58 @@ class LocalizationService extends ChangeNotifier {
     'weekly_completion': {
       'tr': 'Haftalık Tamamlanma',
       'en': 'Weekly Completion',
+      'es': 'Finalización Semanal',
+      'fr': 'Achèvement Hebdomadaire',
+      'de': 'Wöchentliche Fertigstellung',
+      'ar': 'الإكمال الأسبوعي',
+      'it': 'Completamento Settimanale',
+      'pt': 'Conclusão Semanal',
+      'ru': 'Недельное завершение',
     },
-    'total_meals': {'tr': 'Toplam Öğünler', 'en': 'Total Meals'},
+    'total_meals': {
+      'tr': 'Toplam Öğünler',
+      'en': 'Total Meals',
+      'es': 'Comidas Totales',
+      'fr': 'Repas Totaux',
+      'de': 'Gesamtmahlzeiten',
+      'ar': 'إجمالي الوجبات',
+      'it': 'Pasti Totali',
+      'pt': 'Refeições Totais',
+      'ru': 'Всего приемов пищи',
+    },
+    'track_meals': {
+      'tr': 'Öğünleri Takip Et',
+      'en': 'Track Your Meals',
+      'es': 'Rastrea Tus Comidas',
+      'fr': 'Suivez Vos Repas',
+      'de': 'Mahlzeiten Verfolgen',
+      'ar': 'تتبع وجباتك',
+      'it': 'Traccia i Tuoi Pasti',
+      'pt': 'Rastreie Suas Refeições',
+      'ru': 'Отслеживайте свои приемы пищи',
+    },
+    'track_meals_subtitle': {
+      'tr': 'Tamamladığınız öğünleri işaretleyin',
+      'en': 'Mark meals as you complete them',
+      'es': 'Marca las comidas cuando las completes',
+      'fr': 'Marquez les repas au fur et à mesure',
+      'de': 'Markieren Sie Mahlzeiten beim Abschluss',
+      'ar': 'قم بتمييز الوجبات عند إكمالها',
+      'it': 'Segna i pasti mentre li completi',
+      'pt': 'Marque as refeições conforme as completa',
+      'ru': 'Отмечайте приемы пищи по мере их завершения',
+    },
+    'completed': {
+      'tr': 'Tamamlandı',
+      'en': 'Completed',
+      'es': 'Completado',
+      'fr': 'Terminé',
+      'de': 'Abgeschlossen',
+      'ar': 'مكتمل',
+      'it': 'Completato',
+      'pt': 'Concluído',
+      'ru': 'Завершено',
+    },
     'diet_streak_fire': {
       'tr': '🔥 Mükemmel! Tam bir haftayı tamamladınız!',
       'en': '🔥 Excellent! You completed a full week!',
@@ -19028,6 +19373,14 @@ class LocalizationService extends ChangeNotifier {
       'en': 'Motivation of the Day',
     },
     'share_quote': {'tr': 'Sözü Paylaş', 'en': 'Share Quote'},
+    'support': {
+      'tr': 'Destek',
+      'en': 'Support',
+      'es': 'Soporte',
+      'fr': 'Support',
+      'de': 'Support',
+      'ar': 'الدعم',
+    },
     'quote_copied': {'tr': 'Söz kopyalandı', 'en': 'Quote copied'},
     'motivational_custom_quote': {
       'tr':
@@ -19150,6 +19503,16 @@ class LocalizationService extends ChangeNotifier {
           'Marcus Aurelius: Engeller, hedefe giden yolun kendisidir.\nSeneca: Rotası olmayan gemiye hiçbir rüzgâr yaramaz.\nEpiktetos: Ne olmak istediğini söyle; sonra gereğini yap.\nKonfüçyüs: Yavaş gitsen de durma; küçük adımlar hedefe götürür.\nHerakleitos: Değişim ilerlemenin motorudur.\nPlaton: Ölçülü ilerleme kalıcıdır.\nSokrates: Kendini bil; gücünü nereye harcayacağını seç.\nPlutarkhos: Büyük işler küçük alışkanlıklarla başlar.\nCicero: İstikrarlı çaba, yeteneğin yerini alır.\nZeno: Erdemli hedef, sağlam istikamet ister.\nDiyojenes: Azla yetinmek, yolda kalmanın gücüdür.\nPitagoras: Düzen, hedefin dostudur.\nThales: Uygun zamanı beklemek değil, zaman yaratmaktır.\nDemokritos: Küçük ilerlemeler büyük sonuçlar verir.\nLaozi: Bin millik yol tek bir adımla başlar.\nSun Tzu: Hazırlık, zaferin yarısıdır.\nEpiktetos: Dışarıdan değil, içeriden yönet.\nSeneca: Zaman kısa değil; biz onu israf ederiz.\nMarcus Aurelius: Yapabileceğin tek an şimdidir.\nKonfüçyüs: Hedefe bakan, ayağını sağlam basar.\nAristoteles: Amaca uygun eylem mutluluk getirir.\nHerakleitos: Nehir değişir; yürüyen hedefe yaklaşır.\nPlaton: Doğru yön, yarı mesafedir.\nSokrates: Soru sor; yol kendini gösterir.\nCicero: Hırs değil, azim güven verir.\nPlutarkhos: Ruh disiplinle büyür.\nZeno: Küçük iyiler, büyük iyiliği kurar.\nDiyojenes: Fazlalığı bırak; rotanı hafiflet.\nDemokritos: Nedensiz başarı yoktur; sebep ol.\nLaozi: Esneklik, uzun yürüyüşün sırrıdır.\nSun Tzu: Önce plan, sonra hamle.\nEpikür: Yeterince olan, özgürleştirir.\nMarcus Aurelius: Doğaya uygun yaşa; yol açılır.',
       'en':
           'Marcus Aurelius: The obstacle is the path to your goal.\nSeneca: No wind helps the sailor without a course.\nEpictetus: First declare what you aim to be; then act as required.\nConfucius: Move slowly if you must—just don’t stop.\nHeraclitus: Change powers progress.\nPlato: Measured steps endure.\nSocrates: Know yourself; choose where to spend your strength.\nPlutarch: Great deeds begin with small habits.\nCicero: Steady effort outworks talent.\nZeno: A worthy aim demands a steady course.\nDiogenes: Needing less keeps you on the road.\nPythagoras: Order is a friend to goals.\nThales: Don’t wait for time—make it.\nDemocritus: Small advances yield great outcomes.\nLaozi: A thousand-mile journey begins with a single step.\nSun Tzu: Preparation is half the victory.\nEpictetus: Govern from within, not from without.\nSeneca: Time isn’t short; we waste much of it.\nMarcus Aurelius: The present is the only moment to act.\nConfucius: Eyes on the aim, feet firm on the ground.\nAristotle: Action fitted to purpose breeds fulfillment.\nHeraclitus: The river changes; the walker nears the goal.\nPlato: Right direction is half the distance.\nSocrates: Ask; the way reveals itself.\nCicero: Confidence rests on perseverance, not frenzy.\nPlutarch: The soul grows by discipline.\nZeno: Many small goods build the great good.\nDiogenes: Drop excess; lighten your route.\nDemocritus: There is no success without cause—be the cause.\nLaozi: Flexibility sustains a long march.\nSun Tzu: Plan first, strike later.\nEpicurus: Having enough sets you free.\nMarcus Aurelius: Live in accord with nature; the road opens.',
+    },
+    // Additional enriched motivational set (app-specific, non user-tailored)
+    'daily_quotes_list_enriched': {
+      'tr': 'Disiplin: Her gün küçük bir ilerleme uzun vadede ivme yaratır.\nOdak: Aynı anda iki hedefe değil, tek net adıma yoğunlaş.\nHydrasyon: Su içmek zihinsel berraklığı artırır; şimdi bir yudum al.\nNefes: Derin bir nefes stres akışını yavaşlatır.\nDuruş: Kısa bir gerinme kan dolaşımını destekler.\nDüzen: Günlük tekrar eden bloklar karar yorgunluğunu azaltır.\nİlerleme: Bugün sadece bir göstergen daha iyi olsun.\nHafiflik: Fazla bildirimleri kapatmak odak kazandırır.\nPlan: Sabah 2 dakikalık plan akşam 20 dakikalık kaosu önler.\nUyku: Erken kapanan ekran sabah enerjini yükseltir.\nBeslenme: Dengeli bir tabak sonraki test trendini etkiler.\nHareket: 5 dakikalık tempolu yürüyüş bile dolaşımı canlandırır.\nŞükran: Küçük gelişimleri not almak motivasyon çapasını korur.\nTekrar: Tutarlılık hızdan daha güçlü bir ivme üretir.\nOdaklan: Bölünmüş dikkat ilerlemeyi sessizce yavaşlatır.\nHedef: Ölçülebilir bir metrik, rastgele çabayı anlamlı çabaya dönüştürür.\nDenge: Su + uyku + beslenme = analiz kalitesinin temeli.\nEnerji: Gün içinde kısa nefes molaları odak tazeler.\nAkış: Başlamadan önce engelleri kaldırmak akış süresini uzatır.\nSadelik: Daha az karmaşa karar hızını artırır.',
+      'en': 'Discipline: A tiny daily gain compounds into momentum.\nFocus: One clear step beats juggling two vague goals.\nHydration: Water boosts mental clarity—take a sip now.\nBreathing: A deep breath slows the stress cascade.\nPosture: A brief stretch supports circulation.\nStructure: Repeating blocks reduce decision fatigue.\nProgress: Let just one metric improve today.\nLightness: Muting excess notifications restores focus.\nPlanning: Two minutes of morning planning prevents evening chaos.\nSleep: An earlier screen-off raises tomorrow’s energy.\nNutrition: A balanced plate nudges your next test trend.\nMovement: Even a 5‑minute brisk walk stimulates flow.\nGratitude: Logging small gains anchors motivation.\nConsistency: Steady beats frantic in long arcs.\nRefocus: Split attention quietly drags velocity.\nMeasure: A quantifiable target converts random effort to directed work.\nBalance: Water + sleep + nutrition = analysis fidelity.\nEnergy: Short breathing breaks refresh focus blocks.\nFlow: Removing friction before starting prolongs deep work.\nSimplicity: Less clutter accelerates decision speed.',
+    },
+    // Tagline key for image/text generation
+    'smart_hemogram_analysis': {
+      'tr': 'Akıllı Hemogram Analizi',
+      'en': 'Smart Hemogram Analysis',
     },
     // Generic/fallback small labels
     'you': {'tr': 'Sen', 'en': 'You'},
@@ -20803,6 +21166,193 @@ class LocalizationService extends ChangeNotifier {
       'pt': 'Conquistas',
       'ru': 'Достижения',
     },
+    'my_challenges': {
+      'tr': 'Zorluklarım',
+      'en': 'My Challenges',
+      'es': 'Mis Desafíos',
+      'fr': 'Mes Défis',
+      'de': 'Meine Herausforderungen',
+      'ar': 'تحدياتي',
+      'it': 'Le Mie Sfide',
+      'pt': 'Meus Desafios',
+      'ru': 'Мои вызовы',
+    },
+    'group_challenges': {
+      'tr': 'Grup Zorlukları',
+      'en': 'Group Challenges',
+      'es': 'Desafíos de Grupo',
+      'fr': 'Défis de Groupe',
+      'de': 'Gruppenherausforderungen',
+      'ar': 'تحديات المجموعة',
+      'it': 'Sfide di Gruppo',
+      'pt': 'Desafios em Grupo',
+      'ru': 'Групповые вызовы',
+    },
+    'group_challenges_desc': {
+      'tr': 'Arkadaşlarınla birlikte yarış, hedeflere ulaş ve kazan!',
+      'en': 'Compete with friends, reach goals, and win together!',
+      'es': '¡Compite con amigos, alcanza objetivos y gana juntos!',
+      'fr': 'Affrontez vos amis, atteignez vos objectifs et gagnez ensemble !',
+      'de': 'Wetteifere mit Freunden, erreiche Ziele und gewinne zusammen!',
+      'ar': 'تنافس مع الأصدقاء، حقق الأهداف واربح معاً!',
+      'it': 'Competi con gli amici, raggiungi gli obiettivi e vinci insieme!',
+      'pt': 'Compita com amigos, alcance objetivos e vença juntos!',
+      'ru': 'Соревнуйтесь с друзьями, достигайте целей и побеждайте вместе!',
+    },
+    'create_group_challenge': {
+      'tr': 'Grup Zorluğu Oluştur',
+      'en': 'Create Group Challenge',
+      'es': 'Crear Desafío de Grupo',
+      'fr': 'Créer un Défi de Groupe',
+      'de': 'Gruppenherausforderung Erstellen',
+      'ar': 'إنشاء تحدٍ جماعي',
+      'it': 'Crea Sfida di Gruppo',
+      'pt': 'Criar Desafio em Grupo',
+      'ru': 'Создать групповой вызов',
+    },
+    'active_challenges': {
+      'tr': 'Aktif Zorluklar',
+      'en': 'Active Challenges',
+      'es': 'Desafíos Activos',
+      'fr': 'Défis Actifs',
+      'de': 'Aktive Herausforderungen',
+      'ar': 'التحديات النشطة',
+      'it': 'Sfide Attive',
+      'pt': 'Desafios Ativos',
+      'ru': 'Активные вызовы',
+    },
+    'completed_challenges': {
+      'tr': 'Tamamlanan Zorluklar',
+      'en': 'Completed Challenges',
+      'es': 'Desafíos Completados',
+      'fr': 'Défis Terminés',
+      'de': 'Abgeschlossene Herausforderungen',
+      'ar': 'التحديات المكتملة',
+      'it': 'Sfide Completate',
+      'pt': 'Desafios Concluídos',
+      'ru': 'Завершенные вызовы',
+    },
+    'no_group_challenges': {
+      'tr': 'Henüz grup zorluğunuz yok',
+      'en': 'No group challenges yet',
+      'es': 'Aún no hay desafíos de grupo',
+      'fr': 'Aucun défi de groupe pour le moment',
+      'de': 'Noch keine Gruppenherausforderungen',
+      'ar': 'لا توجد تحديات جماعية بعد',
+      'it': 'Nessuna sfida di gruppo ancora',
+      'pt': 'Ainda não há desafios em grupo',
+      'ru': 'Пока нет групповых вызовов',
+    },
+    'create_first_group_challenge': {
+      'tr': 'İlk grup zorluğunuzu oluşturun ve arkadaşlarınızla yarışmaya başlayın!',
+      'en': 'Create your first group challenge and start competing with friends!',
+      'es': '¡Crea tu primer desafío de grupo y comienza a competir con amigos!',
+      'fr': 'Créez votre premier défi de groupe et commencez à rivaliser avec vos amis !',
+      'de': 'Erstelle deine erste Gruppenherausforderung und beginne mit Freunden zu wetteifern!',
+      'ar': 'أنشئ أول تحدٍ جماعي وابدأ التنافس مع الأصدقاء!',
+      'it': 'Crea la tua prima sfida di gruppo e inizia a competere con gli amici!',
+      'pt': 'Crie seu primeiro desafio em grupo e comece a competir com amigos!',
+      'ru': 'Создайте свой первый групповой вызов и начните соревноваться с друзьями!',
+    },
+    'weekly_leaderboard': {
+      'tr': 'Haftalık Liderlik Tablosu',
+      'en': 'Weekly Leaderboard',
+      'es': 'Tabla de Clasificación Semanal',
+      'fr': 'Classement Hebdomadaire',
+      'de': 'Wöchentliche Bestenliste',
+      'ar': 'لوحة المتصدرين الأسبوعية',
+      'it': 'Classifica Settimanale',
+      'pt': 'Ranking Semanal',
+      'ru': 'Еженедельный рейтинг',
+    },
+    'compete_with_friends': {
+      'tr': 'Arkadaşlarınla yarış',
+      'en': 'Compete with friends',
+      'es': 'Compite con amigos',
+      'fr': 'Affrontez vos amis',
+      'de': 'Wetteifere mit Freunden',
+      'ar': 'تنافس مع الأصدقاء',
+      'it': 'Competi con gli amici',
+      'pt': 'Compita com amigos',
+      'ru': 'Соревнуйтесь с друзьями',
+    },
+    'your_progress': {
+      'tr': 'İlerlemeniz',
+      'en': 'Your Progress',
+      'es': 'Tu Progreso',
+      'fr': 'Votre Progrès',
+      'de': 'Dein Fortschritt',
+      'ar': 'تقدمك',
+      'it': 'Il Tuo Progresso',
+      'pt': 'Seu Progresso',
+      'ru': 'Ваш прогресс',
+    },
+    'to_next_badge': {
+      'tr': 'sonraki rozete',
+      'en': 'to next badge',
+      'es': 'al siguiente distintivo',
+      'fr': 'au prochain badge',
+      'de': 'zum nächsten Abzeichen',
+      'ar': 'للشارة التالية',
+      'it': 'al prossimo badge',
+      'pt': 'para o próximo emblema',
+      'ru': 'до следующего значка',
+    },
+    'best': {
+      'tr': 'En İyi',
+      'en': 'Best',
+      'es': 'Mejor',
+      'fr': 'Meilleur',
+      'de': 'Beste',
+      'ar': 'الأفضل',
+      'it': 'Migliore',
+      'pt': 'Melhor',
+      'ru': 'Лучший',
+    },
+    'd': {
+      'tr': 'g',
+      'en': 'd',
+      'es': 'd',
+      'fr': 'j',
+      'de': 'T',
+      'ar': 'ي',
+      'it': 'g',
+      'pt': 'd',
+      'ru': 'д',
+    },
+    'h': {
+      'tr': 's',
+      'en': 'h',
+      'es': 'h',
+      'fr': 'h',
+      'de': 'Std',
+      'ar': 'س',
+      'it': 'h',
+      'pt': 'h',
+      'ru': 'ч',
+    },
+    'and_more_participants': {
+      'tr': 've {count} katılımcı daha',
+      'en': 'and {count} more participants',
+      'es': 'y {count} participantes más',
+      'fr': 'et {count} participants de plus',
+      'de': 'und {count} weitere Teilnehmer',
+      'ar': 'و {count} مشارك آخر',
+      'it': 'e {count} altri partecipanti',
+      'pt': 'e {count} participantes a mais',
+      'ru': 'и еще {count} участников',
+    },
+    'feature_coming_soon': {
+      'tr': 'Özellik yakında gelecek!',
+      'en': 'Feature coming soon!',
+      'es': '¡Función próximamente!',
+      'fr': 'Fonctionnalité à venir bientôt !',
+      'de': 'Funktion kommt bald!',
+      'ar': 'الميزة قريباً!',
+      'it': 'Funzionalità in arrivo!',
+      'pt': 'Recurso em breve!',
+      'ru': 'Функция скоро появится!',
+    },
     'leaderboard': {
       'tr': 'Lider Tablosu',
       'en': 'Leaderboard',
@@ -21167,6 +21717,75 @@ class LocalizationService extends ChangeNotifier {
       'fr': 'Fonctionnalité Premium',
       'de': 'Premium-Funktion',
       'ar': 'ميزة مميزة',
+      'it': 'Funzionalità Premium',
+      'pt': 'Recurso Premium',
+      'ru': 'Премиум функция',
+    },
+    'premium_required_group_challenges': {
+      'tr': 'Grup mücadeleleri oluşturmak Premium özelliğidir. Sınırsız grup mücadeleleri oluşturmak ve arkadaşlarınızla rekabet etmek için Premium\'a yükseltin!',
+      'en': 'Creating group challenges is a Premium feature. Upgrade to Premium to create unlimited group challenges and compete with your friends!',
+      'es': 'Crear desafíos grupales es una función Premium. ¡Actualiza a Premium para crear desafíos grupales ilimitados y competir con tus amigos!',
+      'fr': 'Créer des défis de groupe est une fonctionnalité Premium. Passez à Premium pour créer des défis de groupe illimités et rivaliser avec vos amis!',
+      'de': 'Das Erstellen von Gruppenherausforderungen ist eine Premium-Funktion. Upgraden Sie auf Premium, um unbegrenzte Gruppenherausforderungen zu erstellen und mit Ihren Freunden zu konkurrieren!',
+      'ar': 'إنشاء تحديات جماعية هي ميزة مميزة. قم بالترقية إلى Premium لإنشاء تحديات جماعية غير محدودة والتنافس مع أصدقائك!',
+      'it': 'Creare sfide di gruppo è una funzionalità Premium. Aggiorna a Premium per creare sfide di gruppo illimitate e competere con i tuoi amici!',
+      'pt': 'Criar desafios em grupo é um recurso Premium. Atualize para Premium para criar desafios em grupo ilimitados e competir com seus amigos!',
+      'ru': 'Создание групповых испытаний — это премиум-функция. Обновитесь до Premium, чтобы создавать неограниченные групповые испытания и соревноваться с друзьями!',
+    },
+    'premium_benefit_unlimited_challenges': {
+      'tr': 'Sınırsız grup mücadeleleri',
+      'en': 'Unlimited group challenges',
+      'es': 'Desafíos grupales ilimitados',
+      'fr': 'Défis de groupe illimités',
+      'de': 'Unbegrenzte Gruppenherausforderungen',
+      'ar': 'تحديات جماعية غير محدودة',
+      'it': 'Sfide di gruppo illimitate',
+      'pt': 'Desafios em grupo ilimitados',
+      'ru': 'Неограниченные групповые испытания',
+    },
+    'premium_benefit_advanced_types': {
+      'tr': 'Gelişmiş mücadele türleri',
+      'en': 'Advanced challenge types',
+      'es': 'Tipos de desafíos avanzados',
+      'fr': 'Types de défis avancés',
+      'de': 'Erweiterte Herausforderungstypen',
+      'ar': 'أنواع التحديات المتقدمة',
+      'it': 'Tipi di sfide avanzati',
+      'pt': 'Tipos de desafios avançados',
+      'ru': 'Расширенные типы испытаний',
+    },
+    'premium_benefit_detailed_stats': {
+      'tr': 'Detaylı liderlik tablosu ve istatistikler',
+      'en': 'Detailed leaderboards & stats',
+      'es': 'Clasificaciones y estadísticas detalladas',
+      'fr': 'Classements et statistiques détaillés',
+      'de': 'Detaillierte Bestenlisten und Statistiken',
+      'ar': 'لوحات المتصدرين والإحصائيات التفصيلية',
+      'it': 'Classifiche e statistiche dettagliate',
+      'pt': 'Classificações e estatísticas detalhadas',
+      'ru': 'Подробные таблицы лидеров и статистика',
+    },
+    'free_users_one_active_challenge': {
+      'tr': 'Ücretsiz kullanıcılar 1 aktif grup mücadelesi yapabilir. Sınırsız mücadeleler için Premium\'a yükseltin!',
+      'en': 'Free users can have 1 active group challenge. Upgrade to Premium for unlimited challenges!',
+      'es': 'Los usuarios gratuitos pueden tener 1 desafío grupal activo. ¡Actualiza a Premium para desafíos ilimitados!',
+      'fr': 'Les utilisateurs gratuits peuvent avoir 1 défi de groupe actif. Passez à Premium pour des défis illimités!',
+      'de': 'Kostenlose Benutzer können 1 aktive Gruppenherausforderung haben. Upgraden Sie auf Premium für unbegrenzte Herausforderungen!',
+      'ar': 'يمكن للمستخدمين المجانيين الحصول على تحدٍ جماعي نشط واحد. قم بالترقية إلى Premium للحصول على تحديات غير محدودة!',
+      'it': 'Gli utenti gratuiti possono avere 1 sfida di gruppo attiva. Aggiorna a Premium per sfide illimitate!',
+      'pt': 'Usuários gratuitos podem ter 1 desafio em grupo ativo. Atualize para Premium para desafios ilimitados!',
+      'ru': 'Бесплатные пользователи могут иметь 1 активное групповое испытание. Обновитесь до Premium для неограниченных испытаний!',
+    },
+    'premium_limit_reached': {
+      'tr': 'Ücretsiz limit aşıldı',
+      'en': 'Free limit reached',
+      'es': 'Límite gratuito alcanzado',
+      'fr': 'Limite gratuite atteinte',
+      'de': 'Kostenloses Limit erreicht',
+      'ar': 'تم الوصول إلى الحد المجاني',
+      'it': 'Limite gratuito raggiunto',
+      'pt': 'Limite gratuito atingido',
+      'ru': 'Достигнут бесплатный лимит',
     },
     'free_limit_10_tests_month': {
       'tr': 'Ücretsiz: Ayda 10 test',
@@ -21688,6 +22307,403 @@ class LocalizationService extends ChangeNotifier {
       'ru':
           'Мы защищаем ваши данные гемограммы и профиля с помощью шифрования AES-256 при хранении и TLS 1.2+ при передаче. Обработка ведётся на основании явного согласия, ограничения целей, минимизации данных и проверяемых сроков хранения. Направьте запрос на доступ, исправление, удаление или переносимость на адрес privacy@hemoai.com — мы ответим в течение 30 дней. Нерешённые вопросы можно передать в KVKK (Турция) или вашу местную надзорную GDPR-инстанцию.',
     },
+    'data_collection_title': {
+      'tr': 'Veri Toplama',
+      'en': 'Data Collection',
+      'es': 'Recopilación de Datos',
+      'fr': 'Collecte de Données',
+      'de': 'Datenerfassung',
+      'ar': 'جمع البيانات',
+      'it': 'Raccolta Dati',
+      'pt': 'Coleta de Dados',
+      'ru': 'Сбор данных',
+    },
+    'data_collection_body_1': {
+      'tr':
+          'HemoAI, sağlık analizlerinizi gerçekleştirmek için yalnızca gerekli verileri toplar. Toplanan veriler: hemogram sonuçları, kişisel bilgiler (yaş, cinsiyet, boy, kilo), kullanıcı tercihleri ve uygulama kullanım verileridir.',
+      'en':
+          'HemoAI collects only the necessary data to perform your health analyses. Collected data includes: hemogram results, personal information (age, gender, height, weight), user preferences, and app usage data.',
+      'es':
+          'HemoAI recopila solo los datos necesarios para realizar sus análisis de salud. Los datos recopilados incluyen: resultados de hemograma, información personal (edad, género, altura, peso), preferencias del usuario y datos de uso de la aplicación.',
+      'fr':
+          'HemoAI collecte uniquement les données nécessaires pour effectuer vos analyses de santé. Les données collectées incluent : résultats d\'hémogramme, informations personnelles (âge, sexe, taille, poids), préférences utilisateur et données d\'utilisation de l\'application.',
+      'de':
+          'HemoAI erfasst nur die für Ihre Gesundheitsanalysen erforderlichen Daten. Erfasste Daten umfassen: Hämogramm-Ergebnisse, persönliche Informationen (Alter, Geschlecht, Größe, Gewicht), Benutzereinstellungen und App-Nutzungsdaten.',
+      'ar':
+          'يجمع HemoAI فقط البيانات الضرورية لإجراء تحليلاتك الصحية. تشمل البيانات المجمعة: نتائج تعداد الدم، والمعلومات الشخصية (العمر، والجنس، والطول، والوزن)، وتفضيلات المستخدم، وبيانات استخدام التطبيق.',
+      'it':
+          'HemoAI raccoglie solo i dati necessari per eseguire le tue analisi sanitarie. I dati raccolti includono: risultati dell\'emocromo, informazioni personali (età, genere, altezza, peso), preferenze dell\'utente e dati di utilizzo dell\'app.',
+      'pt':
+          'O HemoAI coleta apenas os dados necessários para realizar suas análises de saúde. Os dados coletados incluem: resultados de hemograma, informações pessoais (idade, gênero, altura, peso), preferências do usuário e dados de uso do aplicativo.',
+      'ru':
+          'HemoAI собирает только необходимые данные для проведения ваших анализов здоровья. Собранные данные включают: результаты гемограммы, личную информацию (возраст, пол, рост, вес), пользовательские настройки и данные об использовании приложения.',
+    },
+    'data_collection_body_2': {
+      'tr':
+          'Tüm veriler, açık kullanıcı onayı ve yasal yükümlülüklerimiz çerçevesinde toplanır. Veri toplama, yalnızca belirtilen amaçlar için gerçekleştirilir ve veri minimizasyonu ilkesine uygun olarak yapılır.',
+      'en':
+          'All data is collected with explicit user consent and within the framework of our legal obligations. Data collection is performed only for specified purposes and in accordance with the principle of data minimization.',
+      'es':
+          'Todos los datos se recopilan con el consentimiento explícito del usuario y dentro del marco de nuestras obligaciones legales. La recopilación de datos se realiza solo para fines especificados y de acuerdo con el principio de minimización de datos.',
+      'fr':
+          'Toutes les données sont collectées avec le consentement explicite de l\'utilisateur et dans le cadre de nos obligations légales. La collecte de données est effectuée uniquement à des fins spécifiées et conformément au principe de minimisation des données.',
+      'de':
+          'Alle Daten werden mit ausdrücklicher Benutzereinwilligung und im Rahmen unserer rechtlichen Verpflichtungen erfasst. Die Datenerfassung erfolgt nur für festgelegte Zwecke und in Übereinstimmung mit dem Prinzip der Datenminimierung.',
+      'ar':
+          'يتم جمع جميع البيانات بموافقة صريحة من المستخدم وفي إطار التزاماتنا القانونية. يتم جمع البيانات فقط للأغراض المحددة ووفقًا لمبدأ تقليل البيانات.',
+      'it':
+          'Tutti i dati vengono raccolti con il consenso esplicito dell\'utente e nell\'ambito dei nostri obblighi legali. La raccolta dei dati viene eseguita solo per scopi specificati e in conformità al principio di minimizzazione dei dati.',
+      'pt':
+          'Todos os dados são coletados com o consentimento explícito do usuário e no âmbito de nossas obrigações legais. A coleta de dados é realizada apenas para fins especificados e de acordo com o princípio de minimização de dados.',
+      'ru':
+          'Все данные собираются с явного согласия пользователя и в рамках наших правовых обязательств. Сбор данных осуществляется только для указанных целей и в соответствии с принципом минимизации данных.',
+    },
+    'data_collection_body_3': {
+      'tr':
+          'Sağlık verileriniz, KVKK ve GDPR gerekliliklerine uygun olarak işlenir ve saklanır. Verileriniz, yalnızca sağlık analizleri ve uygulama hizmetlerinin sağlanması amacıyla kullanılır.',
+      'en':
+          'Your health data is processed and stored in accordance with KVKK and GDPR requirements. Your data is used solely for the purpose of health analyses and providing application services.',
+      'es':
+          'Sus datos de salud se procesan y almacenan de acuerdo con los requisitos de KVKK y GDPR. Sus datos se utilizan únicamente para el propósito de análisis de salud y proporcionar servicios de la aplicación.',
+      'fr':
+          'Vos données de santé sont traitées et stockées conformément aux exigences KVKK et RGPD. Vos données sont utilisées uniquement à des fins d\'analyses de santé et de fourniture de services d\'application.',
+      'de':
+          'Ihre Gesundheitsdaten werden gemäß den Anforderungen von KVKK und DSGVO verarbeitet und gespeichert. Ihre Daten werden ausschließlich für Gesundheitsanalysen und die Bereitstellung von Anwendungsdiensten verwendet.',
+      'ar':
+          'يتم معالجة بياناتك الصحية وتخزينها وفقًا لمتطلبات KVKK وGDPR. يتم استخدام بياناتك فقط لغرض تحليلات الصحة وتقديم خدمات التطبيق.',
+      'it':
+          'I tuoi dati sanitari vengono elaborati e archiviati in conformità con i requisiti KVKK e GDPR. I tuoi dati vengono utilizzati esclusivamente per analisi sanitarie e fornitura di servizi dell\'applicazione.',
+      'pt':
+          'Seus dados de saúde são processados e armazenados de acordo com os requisitos KVKK e GDPR. Seus dados são usados exclusivamente para análises de saúde e fornecimento de serviços do aplicativo.',
+      'ru':
+          'Ваши данные о здоровье обрабатываются и хранятся в соответствии с требованиями KVKK и GDPR. Ваши данные используются исключительно для целей анализа здоровья и предоставления услуг приложения.',
+    },
+    'data_types_title': {
+      'tr': 'Toplanan Veri Türleri',
+      'en': 'Types of Data Collected',
+      'es': 'Tipos de Datos Recopilados',
+      'fr': 'Types de Données Collectées',
+      'de': 'Arten der Erfassten Daten',
+      'ar': 'أنواع البيانات المجمعة',
+      'it': 'Tipi di Dati Raccolti',
+      'pt': 'Tipos de Dados Coletados',
+      'ru': 'Типы собираемых данных',
+    },
+    'data_types_body_1': {
+      'tr':
+          'Sağlık Verileri: Hemogram sonuçları, laboratuvar değerleri ve sağlık geçmişi bilgileri. Bu veriler, analiz ve öneriler sunmak için kullanılır.',
+      'en':
+          'Health Data: Hemogram results, laboratory values, and health history information. This data is used to provide analysis and recommendations.',
+      'es':
+          'Datos de Salud: Resultados de hemograma, valores de laboratorio e información del historial de salud. Estos datos se utilizan para proporcionar análisis y recomendaciones.',
+      'fr':
+          'Données de Santé : Résultats d\'hémogramme, valeurs de laboratoire et informations sur les antécédents de santé. Ces données sont utilisées pour fournir des analyses et des recommandations.',
+      'de':
+          'Gesundheitsdaten: Hämogramm-Ergebnisse, Laborwerte und Gesundheitshistorie-Informationen. Diese Daten werden zur Bereitstellung von Analysen und Empfehlungen verwendet.',
+      'ar':
+          'البيانات الصحية: نتائج تعداد الدم، وقيم المختبر، ومعلومات التاريخ الصحي. تُستخدم هذه البيانات لتقديم التحليل والتوصيات.',
+      'it':
+          'Dati Sanitari: Risultati dell\'emocromo, valori di laboratorio e informazioni sulla storia sanitaria. Questi dati vengono utilizzati per fornire analisi e raccomandazioni.',
+      'pt':
+          'Dados de Saúde: Resultados de hemograma, valores de laboratório e informações do histórico de saúde. Esses dados são usados para fornecer análises e recomendações.',
+      'ru':
+          'Данные о здоровье: результаты гемограммы, лабораторные значения и информация об истории здоровья. Эти данные используются для предоставления анализа и рекомендаций.',
+    },
+    'data_types_body_2': {
+      'tr':
+          'Kişisel Bilgiler: Ad, e-posta, telefon numarası, yaş, cinsiyet, boy, kilo gibi demografik bilgiler. Bu bilgiler, kişiselleştirilmiş analizler sunmak için gereklidir.',
+      'en':
+          'Personal Information: Name, email, phone number, age, gender, height, weight, and other demographic information. This information is necessary to provide personalized analyses.',
+      'es':
+          'Información Personal: Nombre, correo electrónico, número de teléfono, edad, género, altura, peso y otra información demográfica. Esta información es necesaria para proporcionar análisis personalizados.',
+      'fr':
+          'Informations Personnelles : Nom, e-mail, numéro de téléphone, âge, sexe, taille, poids et autres informations démographiques. Ces informations sont nécessaires pour fournir des analyses personnalisées.',
+      'de':
+          'Persönliche Informationen: Name, E-Mail, Telefonnummer, Alter, Geschlecht, Größe, Gewicht und andere demografische Informationen. Diese Informationen sind erforderlich, um personalisierte Analysen bereitzustellen.',
+      'ar':
+          'المعلومات الشخصية: الاسم، والبريد الإلكتروني، ورقم الهاتف، والعمر، والجنس، والطول، والوزن، ومعلومات ديموغرافية أخرى. هذه المعلومات ضرورية لتقديم تحليلات مخصصة.',
+      'it':
+          'Informazioni Personali: Nome, email, numero di telefono, età, genere, altezza, peso e altre informazioni demografiche. Queste informazioni sono necessarie per fornire analisi personalizzate.',
+      'pt':
+          'Informações Pessoais: Nome, e-mail, número de telefone, idade, gênero, altura, peso e outras informações demográficas. Essas informações são necessárias para fornecer análises personalizadas.',
+      'ru':
+          'Личная информация: Имя, электронная почта, номер телефона, возраст, пол, рост, вес и другая демографическая информация. Эта информация необходима для предоставления персонализированных анализов.',
+    },
+    'data_types_body_3': {
+      'tr':
+          'Kullanım Verileri: Uygulama içi etkileşimler, özellik kullanımı ve performans metrikleri. Bu veriler, uygulama geliştirme ve kullanıcı deneyimini iyileştirmek için kullanılır.',
+      'en':
+          'Usage Data: In-app interactions, feature usage, and performance metrics. This data is used for app development and improving user experience.',
+      'es':
+          'Datos de Uso: Interacciones en la aplicación, uso de funciones y métricas de rendimiento. Estos datos se utilizan para el desarrollo de la aplicación y mejorar la experiencia del usuario.',
+      'fr':
+          'Données d\'Utilisation : Interactions dans l\'application, utilisation des fonctionnalités et métriques de performance. Ces données sont utilisées pour le développement de l\'application et l\'amélioration de l\'expérience utilisateur.',
+      'de':
+          'Nutzungsdaten: In-App-Interaktionen, Funktionsnutzung und Leistungsmetriken. Diese Daten werden für die App-Entwicklung und Verbesserung der Benutzererfahrung verwendet.',
+      'ar':
+          'بيانات الاستخدام: التفاعلات داخل التطبيق، واستخدام الميزات، ومقاييس الأداء. تُستخدم هذه البيانات لتطوير التطبيق وتحسين تجربة المستخدم.',
+      'it':
+          'Dati di Utilizzo: Interazioni nell\'app, utilizzo delle funzionalità e metriche delle prestazioni. Questi dati vengono utilizzati per lo sviluppo dell\'app e il miglioramento dell\'esperienza utente.',
+      'pt':
+          'Dados de Uso: Interações no aplicativo, uso de recursos e métricas de desempenho. Esses dados são usados para desenvolvimento do aplicativo e melhoria da experiência do usuário.',
+      'ru':
+          'Данные об использовании: взаимодействия в приложении, использование функций и метрики производительности. Эти данные используются для разработки приложения и улучшения пользовательского опыта.',
+    },
+    'encryption_security_title': {
+      'tr': 'Şifreleme ve Güvenlik',
+      'en': 'Encryption & Security',
+      'es': 'Cifrado y Seguridad',
+      'fr': 'Chiffrement et Sécurité',
+      'de': 'Verschlüsselung & Sicherheit',
+      'ar': 'التشفير والأمان',
+      'it': 'Crittografia e Sicurezza',
+      'pt': 'Criptografia e Segurança',
+      'ru': 'Шифрование и безопасность',
+    },
+    'encryption_security_body': {
+      'tr':
+          'Tüm sağlık verileriniz, endüstri standardı AES-256 şifreleme ile saklanır ve TLS 1.2+ protokolü ile aktarılır. Verileriniz, yalnızca yetkili personel tarafından erişilebilir ve düzenli güvenlik denetimlerinden geçer. Verileriniz, güvenli sunucularda saklanır ve yedeklenir.',
+      'en':
+          'All your health data is stored with industry-standard AES-256 encryption and transmitted using TLS 1.2+ protocol. Your data is accessible only by authorized personnel and undergoes regular security audits. Your data is stored and backed up on secure servers.',
+      'es':
+          'Todos sus datos de salud se almacenan con cifrado AES-256 estándar de la industria y se transmiten utilizando el protocolo TLS 1.2+. Sus datos son accesibles solo por personal autorizado y se someten a auditorías de seguridad regulares. Sus datos se almacenan y respaldan en servidores seguros.',
+      'fr':
+          'Toutes vos données de santé sont stockées avec un chiffrement AES-256 standard de l\'industrie et transmises via le protocole TLS 1.2+. Vos données ne sont accessibles que par le personnel autorisé et font l\'objet d\'audits de sécurité réguliers. Vos données sont stockées et sauvegardées sur des serveurs sécurisés.',
+      'de':
+          'Alle Ihre Gesundheitsdaten werden mit branchenüblicher AES-256-Verschlüsselung gespeichert und über das TLS 1.2+-Protokoll übertragen. Ihre Daten sind nur für autorisiertes Personal zugänglich und unterliegen regelmäßigen Sicherheitsaudits. Ihre Daten werden auf sicheren Servern gespeichert und gesichert.',
+      'ar':
+          'يتم تخزين جميع بياناتك الصحية بتشفير AES-256 القياسي في الصناعة ونقلها باستخدام بروتوكول TLS 1.2+. يمكن الوصول إلى بياناتك فقط من قبل الموظفين المصرح لهم وتخضع لعمليات تدقيق أمنية منتظمة. يتم تخزين بياناتك ونسخها احتياطيًا على خوادم آمنة.',
+      'it':
+          'Tutti i tuoi dati sanitari sono memorizzati con crittografia AES-256 standard del settore e trasmessi utilizzando il protocollo TLS 1.2+. I tuoi dati sono accessibili solo da personale autorizzato e sono sottoposti a audit di sicurezza regolari. I tuoi dati sono memorizzati e sottoposti a backup su server sicuri.',
+      'pt':
+          'Todos os seus dados de saúde são armazenados com criptografia AES-256 padrão da indústria e transmitidos usando o protocolo TLS 1.2+. Seus dados são acessíveis apenas por pessoal autorizado e passam por auditorias de segurança regulares. Seus dados são armazenados e copiados em servidores seguros.',
+      'ru':
+          'Все ваши данные о здоровье хранятся с использованием стандартного для отрасли шифрования AES-256 и передаются по протоколу TLS 1.2+. Ваши данные доступны только авторизованному персоналу и проходят регулярные проверки безопасности. Ваши данные хранятся и резервируются на защищенных серверах.',
+    },
+    'user_rights_title': {
+      'tr': 'Kullanıcı Hakları',
+      'en': 'User Rights',
+      'es': 'Derechos del Usuario',
+      'fr': 'Droits de l\'Utilisateur',
+      'de': 'Benutzerrechte',
+      'ar': 'حقوق المستخدم',
+      'it': 'Diritti dell\'Utente',
+      'pt': 'Direitos do Usuário',
+      'ru': 'Права пользователя',
+    },
+    'user_rights_body_1': {
+      'tr':
+          'Erişim Hakkı: Kişisel verilerinize erişim talep edebilir ve hangi verilerin işlendiğini öğrenebilirsiniz.',
+      'en':
+          'Right of Access: You can request access to your personal data and learn what data is being processed.',
+      'es':
+          'Derecho de Acceso: Puede solicitar acceso a sus datos personales y conocer qué datos se están procesando.',
+      'fr':
+          'Droit d\'Accès : Vous pouvez demander l\'accès à vos données personnelles et savoir quelles données sont traitées.',
+      'de':
+          'Recht auf Zugang: Sie können den Zugang zu Ihren persönlichen Daten anfordern und erfahren, welche Daten verarbeitet werden.',
+      'ar':
+          'حق الوصول: يمكنك طلب الوصول إلى بياناتك الشخصية ومعرفة البيانات التي يتم معالجتها.',
+      'it':
+          'Diritto di Accesso: Puoi richiedere l\'accesso ai tuoi dati personali e sapere quali dati vengono elaborati.',
+      'pt':
+          'Direito de Acesso: Você pode solicitar acesso aos seus dados pessoais e saber quais dados estão sendo processados.',
+      'ru':
+          'Право доступа: Вы можете запросить доступ к своим личным данным и узнать, какие данные обрабатываются.',
+    },
+    'user_rights_body_2': {
+      'tr':
+          'Düzeltme Hakkı: Yanlış veya eksik verilerinizi düzeltme talep edebilirsiniz.',
+      'en':
+          'Right to Rectification: You can request correction of incorrect or incomplete data.',
+      'es':
+          'Derecho de Rectificación: Puede solicitar la corrección de datos incorrectos o incompletos.',
+      'fr':
+          'Droit de Rectification : Vous pouvez demander la correction de données incorrectes ou incomplètes.',
+      'de':
+          'Recht auf Berichtigung: Sie können die Korrektur falscher oder unvollständiger Daten anfordern.',
+      'ar':
+          'حق التصحيح: يمكنك طلب تصحيح البيانات غير الصحيحة أو غير المكتملة.',
+      'it':
+          'Diritto di Rettifica: Puoi richiedere la correzione di dati errati o incompleti.',
+      'pt':
+          'Direito de Retificação: Você pode solicitar a correção de dados incorretos ou incompletos.',
+      'ru':
+          'Право на исправление: Вы можете запросить исправление неверных или неполных данных.',
+    },
+    'user_rights_body_3': {
+      'tr':
+          'Silme Hakkı: Belirli koşullar altında verilerinizin silinmesini talep edebilirsiniz.',
+      'en':
+          'Right to Erasure: You can request deletion of your data under certain conditions.',
+      'es':
+          'Derecho al Olvido: Puede solicitar la eliminación de sus datos en determinadas condiciones.',
+      'fr':
+          'Droit à l\'Effacement : Vous pouvez demander la suppression de vos données dans certaines conditions.',
+      'de':
+          'Recht auf Löschung: Sie können unter bestimmten Bedingungen die Löschung Ihrer Daten anfordern.',
+      'ar':
+          'حق الحذف: يمكنك طلب حذف بياناتك في ظل ظروف معينة.',
+      'it':
+          'Diritto alla Cancellazione: Puoi richiedere la cancellazione dei tuoi dati in determinate condizioni.',
+      'pt':
+          'Direito ao Apagamento: Você pode solicitar a exclusão de seus dados sob certas condições.',
+      'ru':
+          'Право на удаление: Вы можете запросить удаление ваших данных при определенных условиях.',
+    },
+    'user_rights_body_4': {
+      'tr':
+          'Veri Taşınabilirliği: Verilerinizi yapılandırılmış bir formatta alabilir ve başka bir hizmete aktarabilirsiniz.',
+      'en':
+          'Data Portability: You can obtain your data in a structured format and transfer it to another service.',
+      'es':
+          'Portabilidad de Datos: Puede obtener sus datos en un formato estructurado y transferirlos a otro servicio.',
+      'fr':
+          'Portabilité des Données : Vous pouvez obtenir vos données dans un format structuré et les transférer vers un autre service.',
+      'de':
+          'Datenübertragbarkeit: Sie können Ihre Daten in einem strukturierten Format erhalten und an einen anderen Dienst übertragen.',
+      'ar':
+          'قابلية نقل البيانات: يمكنك الحصول على بياناتك بتنسيق منظم ونقلها إلى خدمة أخرى.',
+      'it':
+          'Portabilità dei Dati: Puoi ottenere i tuoi dati in un formato strutturato e trasferirli a un altro servizio.',
+      'pt':
+          'Portabilidade de Dados: Você pode obter seus dados em um formato estruturado e transferi-los para outro serviço.',
+      'ru':
+          'Переносимость данных: Вы можете получить свои данные в структурированном формате и передать их в другой сервис.',
+    },
+    'data_retention_title': {
+      'tr': 'Veri Saklama',
+      'en': 'Data Retention',
+      'es': 'Retención de Datos',
+      'fr': 'Conservation des Données',
+      'de': 'Datenspeicherung',
+      'ar': 'الاحتفاظ بالبيانات',
+      'it': 'Conservazione dei Dati',
+      'pt': 'Retenção de Dados',
+      'ru': 'Хранение данных',
+    },
+    'data_retention_body_1': {
+      'tr':
+          'Verileriniz, yasal yükümlülüklerimiz ve hizmet sağlama gereksinimlerimiz çerçevesinde saklanır. Hesabınızı sildiğinizde, verileriniz 30 gün içinde kalıcı olarak silinir.',
+      'en':
+          'Your data is retained within the framework of our legal obligations and service provision requirements. When you delete your account, your data will be permanently deleted within 30 days.',
+      'es':
+          'Sus datos se conservan en el marco de nuestras obligaciones legales y requisitos de prestación de servicios. Cuando elimine su cuenta, sus datos se eliminarán permanentemente en un plazo de 30 días.',
+      'fr':
+          'Vos données sont conservées dans le cadre de nos obligations légales et des exigences de fourniture de services. Lorsque vous supprimez votre compte, vos données seront définitivement supprimées dans un délai de 30 jours.',
+      'de':
+          'Ihre Daten werden im Rahmen unserer rechtlichen Verpflichtungen und Anforderungen an die Dienstleistungserbringung aufbewahrt. Wenn Sie Ihr Konto löschen, werden Ihre Daten innerhalb von 30 Tagen dauerhaft gelöscht.',
+      'ar':
+          'يتم الاحتفاظ ببياناتك في إطار التزاماتنا القانونية ومتطلبات تقديم الخدمة. عند حذف حسابك، سيتم حذف بياناتك نهائيًا خلال 30 يومًا.',
+      'it':
+          'I tuoi dati vengono conservati nell\'ambito dei nostri obblighi legali e dei requisiti di fornitura del servizio. Quando elimini il tuo account, i tuoi dati verranno eliminati definitivamente entro 30 giorni.',
+      'pt':
+          'Seus dados são retidos no âmbito de nossas obrigações legais e requisitos de prestação de serviços. Quando você excluir sua conta, seus dados serão excluídos permanentemente em até 30 dias.',
+      'ru':
+          'Ваши данные хранятся в рамках наших правовых обязательств и требований к предоставлению услуг. Когда вы удаляете свою учетную запись, ваши данные будут окончательно удалены в течение 30 дней.',
+    },
+    'data_retention_body_2': {
+      'tr':
+          'Yasal saklama süreleri gerektiren durumlarda, verileriniz yasal gereklilikler çerçevesinde saklanmaya devam eder.',
+      'en':
+          'In cases where legal retention periods are required, your data will continue to be retained in accordance with legal requirements.',
+      'es':
+          'En los casos en que se requieran períodos de retención legal, sus datos continuarán conservándose de acuerdo con los requisitos legales.',
+      'fr':
+          'Dans les cas où des périodes de conservation légales sont requises, vos données continueront d\'être conservées conformément aux exigences légales.',
+      'de':
+          'In Fällen, in denen gesetzliche Aufbewahrungsfristen erforderlich sind, werden Ihre Daten weiterhin gemäß den gesetzlichen Anforderungen aufbewahrt.',
+      'ar':
+          'في الحالات التي تتطلب فترات الاحتفاظ القانونية، سيتم الاستمرار في الاحتفاظ ببياناتك وفقًا للمتطلبات القانونية.',
+      'it':
+          'Nei casi in cui sono richiesti periodi di conservazione legale, i tuoi dati continueranno a essere conservati in conformità con i requisiti legali.',
+      'pt':
+          'Nos casos em que períodos de retenção legal são necessários, seus dados continuarão sendo retidos de acordo com os requisitos legais.',
+      'ru':
+          'В случаях, когда требуются правовые сроки хранения, ваши данные будут продолжать храниться в соответствии с правовыми требованиями.',
+    },
+    'contact_dpo_title': {
+      'tr': 'İletişim ve Veri Koruma Sorumlusu',
+      'en': 'Contact & Data Protection Officer',
+      'es': 'Contacto y Oficial de Protección de Datos',
+      'fr': 'Contact et Délégué à la Protection des Données',
+      'de': 'Kontakt & Datenschutzbeauftragter',
+      'ar': 'الاتصال ومسؤول حماية البيانات',
+      'it': 'Contatto e Responsabile della Protezione dei Dati',
+      'pt': 'Contato e Oficial de Proteção de Dados',
+      'ru': 'Контакт и ответственный за защиту данных',
+    },
+    'contact_dpo_body': {
+      'tr':
+          'Veri koruma ile ilgili sorularınız, talepleriniz veya şikayetleriniz için bizimle iletişime geçebilirsiniz. Tüm talepleriniz 30 gün içinde yanıtlanır.',
+      'en':
+          'You can contact us for questions, requests, or complaints regarding data protection. All requests are responded to within 30 days.',
+      'es':
+          'Puede contactarnos para preguntas, solicitudes o quejas relacionadas con la protección de datos. Todas las solicitudes se responden en un plazo de 30 días.',
+      'fr':
+          'Vous pouvez nous contacter pour des questions, demandes ou plaintes concernant la protection des données. Toutes les demandes sont traitées dans un délai de 30 jours.',
+      'de':
+          'Sie können uns bei Fragen, Anfragen oder Beschwerden zum Datenschutz kontaktieren. Alle Anfragen werden innerhalb von 30 Tagen beantwortet.',
+      'ar':
+          'يمكنك الاتصال بنا للأسئلة أو الطلبات أو الشكاوى المتعلقة بحماية البيانات. يتم الرد على جميع الطلبات في غضون 30 يومًا.',
+      'it':
+          'Puoi contattarci per domande, richieste o reclami relativi alla protezione dei dati. Tutte le richieste vengono risposte entro 30 giorni.',
+      'pt':
+          'Você pode entrar em contato conosco para perguntas, solicitações ou reclamações relacionadas à proteção de dados. Todas as solicitações são respondidas em até 30 dias.',
+      'ru':
+          'Вы можете связаться с нами по вопросам, запросам или жалобам, касающимся защиты данных. На все запросы отвечают в течение 30 дней.',
+    },
+    'compliance_title': {
+      'tr': 'Uyumluluk',
+      'en': 'Compliance',
+      'es': 'Cumplimiento',
+      'fr': 'Conformité',
+      'de': 'Compliance',
+      'ar': 'الامتثال',
+      'it': 'Conformità',
+      'pt': 'Conformidade',
+      'ru': 'Соответствие',
+    },
+    'compliance_body_1': {
+      'tr':
+          'HemoAI, Türkiye\'deki Kişisel Verilerin Korunması Kanunu (KVKK) ve Avrupa Birliği Genel Veri Koruma Tüzüğü (GDPR) gerekliliklerine tam uyumludur.',
+      'en':
+          'HemoAI is fully compliant with the Turkish Personal Data Protection Law (KVKK) and the European Union General Data Protection Regulation (GDPR) requirements.',
+      'es':
+          'HemoAI cumple plenamente con la Ley de Protección de Datos Personales de Turquía (KVKK) y los requisitos del Reglamento General de Protección de Datos de la Unión Europea (GDPR).',
+      'fr':
+          'HemoAI est entièrement conforme à la loi turque sur la protection des données personnelles (KVKK) et aux exigences du Règlement général sur la protection des données de l\'Union européenne (RGPD).',
+      'de':
+          'HemoAI ist vollständig konform mit dem türkischen Gesetz zum Schutz personenbezogener Daten (KVKK) und den Anforderungen der Datenschutz-Grundverordnung (DSGVO) der Europäischen Union.',
+      'ar':
+          'يتوافق HemoAI بالكامل مع قانون حماية البيانات الشخصية التركي (KVKK) ومتطلبات اللائحة العامة لحماية البيانات في الاتحاد الأوروبي (GDPR).',
+      'it':
+          'HemoAI è pienamente conforme alla legge turca sulla protezione dei dati personali (KVKK) e ai requisiti del Regolamento generale sulla protezione dei dati dell\'Unione europea (GDPR).',
+      'pt':
+          'O HemoAI está totalmente em conformidade com a Lei de Proteção de Dados Pessoais da Turquia (KVKK) e os requisitos do Regulamento Geral de Proteção de Dados da União Europeia (GDPR).',
+      'ru':
+          'HemoAI полностью соответствует турецкому Закону о защите персональных данных (KVKK) и требованиям Общего регламента по защите данных Европейского союза (GDPR).',
+    },
+    'compliance_body_2': {
+      'tr':
+          'Düzenli güvenlik denetimleri ve uyumluluk kontrolleri yapılmaktadır. Veri ihlali durumunda, yasal gereklilikler çerçevesinde ilgili otoritelere ve kullanıcılara bildirim yapılır.',
+      'en':
+          'Regular security audits and compliance checks are conducted. In case of a data breach, notifications are made to relevant authorities and users in accordance with legal requirements.',
+      'es':
+          'Se realizan auditorías de seguridad y controles de cumplimiento regulares. En caso de una violación de datos, se realizan notificaciones a las autoridades relevantes y usuarios de acuerdo con los requisitos legales.',
+      'fr':
+          'Des audits de sécurité et des contrôles de conformité réguliers sont effectués. En cas de violation de données, des notifications sont faites aux autorités concernées et aux utilisateurs conformément aux exigences légales.',
+      'de':
+          'Regelmäßige Sicherheitsaudits und Compliance-Prüfungen werden durchgeführt. Im Falle einer Datenverletzung werden Benachrichtigungen an die zuständigen Behörden und Benutzer gemäß den gesetzlichen Anforderungen gesendet.',
+      'ar':
+          'يتم إجراء عمليات تدقيق أمنية وفحوصات امتثال منتظمة. في حالة حدوث خرق للبيانات، يتم إرسال إشعارات إلى السلطات المعنية والمستخدمين وفقًا للمتطلبات القانونية.',
+      'it':
+          'Vengono condotti audit di sicurezza e controlli di conformità regolari. In caso di violazione dei dati, vengono inviate notifiche alle autorità competenti e agli utenti in conformità con i requisiti legali.',
+      'pt':
+          'Auditorias de segurança e verificações de conformidade regulares são realizadas. Em caso de violação de dados, as notificações são feitas às autoridades relevantes e aos usuários de acordo com os requisitos legais.',
+      'ru':
+          'Проводятся регулярные проверки безопасности и соответствия. В случае утечки данных уведомления направляются соответствующим органам и пользователям в соответствии с правовыми требованиями.',
+    },
     'educational_insights_only': {
       'tr': 'Sadece eğitici içgörüler; tıbbi tanı değildir.',
       'en': 'Educational insights only; not a medical diagnosis.',
@@ -21921,6 +22937,17 @@ class LocalizationService extends ChangeNotifier {
       'it': 'Effettua l\'upgrade',
       'pt': 'Atualizar',
       'ru': 'Обновить',
+    },
+    'upgrade_to_premium': {
+      'tr': 'Premium\'a Yükselt',
+      'en': 'Upgrade to Premium',
+      'es': 'Actualizar a Premium',
+      'fr': 'Passer à Premium',
+      'de': 'Auf Premium upgraden',
+      'ar': 'الترقية إلى Premium',
+      'it': 'Aggiorna a Premium',
+      'pt': 'Atualizar para Premium',
+      'ru': 'Обновить до Premium',
     },
     'shared_diet_premium_title': {
       'tr': 'Yapay Zekâ Destekli Ortak Diyet',

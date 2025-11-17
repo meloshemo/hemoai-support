@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'register_screen.dart';
@@ -12,6 +13,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  static const bool _useModernHero = false; // reverted to classic card style
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -40,32 +42,10 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const SizedBox(height: 60),
-                // Logo - Daha büyük
-                Container(
-                  margin: const EdgeInsets.only(bottom: 48),
-                  child: Image.asset(
-                    'assets/hemoai pic 1.O.jpg',
-                    width: 180,
-                    height: 180,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 180,
-                        height: 180,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(90),
-                          border: Border.all(
-                              color: const Color(0xFFE53E3E), width: 3),
-                        ),
-                        child: const Icon(
-                          Icons.local_hospital,
-                          size: 80,
-                          color: Color(0xFFE53E3E),
-                        ),
-                      );
-                    },
-                  ),
-                ),
+                // Hero area (modern vs classic)
+                _useModernHero
+                    ? _buildModernHero(context)
+                    : _buildClassicLogoCard(context),
                 // Ana Butonlar
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -165,6 +145,214 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  Widget _buildClassicLogoCard(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final surface = scheme.surface;
+    final outline = scheme.outlineVariant;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 48),
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: outline.withValues(alpha: 0.4), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Image.asset(
+          'assets/hemoai pic 1.O.jpg',
+          width: 172,
+          height: 172,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            debugPrint('Image load error: $error');
+            debugPrint('Stack trace: $stackTrace');
+            return Container(
+              width: 172,
+              height: 172,
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: const Color(0xFFE53E3E),
+                  width: 2,
+                ),
+              ),
+              child: const Icon(
+                Icons.local_hospital,
+                size: 76,
+                color: Color(0xFFE53E3E),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernHero(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    const accent = Color(0xFFE53E3E);
+    final surface = Theme.of(context).colorScheme.surface;
+    return Container(
+      height: 280,
+      margin: const EdgeInsets.only(bottom: 40),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Radial glow background
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: const Alignment(0, -0.2),
+                  radius: 0.9,
+                  colors: [
+                    accent.withValues(alpha: isDark ? 0.12 : 0.18),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Soft blobs
+          Positioned(
+            left: 24,
+            top: 12,
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [accent.withValues(alpha: 0.18), Colors.transparent],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            right: 16,
+            top: 48,
+            child: Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white.withValues(alpha: isDark ? 0.05 : 0.35),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Glass card with gradient ring
+          ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+              child: Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(28),
+                    color:
+                      (isDark ? Colors.white : Colors.black).withValues(alpha: 0.06),
+                  border: Border.all(
+                    color: accent.withValues(alpha: 0.35),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.10),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: SweepGradient(
+                      colors: [
+                        accent,
+                        Color(0xFFFF6B6B),
+                        accent,
+                      ],
+                    ),
+                  ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: surface,
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/hemoai pic 1.O.jpg',
+                        width: 152,
+                        height: 152,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          debugPrint('Image load error: $error');
+                          debugPrint('Stack trace: $stackTrace');
+                          return Container(
+                            width: 152,
+                            height: 152,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: accent,
+                                width: 2,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.local_hospital,
+                              size: 72,
+                              color: accent,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // App name under the hero
+          Positioned(
+            bottom: 0,
+            child: Column(
+              children: [
+                const SizedBox(height: 12),
+                Text(
+                  LocalizationService.translate('app_name'),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white : const Color(0xFF1F2937),
+                    letterSpacing: 0.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
   void _showAboutDialog(BuildContext context) {
     showDialog(
       context: context,

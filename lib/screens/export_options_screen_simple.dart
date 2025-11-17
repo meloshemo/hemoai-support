@@ -3,10 +3,8 @@ import 'package:provider/provider.dart';
 import '../services/localization_service.dart';
 import '../services/theme_service.dart';
 import '../widgets/app_drawer.dart';
-import '../services/cloud_sync_service.dart';
 import '../services/export_service.dart';
 import '../services/audit_log_service.dart';
-import '../services/verification_service.dart';
 import '../services/analytics_service.dart';
 
 class ExportOptionsScreen extends StatelessWidget {
@@ -336,37 +334,5 @@ class ExportOptionsScreen extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  Future<String?> _promptPassword(BuildContext context, LocalizationService loc,
-      {bool isRestore = false}) async {
-    final controller = TextEditingController();
-    String? result;
-    await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(isRestore
-            ? loc.getString('enter_backup_password')
-            : loc.getString('set_backup_password')),
-        content: TextField(
-          controller: controller,
-          obscureText: true,
-          decoration: InputDecoration(labelText: loc.getString('password')),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(loc.getString('cancel'))),
-          ElevatedButton(
-            onPressed: () {
-              result = controller.text.trim();
-              Navigator.pop(context);
-            },
-            child: Text(loc.getString('ok')),
-          ),
-        ],
-      ),
-    );
-    return result;
   }
 }

@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/localization_service.dart';
 import '../services/preferences_service.dart';
+import '../services/database_helper.dart';
 import '../utils/validators.dart';
+import 'package:intl/intl.dart';
 
 class HemogramEntryScreen extends StatefulWidget {
   const HemogramEntryScreen({super.key});
@@ -12,6 +15,9 @@ class HemogramEntryScreen extends StatefulWidget {
 }
 
 class _HemogramEntryScreenState extends State<HemogramEntryScreen> {
+  int? _familyMemberId;
+  String? _familyMemberName;
+  
   // Popular markers (20) controllers
   final Map<String, TextEditingController> controllers = {
     'hemoglobin': TextEditingController(),
@@ -74,10 +80,220 @@ class _HemogramEntryScreenState extends State<HemogramEntryScreen> {
     'vitamins': ['vitamin_d3', 'vitamin_b12'],
   };
 
+  bool _hasInitialized = false;
+
   @override
   void initState() {
     super.initState();
     _hydrateExistingValues();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Check if this is for a family member - must be done here, not in initState
+    if (!_hasInitialized) {
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (args != null) {
+        _familyMemberId = args['family_member_id'] as int?;
+        _familyMemberName = args['family_member_name'] as String?;
+      }
+      _hasInitialized = true;
+    }
+  }
+
+  Future<void> _showHemogramHistory(BuildContext context, LocalizationService loc) async {
+    final prefs = await PreferencesService.getInstance();
+    final userId = await prefs.getUserId();
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(loc.getString('login_required'))),
+      );
+      return;
+    }
+
+    final db = DatabaseHelper.instance;
+    final tests = await db.getHemogramTests(_familyMemberId ?? userId);
+    
+    if (!context.mounted) return;
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Icon(Icons.history, color: Theme.of(context).colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Text(
+                      loc.getString('hemogram_history', defaultValue: 'Hemogram History'),
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: tests.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.inbox_outlined,
+                              size: 64,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              loc.getString('no_hemogram_history', defaultValue: 'No hemogram history found'),
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        controller: scrollController,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: tests.length,
+                        itemBuilder: (context, index) {
+                          final test = tests[index];
+                          final testDate = DateTime.tryParse(test['test_date'] as String? ?? '');
+                          final dateStr = testDate != null
+                              ? DateFormat.yMMMd(loc.currentLanguageCode).format(testDate)
+                              : loc.getString('unknown_date', defaultValue: 'Unknown date');
+                          
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                                child: Icon(
+                                  Icons.bloodtype,
+                                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                ),
+                              ),
+                              title: Text(
+                                dateStr,
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              subtitle: Text(
+                                _getTestSummary(test, loc),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              trailing: Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: Colors.grey[600],
+                              ),
+                              onTap: () {
+                                Navigator.pop(context);
+                                _loadTestIntoForm(test);
+                              },
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _getTestSummary(Map<String, dynamic> test, LocalizationService loc) {
+    final values = <String>[];
+    if (test['hemoglobin'] != null) {
+      values.add('${loc.getString('hemoglobin')}: ${test['hemoglobin']}');
+    }
+    if (test['glucose'] != null) {
+      values.add('${loc.getString('glucose')}: ${test['glucose']}');
+    }
+    if (test['iron'] != null) {
+      values.add('${loc.getString('iron')}: ${test['iron']}');
+    }
+    if (values.isEmpty) {
+      return loc.getString('no_values_available', defaultValue: 'No values available');
+    }
+    return values.take(3).join(', ');
+  }
+
+  void _loadTestIntoForm(Map<String, dynamic> test) {
+    // Load test date
+    final testDate = DateTime.tryParse(test['test_date'] as String? ?? '');
+    if (testDate != null) {
+      setState(() {
+        _selectedDate = testDate;
+      });
+    }
+
+    // Load values into controllers
+    final valueKeys = [
+      'hemoglobin', 'glucose', 'calcium', 'sodium', 'potassium', 'chloride',
+      'alt', 'ast', 'ggt', 'total_bilirubin', 'direct_bilirubin',
+      'crp', 'iron', 'uibc', 'tibc', 'tsh', 'free_t3', 'free_t4',
+      'vitamin_d3', 'vitamin_b12',
+    ];
+
+    for (final key in valueKeys) {
+      final controller = controllers[key];
+      if (controller != null) {
+        final value = test[key];
+        if (value != null) {
+          final numValue = value is num ? value : double.tryParse(value.toString());
+          if (numValue != null) {
+            controller.text = numValue.toStringAsFixed(
+              numValue.truncateToDouble() == numValue ? 0 : 2,
+            );
+          }
+        }
+      }
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(Provider.of<LocalizationService>(context, listen: false)
+              .getString('test_loaded', defaultValue: 'Test loaded into form')),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   Future<void> _hydrateExistingValues() async {
@@ -124,12 +340,45 @@ class _HemogramEntryScreenState extends State<HemogramEntryScreen> {
     final loc = Provider.of<LocalizationService>(context);
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: Text(loc.getString('hemogram_entry'))),
+        appBar: AppBar(
+          title: Text(_familyMemberName != null 
+              ? '${loc.getString('hemogram_entry')} - $_familyMemberName'
+              : loc.getString('hemogram_entry')),
+        ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
     return Scaffold(
-      appBar: AppBar(title: Text(loc.getString('hemogram_entry'))),
+      appBar: AppBar(
+        title: Text(_familyMemberName != null 
+            ? '${loc.getString('hemogram_entry')} - $_familyMemberName'
+            : loc.getString('hemogram_entry')),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            tooltip: loc.getString('view_hemogram_history', defaultValue: 'View Hemogram History'),
+            onPressed: () => _showHemogramHistory(context, loc),
+          ),
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: loc.getString('new_hemogram', defaultValue: 'New Hemogram'),
+            onPressed: () {
+              setState(() {
+                controllers.forEach((key, controller) {
+                  controller.clear();
+                });
+                _selectedDate = null;
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(loc.getString('ready_for_new_hemogram', defaultValue: 'Ready for new hemogram entry')),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: StatefulBuilder(
@@ -208,22 +457,51 @@ class _HemogramEntryScreenState extends State<HemogramEntryScreen> {
                       return;
                     }
                     
-                    // Save hemogram values before navigating
+                    // Save hemogram values
+                    final navigator = Navigator.of(context);
                     final prefs = await PreferencesService.getInstance();
-                    await prefs.saveHemogramValues(
-                      values,
-                      testDate: _selectedDate ?? DateTime.now(),
-                    );
+                    final testDate = _selectedDate ?? DateTime.now();
                     
-                    if (!mounted) return;
-                    Navigator.pushNamed(
-                      context,
-                      '/analysis',
-                      arguments: {
-                        'values': values,
-                        'testDate': _selectedDate,
-                      },
-                    );
+                    // If this is for a family member, save to database
+                    if (_familyMemberId != null) {
+                      final db = DatabaseHelper.instance;
+                      final testData = <String, dynamic>{
+                        'user_id': _familyMemberId,
+                        'test_date': testDate.toIso8601String().split('T')[0],
+                        'values_json': jsonEncode(values),
+                        'status': 'active',
+                        'created_at': DateTime.now().toIso8601String(),
+                      };
+                      
+                      // Map values to database columns
+                      values.forEach((key, value) {
+                        // Map common keys to database column names
+                        final dbKey = _mapToDbColumn(key);
+                        if (dbKey != null) {
+                          testData[dbKey] = value;
+                        }
+                      });
+                      
+                      await db.insertHemogramTest(testData);
+                      
+                      if (!mounted) return;
+                      navigator.pop(true); // Return success
+                    } else {
+                      // Regular user flow
+                      await prefs.saveHemogramValues(
+                        values,
+                        testDate: testDate,
+                      );
+                      
+                      if (!mounted) return;
+                      navigator.pushNamed(
+                        '/analysis',
+                        arguments: {
+                          'values': values,
+                          'testDate': _selectedDate,
+                        },
+                      );
+                    }
                   },
                   child: Text(loc.getString('analysis')),
                 ),
@@ -316,14 +594,14 @@ class _HemogramEntryScreenState extends State<HemogramEntryScreen> {
                           labelText: loc.getString(param),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: borderColor != null
-                                ? BorderSide(color: borderColor!, width: 2)
+                              borderSide: borderColor != null
+                                ? BorderSide(color: borderColor, width: 2)
                                 : const BorderSide(),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide: borderColor != null
-                                ? BorderSide(color: borderColor!, width: 2)
+                                ? BorderSide(color: borderColor, width: 2)
                                 : const BorderSide(),
                           ),
                           focusedBorder: OutlineInputBorder(
@@ -367,6 +645,33 @@ class _HemogramEntryScreenState extends State<HemogramEntryScreen> {
     });
     
     return widgets;
+  }
+
+  String? _mapToDbColumn(String key) {
+    // Map hemogram entry keys to database column names
+    final mapping = {
+      'hemoglobin': 'hemoglobin',
+      'glucose': 'glucose',
+      'calcium': 'calcium',
+      'sodium': 'sodium',
+      'potassium': 'potassium',
+      'chloride': 'chloride',
+      'alt': 'alt',
+      'ast': 'ast',
+      'ggt': 'ggt',
+      'total_bilirubin': 'bilirubin',
+      'direct_bilirubin': 'bilirubin', // Note: database may only have one bilirubin column
+      'crp': 'crp',
+      'iron': 'iron',
+      'uibc': null, // Not in standard columns
+      'tibc': null, // Not in standard columns
+      'tsh': 'tsh',
+      'free_t3': null, // May need to add
+      'free_t4': null, // May need to add
+      'vitamin_d3': 'vitamin_d3',
+      'vitamin_b12': 'vitamin_b12',
+    };
+    return mapping[key];
   }
 
   IconData _getCategoryIcon(String categoryKey) {

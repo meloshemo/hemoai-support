@@ -51,7 +51,7 @@ class ErrorHandler {
       if (errorMsg.contains('vpn') || errorMsg.contains('connection failed')) {
         return error.message; // Use the detailed message from NetworkException
       }
-      return loc.getString('no_internet_connection');
+      return loc.getString('network_exception_no_connection');
     }
 
     if (error is FormatException) {
@@ -216,10 +216,11 @@ class ErrorHandler {
 
     if (!networkService.isConnected) {
       if (context != null && context.mounted) {
+        final loc = LocalizationService();
         await handleError(
           context,
-          NetworkException('No internet connection'),
-          customMessage: customErrorMessage ?? 'No internet connection. Please check your network settings.',
+          NetworkException(loc.getString('network_no_connection')),
+          customMessage: customErrorMessage ?? loc.getString('network_exception_no_connection'),
         );
       }
       return defaultValue;

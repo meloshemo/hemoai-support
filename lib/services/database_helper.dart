@@ -62,9 +62,40 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'hemoai.db');
     return await openDatabase(
       path,
-      version: 9,
+      version: 10,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
+      onOpen: (db) async {
+        // Safety: ensure essential tables exist even if version skews occurred.
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS daily_activities(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            date TEXT NOT NULL,
+            steps INTEGER DEFAULT 0,
+            sleep_minutes INTEGER DEFAULT 0,
+            water_glasses INTEGER DEFAULT 0,
+            points INTEGER DEFAULT 0,
+            goals_achieved INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            UNIQUE(user_id, date),
+            FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+          )
+        ''');
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS user_goals(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            steps_goal INTEGER DEFAULT 10000,
+            water_goal INTEGER DEFAULT 8,
+            sleep_goal INTEGER DEFAULT 480,
+            updated_at TEXT NOT NULL,
+            UNIQUE(user_id),
+            FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+          )
+        ''');
+      },
     );
   }
 
@@ -347,6 +378,38 @@ class DatabaseHelper {
         FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
       )
     ''');
+
+    // Daily activities table (steps, sleep, water, points)
+    await db.execute('''
+      CREATE TABLE daily_activities(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        date TEXT NOT NULL,
+        steps INTEGER DEFAULT 0,
+        sleep_minutes INTEGER DEFAULT 0,
+        water_glasses INTEGER DEFAULT 0,
+        points INTEGER DEFAULT 0,
+        goals_achieved INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        UNIQUE(user_id, date),
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+      )
+    ''');
+
+    // User goals table
+    await db.execute('''
+      CREATE TABLE user_goals(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        steps_goal INTEGER DEFAULT 10000,
+        water_goal INTEGER DEFAULT 8,
+        sleep_goal INTEGER DEFAULT 480,
+        updated_at TEXT NOT NULL,
+        UNIQUE(user_id),
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+      )
+    ''');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -554,6 +617,40 @@ class DatabaseHelper {
             whereArgs: [id],
           );
         }
+      }
+
+      if (oldVersion < 10) {
+        // Add daily activities table
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS daily_activities(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            date TEXT NOT NULL,
+            steps INTEGER DEFAULT 0,
+            sleep_minutes INTEGER DEFAULT 0,
+            water_glasses INTEGER DEFAULT 0,
+            points INTEGER DEFAULT 0,
+            goals_achieved INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            UNIQUE(user_id, date),
+            FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+          )
+        ''');
+
+        // Add user goals table
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS user_goals(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            steps_goal INTEGER DEFAULT 10000,
+            water_goal INTEGER DEFAULT 8,
+            sleep_goal INTEGER DEFAULT 480,
+            updated_at TEXT NOT NULL,
+            UNIQUE(user_id),
+            FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+          )
+        ''');
       }
     }
   }
@@ -1547,13 +1644,204 @@ class DatabaseHelper {
         );
       } else {
         // Insert new record
-        return await db.insert('water_tracking', {
+        await db.insert('water_tracking', {
           'user_id': userId,
           'date': today,
           'water_count': amount,
           'goal': 8,
           'created_at': DateTime.now().toIso8601String(),
         });
+      }
+      // Also update daily_activities table
+      await _updateDailyActivity(db, userId, today, waterGlasses: amount);
+      return amount;
+    }
+  }
+
+  // ===== Daily Activities Methods =====
+  Future<void> _updateDailyActivity(
+    dynamic db,
+    int userId,
+    String date, {
+    int? steps,
+    int? sleepMinutes,
+    int? waterGlasses,
+  }) async {
+    if (kIsWeb) {
+      // Web implementation will be handled in WebDatabaseHelper
+      return;
+    }
+    final now = DateTime.now().toIso8601String();
+    final existing = await db.query(
+      'daily_activities',
+      where: 'user_id = ? AND date = ?',
+      whereArgs: [userId, date],
+    );
+
+    final Map<String, dynamic> data = {
+      'user_id': userId,
+      'date': date,
+      'updated_at': now,
+    };
+
+    if (steps != null) data['steps'] = steps;
+    if (sleepMinutes != null) data['sleep_minutes'] = sleepMinutes;
+    if (waterGlasses != null) data['water_glasses'] = waterGlasses;
+
+    if (existing.isEmpty) {
+      data['created_at'] = now;
+      await db.insert('daily_activities', data);
+    } else {
+      await db.update(
+        'daily_activities',
+        data,
+        where: 'user_id = ? AND date = ?',
+        whereArgs: [userId, date],
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>?> getDailyActivity(int userId, String date) async {
+    final db = await database;
+    if (kIsWeb) {
+      return await _webHelper!.getDailyActivity(userId, date);
+    } else {
+      final rows = await db.query(
+        'daily_activities',
+        where: 'user_id = ? AND date = ?',
+        whereArgs: [userId, date],
+        limit: 1,
+      );
+      return rows.isNotEmpty ? rows.first : null;
+    }
+  }
+
+  Future<int> logSteps(int userId, int steps, {String? date}) async {
+    final db = await database;
+    final targetDate = date ?? DateTime.now().toIso8601String().split('T')[0];
+    if (kIsWeb) {
+      return await _webHelper!.logSteps(userId, steps, date: targetDate);
+    } else {
+      await _updateDailyActivity(db, userId, targetDate, steps: steps);
+      return steps;
+    }
+  }
+
+  Future<int> logSleep(int userId, int sleepMinutes, {String? date}) async {
+    final db = await database;
+    final targetDate = date ?? DateTime.now().toIso8601String().split('T')[0];
+    if (kIsWeb) {
+      return await _webHelper!.logSleep(userId, sleepMinutes, date: targetDate);
+    } else {
+      await _updateDailyActivity(db, userId, targetDate, sleepMinutes: sleepMinutes);
+      return sleepMinutes;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getWeeklyActivities(int userId, {DateTime? startDate}) async {
+    final db = await database;
+    final start = startDate ?? DateTime.now().subtract(const Duration(days: 7));
+    final startStr = start.toIso8601String().split('T')[0];
+    final endStr = DateTime.now().toIso8601String().split('T')[0];
+    
+    if (kIsWeb) {
+      return await _webHelper!.getWeeklyActivities(userId, startDate: start);
+    } else {
+      final rows = await db.query(
+        'daily_activities',
+        where: 'user_id = ? AND date >= ? AND date <= ?',
+        whereArgs: [userId, startStr, endStr],
+        orderBy: 'date DESC',
+      );
+      return rows;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getMonthlyActivities(int userId, {DateTime? startDate}) async {
+    final db = await database;
+    final start = startDate ?? DateTime.now().subtract(const Duration(days: 30));
+    final startStr = start.toIso8601String().split('T')[0];
+    final endStr = DateTime.now().toIso8601String().split('T')[0];
+    
+    if (kIsWeb) {
+      return await _webHelper!.getMonthlyActivities(userId, startDate: start);
+    } else {
+      final rows = await db.query(
+        'daily_activities',
+        where: 'user_id = ? AND date >= ? AND date <= ?',
+        whereArgs: [userId, startStr, endStr],
+        orderBy: 'date DESC',
+      );
+      return rows;
+    }
+  }
+
+  // ===== User Goals Methods =====
+  Future<Map<String, dynamic>> getUserGoals(int userId) async {
+    final db = await database;
+    if (kIsWeb) {
+      return await _webHelper!.getUserGoals(userId);
+    } else {
+      final rows = await db.query(
+        'user_goals',
+        where: 'user_id = ?',
+        whereArgs: [userId],
+        limit: 1,
+      );
+      if (rows.isNotEmpty) {
+        return rows.first;
+      }
+      // Create default goals if not exists
+      final now = DateTime.now().toIso8601String();
+      final defaultGoals = {
+        'user_id': userId,
+        'steps_goal': 10000,
+        'water_goal': 8,
+        'sleep_goal': 480,
+        'updated_at': now,
+      };
+      await db.insert('user_goals', defaultGoals);
+      return defaultGoals;
+    }
+  }
+
+  Future<void> updateUserGoals(int userId, {
+    int? stepsGoal,
+    int? waterGoal,
+    int? sleepGoal,
+  }) async {
+    final db = await database;
+    final now = DateTime.now().toIso8601String();
+    if (kIsWeb) {
+      await _webHelper!.updateUserGoals(userId, stepsGoal: stepsGoal, waterGoal: waterGoal, sleepGoal: sleepGoal);
+    } else {
+      final existing = await db.query(
+        'user_goals',
+        where: 'user_id = ?',
+        whereArgs: [userId],
+        limit: 1,
+      );
+
+      final Map<String, dynamic> data = {
+        'user_id': userId,
+        'updated_at': now,
+      };
+      if (stepsGoal != null) data['steps_goal'] = stepsGoal;
+      if (waterGoal != null) data['water_goal'] = waterGoal;
+      if (sleepGoal != null) data['sleep_goal'] = sleepGoal;
+
+      if (existing.isEmpty) {
+        data['steps_goal'] = stepsGoal ?? 10000;
+        data['water_goal'] = waterGoal ?? 8;
+        data['sleep_goal'] = sleepGoal ?? 480;
+        await db.insert('user_goals', data);
+      } else {
+        await db.update(
+          'user_goals',
+          data,
+          where: 'user_id = ?',
+          whereArgs: [userId],
+        );
       }
     }
   }

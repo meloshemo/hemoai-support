@@ -279,7 +279,7 @@ class PreferencesService {
       return [
         {
           'name': LocalizationService().getString('iron_supplement'),
-          'dosage': '1 ' + LocalizationService().getString('unit_tablet'),
+          'dosage': '1 ${LocalizationService().getString('unit_tablet')}',
           'frequency': LocalizationService().getString('frequency_once_daily'),
           'time': '20:00',
           'taken_today': false,

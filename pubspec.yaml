@@ -120,6 +120,7 @@ dependencies:
   # Health & Fitness (optional)
   # health: ^11.3.0 # Temporarily disabled due to unavailable version; re-enable with a valid version when needed
   permission_handler: ^11.3.1
+  file_saver: ^0.3.1
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
 
@@ -137,6 +138,8 @@ dev_dependencies:
   mockito: ^5.4.4
   integration_test:
     sdk: flutter
+  archive: ^3.6.1
+  image: ^4.1.7
   
   # Linting & Analysis
   flutter_lints: ^5.0.0
@@ -157,8 +160,19 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   assets:
+    - assets/
     - assets/hemoai pic 1.O.jpg
     - assets/lottie/
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700
   # (Removed unused video asset)
 
   # To add assets to your application, add an assets section, like this:

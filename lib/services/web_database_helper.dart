@@ -977,10 +977,188 @@ class WebDatabaseHelper {
     try {
       String today = DateTime.now().toIso8601String().split('T')[0];
       await _prefs!.setInt('water_${userId}_$today', glassCount);
+      // Also update daily_activities
+      await _updateDailyActivityWeb(userId, today, waterGlasses: glassCount);
       return 1;
     } catch (e) {
       debugPrint('Water log save error: $e');
       return 0;
+    }
+  }
+
+  // ===== Daily Activities Methods (Web) =====
+  Future<void> _updateDailyActivityWeb(
+    int userId,
+    String date, {
+    int? steps,
+    int? sleepMinutes,
+    int? waterGlasses,
+  }) async {
+    if (_prefs == null) await init();
+    final key = 'daily_activity_${userId}_$date';
+    final existing = _prefs!.getString(key);
+    final now = DateTime.now().toIso8601String();
+    
+    Map<String, dynamic> data = existing != null
+        ? Map<String, dynamic>.from(jsonDecode(existing))
+        : {
+            'user_id': userId,
+            'date': date,
+            'created_at': now,
+          };
+    
+    if (steps != null) data['steps'] = steps;
+    if (sleepMinutes != null) data['sleep_minutes'] = sleepMinutes;
+    if (waterGlasses != null) data['water_glasses'] = waterGlasses;
+    data['updated_at'] = now;
+    
+    await _prefs!.setString(key, jsonEncode(data));
+  }
+
+  Future<Map<String, dynamic>?> getDailyActivity(int userId, String date) async {
+    try {
+      if (_prefs == null) await init();
+      final key = 'daily_activity_${userId}_$date';
+      final data = _prefs!.getString(key);
+      if (data != null) {
+        return Map<String, dynamic>.from(jsonDecode(data));
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Daily activity load error: $e');
+      return null;
+    }
+  }
+
+  Future<int> logSteps(int userId, int steps, {String? date}) async {
+    try {
+      if (_prefs == null) await init();
+      final targetDate = date ?? DateTime.now().toIso8601String().split('T')[0];
+      await _updateDailyActivityWeb(userId, targetDate, steps: steps);
+      return steps;
+    } catch (e) {
+      debugPrint('Steps log error: $e');
+      return 0;
+    }
+  }
+
+  Future<int> logSleep(int userId, int sleepMinutes, {String? date}) async {
+    try {
+      if (_prefs == null) await init();
+      final targetDate = date ?? DateTime.now().toIso8601String().split('T')[0];
+      await _updateDailyActivityWeb(userId, targetDate, sleepMinutes: sleepMinutes);
+      return sleepMinutes;
+    } catch (e) {
+      debugPrint('Sleep log error: $e');
+      return 0;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getWeeklyActivities(int userId, {DateTime? startDate}) async {
+    try {
+      if (_prefs == null) await init();
+      final start = startDate ?? DateTime.now().subtract(const Duration(days: 7));
+      final end = DateTime.now();
+      final List<Map<String, dynamic>> activities = [];
+      
+      for (int i = 0; i <= end.difference(start).inDays; i++) {
+        final date = start.add(Duration(days: i));
+        final dateStr = date.toIso8601String().split('T')[0];
+        final activity = await getDailyActivity(userId, dateStr);
+        if (activity != null) {
+          activities.add(activity);
+        }
+      }
+      
+      return activities;
+    } catch (e) {
+      debugPrint('Weekly activities load error: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getMonthlyActivities(int userId, {DateTime? startDate}) async {
+    try {
+      if (_prefs == null) await init();
+      final start = startDate ?? DateTime.now().subtract(const Duration(days: 30));
+      final end = DateTime.now();
+      final List<Map<String, dynamic>> activities = [];
+      
+      for (int i = 0; i <= end.difference(start).inDays; i++) {
+        final date = start.add(Duration(days: i));
+        final dateStr = date.toIso8601String().split('T')[0];
+        final activity = await getDailyActivity(userId, dateStr);
+        if (activity != null) {
+          activities.add(activity);
+        }
+      }
+      
+      return activities;
+    } catch (e) {
+      debugPrint('Monthly activities load error: $e');
+      return [];
+    }
+  }
+
+  // ===== User Goals Methods (Web) =====
+  Future<Map<String, dynamic>> getUserGoals(int userId) async {
+    try {
+      if (_prefs == null) await init();
+      final key = 'user_goals_$userId';
+      final data = _prefs!.getString(key);
+      if (data != null) {
+        return Map<String, dynamic>.from(jsonDecode(data));
+      }
+      // Create default goals
+      final defaultGoals = {
+        'user_id': userId,
+        'steps_goal': 10000,
+        'water_goal': 8,
+        'sleep_goal': 480,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+      await _prefs!.setString(key, jsonEncode(defaultGoals));
+      return defaultGoals;
+    } catch (e) {
+      debugPrint('User goals load error: $e');
+      return {
+        'user_id': userId,
+        'steps_goal': 10000,
+        'water_goal': 8,
+        'sleep_goal': 480,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+    }
+  }
+
+  Future<void> updateUserGoals(int userId, {
+    int? stepsGoal,
+    int? waterGoal,
+    int? sleepGoal,
+  }) async {
+    try {
+      if (_prefs == null) await init();
+      final key = 'user_goals_$userId';
+      final existing = _prefs!.getString(key);
+      final now = DateTime.now().toIso8601String();
+      
+      Map<String, dynamic> data = existing != null
+          ? Map<String, dynamic>.from(jsonDecode(existing))
+          : {
+              'user_id': userId,
+              'steps_goal': 10000,
+              'water_goal': 8,
+              'sleep_goal': 480,
+            };
+      
+      if (stepsGoal != null) data['steps_goal'] = stepsGoal;
+      if (waterGoal != null) data['water_goal'] = waterGoal;
+      if (sleepGoal != null) data['sleep_goal'] = sleepGoal;
+      data['updated_at'] = now;
+      
+      await _prefs!.setString(key, jsonEncode(data));
+    } catch (e) {
+      debugPrint('User goals update error: $e');
     }
   }
 

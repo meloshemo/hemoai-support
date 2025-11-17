@@ -333,7 +333,7 @@ class ExportService {
     }
   }
 
-  // Generate Hemogram PDF Content (Simulated)
+  // Generate Hemogram PDF Content with HemoAI theme colors
   Future<Uint8List> _generateHemogramPdf({
     required Map<String, double> hemogramValues,
     required String patientName,
@@ -342,67 +342,44 @@ class ExportService {
   }) async {
     final pdf = pw.Document();
     
+    // HemoAI theme colors
+    final hemoaiPrimary = PdfColor.fromInt(0xFFE53E3E); // #E53E3E
+    final hemoaiPrimaryDark = PdfColor.fromInt(0xFFC53030); // Darker red
+    final hemoaiBackground = PdfColor.fromInt(0xFFFFF5F5); // Light red background
+    
+    // Comprehensive reference ranges with units
     final referenceRanges = {
-      'wbc': {
-        'min': 4000.0,
-        'max': 11000.0,
-        'name': LocalizationService.translate('param_wbc'),
-        'unit': 'K/uL'
-      },
-      'rbc': {
-        'min': 4.2,
-        'max': 5.4,
-        'name': LocalizationService.translate('param_rbc'),
-        'unit': 'M/uL'
-      },
-      'hgb': {
-        'min': 12.0,
-        'max': 17.0,
-        'name': LocalizationService.translate('param_hgb'),
-        'unit': 'g/dL'
-      },
-      'hct': {
-        'min': 35.0,
-        'max': 50.0,
-        'name': LocalizationService.translate('param_hct'),
-        'unit': '%'
-      },
-      'mcv': {
-        'min': 80.0,
-        'max': 100.0,
-        'name': LocalizationService.translate('param_mcv'),
-        'unit': 'fL'
-      },
-      'mch': {
-        'min': 27.0,
-        'max': 32.0,
-        'name': LocalizationService.translate('param_mch'),
-        'unit': 'pg'
-      },
-      'mchc': {
-        'min': 32.0,
-        'max': 36.0,
-        'name': LocalizationService.translate('param_mchc'),
-        'unit': 'g/dL'
-      },
-      'rdw': {
-        'min': 11.5,
-        'max': 14.5,
-        'name': LocalizationService.translate('param_rdw'),
-        'unit': '%'
-      },
-      'plt': {
-        'min': 150000.0,
-        'max': 450000.0,
-        'name': LocalizationService.translate('param_plt'),
-        'unit': 'K/uL'
-      },
-      'mpv': {
-        'min': 7.0,
-        'max': 11.0,
-        'name': LocalizationService.translate('param_mpv'),
-        'unit': 'fL'
-      },
+      'hemoglobin': {'min': 12.0, 'max': 17.0, 'name': LocalizationService.translate('param_hgb'), 'unit': 'g/dL'},
+      'glucose': {'min': 70.0, 'max': 100.0, 'name': LocalizationService.translate('glucose'), 'unit': 'mg/dL'},
+      'calcium': {'min': 8.6, 'max': 10.2, 'name': LocalizationService.translate('calcium'), 'unit': 'mg/dL'},
+      'sodium': {'min': 135.0, 'max': 145.0, 'name': LocalizationService.translate('sodium'), 'unit': 'mmol/L'},
+      'potassium': {'min': 3.5, 'max': 5.1, 'name': LocalizationService.translate('potassium'), 'unit': 'mmol/L'},
+      'chloride': {'min': 98.0, 'max': 107.0, 'name': LocalizationService.translate('chloride'), 'unit': 'mmol/L'},
+      'alt': {'min': 7.0, 'max': 56.0, 'name': LocalizationService.translate('alt'), 'unit': 'U/L'},
+      'ast': {'min': 10.0, 'max': 40.0, 'name': LocalizationService.translate('ast'), 'unit': 'U/L'},
+      'ggt': {'min': 9.0, 'max': 48.0, 'name': LocalizationService.translate('ggt'), 'unit': 'U/L'},
+      'total_bilirubin': {'min': 0.1, 'max': 1.2, 'name': LocalizationService.translate('total_bilirubin'), 'unit': 'mg/dL'},
+      'direct_bilirubin': {'min': 0.0, 'max': 0.3, 'name': LocalizationService.translate('direct_bilirubin'), 'unit': 'mg/dL'},
+      'crp': {'min': 0.0, 'max': 5.0, 'name': LocalizationService.translate('crp'), 'unit': 'mg/L'},
+      'iron': {'min': 60.0, 'max': 170.0, 'name': LocalizationService.translate('iron'), 'unit': 'µg/dL'},
+      'uibc': {'min': 110.0, 'max': 370.0, 'name': LocalizationService.translate('uibc'), 'unit': 'µg/dL'},
+      'tibc': {'min': 240.0, 'max': 450.0, 'name': LocalizationService.translate('tibc'), 'unit': 'µg/dL'},
+      'tsh': {'min': 0.4, 'max': 4.0, 'name': LocalizationService.translate('tsh'), 'unit': 'µIU/mL'},
+      'free_t3': {'min': 2.0, 'max': 4.4, 'name': LocalizationService.translate('free_t3'), 'unit': 'pg/mL'},
+      'free_t4': {'min': 0.8, 'max': 1.8, 'name': LocalizationService.translate('free_t4'), 'unit': 'ng/dL'},
+      'vitamin_d3': {'min': 30.0, 'max': 100.0, 'name': LocalizationService.translate('vitamin_d3'), 'unit': 'ng/mL'},
+      'vitamin_b12': {'min': 200.0, 'max': 900.0, 'name': LocalizationService.translate('vitamin_b12'), 'unit': 'pg/mL'},
+      // Hemogram specific
+      'wbc': {'min': 4.0, 'max': 11.0, 'name': LocalizationService.translate('param_wbc'), 'unit': 'K/uL'},
+      'rbc': {'min': 4.2, 'max': 5.4, 'name': LocalizationService.translate('param_rbc'), 'unit': 'M/uL'},
+      'hgb': {'min': 12.0, 'max': 17.0, 'name': LocalizationService.translate('param_hgb'), 'unit': 'g/dL'},
+      'hct': {'min': 35.0, 'max': 50.0, 'name': LocalizationService.translate('param_hct'), 'unit': '%'},
+      'mcv': {'min': 80.0, 'max': 100.0, 'name': LocalizationService.translate('param_mcv'), 'unit': 'fL'},
+      'mch': {'min': 27.0, 'max': 32.0, 'name': LocalizationService.translate('param_mch'), 'unit': 'pg'},
+      'mchc': {'min': 32.0, 'max': 36.0, 'name': LocalizationService.translate('param_mchc'), 'unit': 'g/dL'},
+      'rdw': {'min': 11.5, 'max': 14.5, 'name': LocalizationService.translate('param_rdw'), 'unit': '%'},
+      'plt': {'min': 150.0, 'max': 450.0, 'name': LocalizationService.translate('param_plt'), 'unit': 'K/uL'},
+      'mpv': {'min': 7.0, 'max': 11.0, 'name': LocalizationService.translate('param_mpv'), 'unit': 'fL'},
     };
 
     pdf.addPage(
@@ -411,37 +388,76 @@ class ExportService {
         margin: const pw.EdgeInsets.all(40),
         build: (pw.Context context) {
           return [
-            // Header
+            // Header with HemoAI theme
             pw.Container(
               width: double.infinity,
-              padding: const pw.EdgeInsets.all(20),
+              padding: const pw.EdgeInsets.all(24),
               decoration: pw.BoxDecoration(
-                color: PdfColors.blue50,
-                border: pw.Border.all(color: PdfColors.blue200),
+                color: hemoaiBackground,
+                border: pw.Border.all(color: hemoaiPrimary, width: 2),
+                borderRadius: pw.BorderRadius.circular(8),
               ),
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  pw.Text(
-                    LocalizationService.translate('hemogram_report'),
-                    style: pw.TextStyle(
-                      fontSize: 24,
-                      fontWeight: pw.FontWeight.bold,
-                      color: PdfColors.blue800,
-                    ),
+                  pw.Row(
+                    children: [
+                      pw.Container(
+                        width: 40,
+                        height: 40,
+                        decoration: pw.BoxDecoration(
+                          color: hemoaiPrimary,
+                          borderRadius: pw.BorderRadius.circular(8),
+                        ),
+                        child: pw.Center(
+                          child: pw.Text(
+                            'H',
+                            style: pw.TextStyle(
+                              color: PdfColors.white,
+                              fontSize: 24,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      pw.SizedBox(width: 12),
+                      pw.Expanded(
+                        child: pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.Text(
+                              'HemoAI',
+                              style: pw.TextStyle(
+                                fontSize: 20,
+                                fontWeight: pw.FontWeight.bold,
+                                color: hemoaiPrimaryDark,
+                              ),
+                            ),
+                            pw.Text(
+                              LocalizationService.translate('hemogram_report'),
+                              style: pw.TextStyle(
+                                fontSize: 16,
+                                color: PdfColors.grey700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  pw.SizedBox(height: 10),
+                  pw.Divider(color: hemoaiPrimary, height: 24),
                   pw.Text(
                     '${LocalizationService.translate('patient_name')}: $patientName',
-                    style: const pw.TextStyle(fontSize: 14),
+                    style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold),
                   ),
+                  pw.SizedBox(height: 4),
                   pw.Text(
                     '${LocalizationService.translate('test_date')}: $testDate',
-                    style: const pw.TextStyle(fontSize: 14),
+                    style: const pw.TextStyle(fontSize: 12),
                   ),
                   pw.Text(
                     '${LocalizationService.translate('report_date')}: ${LocalizationService().formatDate(DateTime.now())}',
-                    style: const pw.TextStyle(fontSize: 14),
+                    style: const pw.TextStyle(fontSize: 12),
                   ),
                 ],
               ),
@@ -450,20 +466,27 @@ class ExportService {
             pw.SizedBox(height: 30),
             
             // Test Results Header
-            pw.Text(
-              LocalizationService.translate('test_results'),
-              style: pw.TextStyle(
-                fontSize: 18,
-                fontWeight: pw.FontWeight.bold,
-                color: PdfColors.grey800,
+            pw.Container(
+              padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: pw.BoxDecoration(
+                color: hemoaiPrimary,
+                borderRadius: pw.BorderRadius.circular(4),
+              ),
+              child: pw.Text(
+                LocalizationService.translate('test_results'),
+                style: pw.TextStyle(
+                  fontSize: 18,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.white,
+                ),
               ),
             ),
             
             pw.SizedBox(height: 15),
             
-            // Results Table
+            // Results Table with HemoAI theme
             pw.Table(
-              border: pw.TableBorder.all(color: PdfColors.grey400),
+              border: pw.TableBorder.all(color: hemoaiPrimary, width: 1.5),
               columnWidths: {
                 0: const pw.FlexColumnWidth(3),
                 1: const pw.FlexColumnWidth(2),
@@ -471,47 +494,65 @@ class ExportService {
                 3: const pw.FlexColumnWidth(2),
               },
               children: [
-                // Table Header
+                // Table Header with HemoAI colors
                 pw.TableRow(
-                  decoration: const pw.BoxDecoration(
-                    color: PdfColors.grey200,
+                  decoration: pw.BoxDecoration(
+                    color: hemoaiPrimary,
                   ),
                   children: [
                     pw.Padding(
-                      padding: const pw.EdgeInsets.all(8),
+                      padding: const pw.EdgeInsets.all(10),
                       child: pw.Text(
                         LocalizationService.translate('parameter'),
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.white,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                     pw.Padding(
-                      padding: const pw.EdgeInsets.all(8),
+                      padding: const pw.EdgeInsets.all(10),
                       child: pw.Text(
                         LocalizationService.translate('result'),
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.white,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                     pw.Padding(
-                      padding: const pw.EdgeInsets.all(8),
+                      padding: const pw.EdgeInsets.all(10),
                       child: pw.Text(
                         LocalizationService.translate('reference_range'),
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.white,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                     pw.Padding(
-                      padding: const pw.EdgeInsets.all(8),
+                      padding: const pw.EdgeInsets.all(10),
                       child: pw.Text(
                         LocalizationService.translate('status'),
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                        style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.white,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],
                 ),
                 
-                // Data Rows
-                ...hemogramValues.entries.map((entry) {
-                  final key = entry.key;
-                  final value = entry.value;
+                // Data Rows with alternating background
+                ...hemogramValues.entries.toList().asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final mapEntry = entry.value;
+                  final key = mapEntry.key;
+                  final value = mapEntry.value;
                   final range = referenceRanges[key];
 
                   String statusKey = 'status_normal';
@@ -522,48 +563,77 @@ class ExportService {
                     final maxValue = (range['max'] as num).toDouble();
                     if (value < minValue) {
                       statusKey = 'status_low';
-                      statusColor = PdfColors.orange700;
+                      statusColor = PdfColor.fromInt(0xFFFF9800); // Orange
                     } else if (value > maxValue) {
                       // Very high threshold: > 1.5x upper bound
                       if (value > maxValue * 1.5) {
                         statusKey = 'status_very_high';
-                        statusColor = PdfColors.red900;
+                        statusColor = hemoaiPrimaryDark;
                       } else {
                         statusKey = 'status_high';
-                        statusColor = PdfColors.red700;
+                        statusColor = hemoaiPrimary;
                       }
                     }
                   }
 
+                  // Format value with appropriate decimal places
+                  String formattedValue = value.toStringAsFixed(value % 1 == 0 ? 0 : 1);
+                  
                   return pw.TableRow(
+                    decoration: pw.BoxDecoration(
+                      color: index % 2 == 0 ? PdfColors.white : hemoaiBackground,
+                    ),
                     children: [
                       pw.Padding(
-                        padding: const pw.EdgeInsets.all(8),
+                        padding: const pw.EdgeInsets.all(10),
                         child: pw.Text(
                           '${range?['name'] ?? key} (${range?['unit'] ?? ''})',
+                          style: pw.TextStyle(fontSize: 11),
                         ),
                       ),
                       pw.Padding(
-                        padding: const pw.EdgeInsets.all(8),
+                        padding: const pw.EdgeInsets.all(10),
                         child: pw.Text(
-                          value.toString(),
+                          formattedValue,
+                          style: pw.TextStyle(
+                            fontSize: 11,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
                         ),
                       ),
                       pw.Padding(
-                        padding: const pw.EdgeInsets.all(8),
+                        padding: const pw.EdgeInsets.all(10),
                         child: pw.Text(
                           range != null
-                              ? '${(range['min'] as num).toStringAsFixed(1)} - ${(range['max'] as num).toStringAsFixed(1)}'
+                              ? () {
+                                  final minValue = (range['min'] as num).toDouble();
+                                  final maxValue = (range['max'] as num).toDouble();
+                                  return '${minValue.toStringAsFixed(minValue % 1 == 0 ? 0 : 1)} - ${maxValue.toStringAsFixed(maxValue % 1 == 0 ? 0 : 1)}';
+                                }()
                               : '-',
+                          style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
                         ),
                       ),
                       pw.Padding(
-                        padding: const pw.EdgeInsets.all(8),
-                        child: pw.Text(
-                          LocalizationService.translate(statusKey),
-                          style: pw.TextStyle(
-                            color: statusColor,
-                            fontWeight: pw.FontWeight.bold,
+                        padding: const pw.EdgeInsets.all(10),
+                        child: pw.Container(
+                          padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          decoration: pw.BoxDecoration(
+                            color: statusColor == PdfColors.green700 
+                                ? PdfColor.fromInt(0xFFE8F5E9)
+                                : statusColor == PdfColor.fromInt(0xFFFF9800)
+                                    ? PdfColor.fromInt(0xFFFFF3E0)
+                                    : hemoaiBackground,
+                            borderRadius: pw.BorderRadius.circular(4),
+                            border: pw.Border.all(color: statusColor, width: 1),
+                          ),
+                          child: pw.Text(
+                            LocalizationService.translate(statusKey),
+                            style: pw.TextStyle(
+                              color: statusColor,
+                              fontWeight: pw.FontWeight.bold,
+                              fontSize: 10,
+                            ),
                           ),
                         ),
                       ),
@@ -600,16 +670,35 @@ class ExportService {
               pw.SizedBox(height: 20),
             ],
             
-            // Footer
+            // Footer with HemoAI branding
             pw.Container(
-              alignment: pw.Alignment.centerRight,
-              child: pw.Text(
-                '${LocalizationService.translate('generated_by')} HemoAI',
-                style: pw.TextStyle(
-                  fontSize: 10,
-                  color: PdfColors.grey600,
-                  fontStyle: pw.FontStyle.italic,
+              margin: const pw.EdgeInsets.only(top: 20),
+              padding: const pw.EdgeInsets.all(12),
+              decoration: pw.BoxDecoration(
+                color: hemoaiBackground,
+                border: pw.Border(
+                  top: pw.BorderSide(color: hemoaiPrimary, width: 1),
                 ),
+              ),
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(
+                    '${LocalizationService.translate('generated_by')} HemoAI',
+                    style: pw.TextStyle(
+                      fontSize: 10,
+                      color: hemoaiPrimaryDark,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.Text(
+                    LocalizationService().formatDate(DateTime.now()),
+                    style: pw.TextStyle(
+                      fontSize: 9,
+                      color: PdfColors.grey600,
+                    ),
+                  ),
+                ],
               ),
             ),
           ];
@@ -789,14 +878,116 @@ class ExportService {
     return pdf.save();
   }
 
-  // Helper methods for simple functionality
+  // Generate comprehensive Excel/CSV content with reference ranges
   String _generateHemogramExcelContent({
     required Map<String, double> hemogramValues,
     required String patientName,
     required String testDate,
     List<Map<String, dynamic>>? historicalData,
   }) {
-    return 'Simple Excel content for $patientName';
+    final loc = LocalizationService();
+    final buffer = StringBuffer();
+    
+    // Reference ranges (same as PDF)
+    final referenceRanges = {
+      'hemoglobin': {'min': 12.0, 'max': 17.0, 'name': loc.getString('param_hgb'), 'unit': 'g/dL'},
+      'glucose': {'min': 70.0, 'max': 100.0, 'name': loc.getString('glucose'), 'unit': 'mg/dL'},
+      'calcium': {'min': 8.6, 'max': 10.2, 'name': loc.getString('calcium'), 'unit': 'mg/dL'},
+      'sodium': {'min': 135.0, 'max': 145.0, 'name': loc.getString('sodium'), 'unit': 'mmol/L'},
+      'potassium': {'min': 3.5, 'max': 5.1, 'name': loc.getString('potassium'), 'unit': 'mmol/L'},
+      'chloride': {'min': 98.0, 'max': 107.0, 'name': loc.getString('chloride'), 'unit': 'mmol/L'},
+      'alt': {'min': 7.0, 'max': 56.0, 'name': loc.getString('alt'), 'unit': 'U/L'},
+      'ast': {'min': 10.0, 'max': 40.0, 'name': loc.getString('ast'), 'unit': 'U/L'},
+      'ggt': {'min': 9.0, 'max': 48.0, 'name': loc.getString('ggt'), 'unit': 'U/L'},
+      'total_bilirubin': {'min': 0.1, 'max': 1.2, 'name': loc.getString('total_bilirubin'), 'unit': 'mg/dL'},
+      'direct_bilirubin': {'min': 0.0, 'max': 0.3, 'name': loc.getString('direct_bilirubin'), 'unit': 'mg/dL'},
+      'crp': {'min': 0.0, 'max': 5.0, 'name': loc.getString('crp'), 'unit': 'mg/L'},
+      'iron': {'min': 60.0, 'max': 170.0, 'name': loc.getString('iron'), 'unit': 'µg/dL'},
+      'uibc': {'min': 110.0, 'max': 370.0, 'name': loc.getString('uibc'), 'unit': 'µg/dL'},
+      'tibc': {'min': 240.0, 'max': 450.0, 'name': loc.getString('tibc'), 'unit': 'µg/dL'},
+      'tsh': {'min': 0.4, 'max': 4.0, 'name': loc.getString('tsh'), 'unit': 'µIU/mL'},
+      'free_t3': {'min': 2.0, 'max': 4.4, 'name': loc.getString('free_t3'), 'unit': 'pg/mL'},
+      'free_t4': {'min': 0.8, 'max': 1.8, 'name': loc.getString('free_t4'), 'unit': 'ng/dL'},
+      'vitamin_d3': {'min': 30.0, 'max': 100.0, 'name': loc.getString('vitamin_d3'), 'unit': 'ng/mL'},
+      'vitamin_b12': {'min': 200.0, 'max': 900.0, 'name': loc.getString('vitamin_b12'), 'unit': 'pg/mL'},
+      'wbc': {'min': 4.0, 'max': 11.0, 'name': loc.getString('param_wbc'), 'unit': 'K/uL'},
+      'rbc': {'min': 4.2, 'max': 5.4, 'name': loc.getString('param_rbc'), 'unit': 'M/uL'},
+      'hgb': {'min': 12.0, 'max': 17.0, 'name': loc.getString('param_hgb'), 'unit': 'g/dL'},
+      'hct': {'min': 35.0, 'max': 50.0, 'name': loc.getString('param_hct'), 'unit': '%'},
+      'mcv': {'min': 80.0, 'max': 100.0, 'name': loc.getString('param_mcv'), 'unit': 'fL'},
+      'mch': {'min': 27.0, 'max': 32.0, 'name': loc.getString('param_mch'), 'unit': 'pg'},
+      'mchc': {'min': 32.0, 'max': 36.0, 'name': loc.getString('param_mchc'), 'unit': 'g/dL'},
+      'rdw': {'min': 11.5, 'max': 14.5, 'name': loc.getString('param_rdw'), 'unit': '%'},
+      'plt': {'min': 150.0, 'max': 450.0, 'name': loc.getString('param_plt'), 'unit': 'K/uL'},
+      'mpv': {'min': 7.0, 'max': 11.0, 'name': loc.getString('param_mpv'), 'unit': 'fL'},
+    };
+    
+    // Header
+    buffer.writeln('HemoAI - ${loc.getString("hemogram_report")}');
+    buffer.writeln('');
+    buffer.writeln('${loc.getString("patient_name")},$patientName');
+    buffer.writeln('${loc.getString("test_date")},$testDate');
+    buffer.writeln('${loc.getString("report_date")},${loc.formatDate(DateTime.now())}');
+    buffer.writeln('');
+    
+    // CSV Header
+    buffer.writeln('${loc.getString("parameter")},${loc.getString("result")},${loc.getString("reference_range")},${loc.getString("status")},Unit');
+    
+    // Data rows
+    for (final entry in hemogramValues.entries) {
+      final key = entry.key;
+      final value = entry.value;
+      final range = referenceRanges[key];
+      
+      String status = loc.getString('status_normal');
+      if (range != null) {
+        final minValue = (range['min'] as num).toDouble();
+        final maxValue = (range['max'] as num).toDouble();
+        if (value < minValue) {
+          status = loc.getString('status_low');
+        } else if (value > maxValue) {
+          if (value > maxValue * 1.5) {
+            status = loc.getString('status_very_high');
+          } else {
+            status = loc.getString('status_high');
+          }
+        }
+      }
+      
+      final paramName = range?['name'] ?? key;
+      final unit = range?['unit'] ?? '';
+      final rangeText = range != null
+          ? () {
+              final minValue = (range['min'] as num).toDouble();
+              final maxValue = (range['max'] as num).toDouble();
+              return '${minValue.toStringAsFixed(minValue % 1 == 0 ? 0 : 1)} - ${maxValue.toStringAsFixed(maxValue % 1 == 0 ? 0 : 1)}';
+            }()
+          : '-';
+      final formattedValue = value.toStringAsFixed(value % 1 == 0 ? 0 : 1);
+      
+      buffer.writeln('"$paramName",$formattedValue,"$rangeText","$status","$unit"');
+    }
+    
+    // Historical data if available
+    if (historicalData != null && historicalData.isNotEmpty) {
+      buffer.writeln('');
+      buffer.writeln(loc.getString("historical_data"));
+      buffer.writeln('Date,${hemogramValues.keys.join(",")}');
+      for (final record in historicalData) {
+        final date = record['date'] ?? '';
+        final values = record['values'] as Map<String, dynamic>? ?? {};
+        final row = [date];
+        for (final key in hemogramValues.keys) {
+          row.add(values[key]?.toString() ?? '');
+        }
+        buffer.writeln(row.join(','));
+      }
+    }
+    
+    buffer.writeln('');
+    buffer.writeln('${loc.getString("generated_by")} HemoAI');
+    
+    return buffer.toString();
   }
 
   Future<Uint8List> _generateAnalysisReportPdf({

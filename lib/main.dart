@@ -20,6 +20,8 @@ import 'services/water_service.dart';
 import 'services/premium_service.dart';
 import 'services/challenge_service.dart';
 import 'services/social_challenge_service.dart';
+import 'services/activity_service.dart';
+import 'services/streak_service.dart';
 
 // Legacy OS-3 screens and routing targets
 import 'screens/dashboard_screen.dart';
@@ -138,6 +140,16 @@ Future<Widget> _bootstrapApp({required bool testMode}) async {
       ChangeNotifierProvider(create: (_) => ChallengeService()..initialize()),
       ChangeNotifierProvider(
           create: (_) => SocialChallengeService()..initialize()),
+      ChangeNotifierProvider(create: (_) => ActivityService()..initialize()),
+      ChangeNotifierProvider(
+          create: (context) {
+            final activityService = Provider.of<ActivityService>(context, listen: false);
+            final socialService = Provider.of<SocialChallengeService>(context, listen: false);
+            activityService.setSocialService(socialService);
+            final streakService = StreakService();
+            streakService.initialize(activityService);
+            return streakService;
+          }),
       ChangeNotifierProvider(create: (_) => ScreenshotOverlayService()),
       ChangeNotifierProvider(create: (_) => MessagingService()..initialize()),
       ChangeNotifierProvider(
@@ -299,8 +311,9 @@ class HemoAIApp extends StatelessWidget {
           child: Directionality(
             textDirection: localization.textDirection,
             child: MediaQuery(
-            data: media.copyWith(textScaler: clampedTextScaler),
-            child: child ?? const SizedBox.shrink(),
+              data: media.copyWith(textScaler: clampedTextScaler),
+              child: child ?? const SizedBox.shrink(),
+            ),
           ),
         );
 

@@ -284,33 +284,55 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                                           ),
                                         ],
                                       ),
-                                      child: ColorFiltered(
-                                        colorFilter: ColorFilter.mode(
-                                          avatarColor,
-                                          BlendMode.saturation,
-                                        ),
-                                        child: Lottie.asset(
-                                          'assets/lottie/Robot-Bot 3D.json',
-                                          width: 120,
-                                          height: 120,
-                                          fit: BoxFit.contain,
-                                          repeat: true,
-                                          animate: true,
-                                          errorBuilder: (context, error, stackTrace) {
+                                      child: Lottie.asset(
+                                        'assets/lottie/Robot-Bot 3D.json',
+                                        width: 120,
+                                        height: 120,
+                                        fit: BoxFit.contain,
+                                        repeat: true,
+                                        animate: true,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          debugPrint('Lottie error: $error');
+                                          debugPrint('Stack trace: $stackTrace');
+                                          return Container(
+                                            decoration: BoxDecoration(
+                                              color: theme.cardColor,
+                                              borderRadius: BorderRadius.circular(60),
+                                              border: Border.all(color: avatarColor, width: 3),
+                                            ),
+                                            child: Icon(
+                                              Icons.favorite,
+                                              size: 60,
+                                              color: avatarColor,
+                                            ),
+                                          );
+                                        },
+                                        frameBuilder: (context, child, frame) {
+                                          if (frame == null) {
                                             return Container(
+                                              width: 120,
+                                              height: 120,
                                               decoration: BoxDecoration(
                                                 color: theme.cardColor,
                                                 borderRadius: BorderRadius.circular(60),
-                                                border: Border.all(color: avatarColor, width: 3),
+                                                border: Border.all(color: avatarColor.withValues(alpha: 0.3), width: 2),
                                               ),
-                                              child: Icon(
-                                                Icons.favorite,
-                                                size: 60,
-                                                color: avatarColor,
+                                              child: Center(
+                                                child: CircularProgressIndicator(
+                                                  valueColor: AlwaysStoppedAnimation<Color>(avatarColor),
+                                                  strokeWidth: 2,
+                                                ),
                                               ),
                                             );
-                                          },
-                                        ),
+                                          }
+                                          return ColorFiltered(
+                                            colorFilter: ColorFilter.mode(
+                                              avatarColor,
+                                              BlendMode.saturation,
+                                            ),
+                                            child: child,
+                                          );
+                                        },
                                       ),
                                     ),
                                   ),

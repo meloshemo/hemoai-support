@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
+import 'package:flutter/rendering.dart';
+import 'dart:typed_data';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:file_saver/file_saver.dart';
+import 'dart:io' show File;
 import '../widgets/app_drawer.dart';
 import '../services/push_notification_service.dart';
 import '../services/preferences_service.dart';
 import '../services/localization_service.dart';
 import '../services/daily_advice_service.dart';
-import '../services/audit_log_service.dart';
 import '../repositories/medication_repository.dart';
 import '../repositories/water_repository.dart';
 
@@ -23,14 +31,14 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
   bool _isLoading = true;
   TimeOfDay? _dailyMotivationTime;
   String _currentQuote = '';
-  List<String> _quotes = const [];
-  int _quoteIndex = 0;
   List<Map<String, dynamic>> _medications = const [];
   Map<String, bool> _notificationSettings = const {};
   int _waterGoal = 8;
   int _waterCount = 0;
   bool _lifestyleLoading = true;
   final Set<NotificationType> _activeFilters = <NotificationType>{};
+  bool _sharing = false;
+  final GlobalKey _shareKey = GlobalKey();
 
   @override
   void initState() {
@@ -178,66 +186,17 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
   void _initializeQuotes() {
     final loc = LocalizationService();
     final svc = DailyAdviceService();
+    final today = svc.getTodayQuoteText(loc);
     final all = svc.getAllQuotes(loc);
-    final todayIdx = all.isEmpty
-        ? 0
-        : (all.indexOf(svc.getTodayQuoteText(loc)).clamp(0, all.length - 1));
     setState(() {
-      _quotes = all;
-      _quoteIndex = todayIdx;
-      _currentQuote = all.isNotEmpty
-          ? all[todayIdx]
-          : (loc.getString('motivational_message_long'));
+      _currentQuote = today.isNotEmpty
+          ? today
+          : (all.isNotEmpty
+              ? all.first
+              : loc.getString('motivational_message_long'));
     });
   }
 
-  void _rotateQuote() {
-    if (_quotes.isEmpty) {
-      _initializeQuotes();
-      return;
-    }
-    setState(() {
-      _quoteIndex = (_quoteIndex + 1) % _quotes.length;
-      _currentQuote = _quotes[_quoteIndex];
-    });
-    AuditLogService().logAction('motivation_rotated');
-  }
-
-  Future<void> _pickDailyMotivationTime() async {
-    final loc = LocalizationService();
-    final messenger = ScaffoldMessenger.of(context);
-    final localizations = MaterialLocalizations.of(context);
-    // Pre-capture services before awaits
-    final push = Provider.of<PushNotificationService>(context, listen: false);
-    final prefs = await PreferencesService.getInstance();
-    if (!mounted) return;
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _dailyMotivationTime ?? TimeOfDay.now(),
-    );
-    if (!mounted) return;
-    if (picked != null) {
-      setState(() => _dailyMotivationTime = picked);
-      await prefs.saveCustomSettings('daily_motivation_hour', picked.hour);
-      await prefs.saveCustomSettings('daily_motivation_minute', picked.minute);
-
-      await push.scheduleDailyMotivation(
-          hour: picked.hour, minute: picked.minute, quote: _currentQuote);
-
-      if (!mounted) return;
-      final formatted =
-          localizations.formatTimeOfDay(picked, alwaysUse24HourFormat: true);
-      messenger.showSnackBar(
-        SnackBar(
-            content:
-                Text('${loc.getString('daily_motivation_time')}: $formatted')),
-      );
-      AuditLogService().logAction('daily_motivation_scheduled', data: {
-        'hour': picked.hour,
-        'minute': picked.minute,
-      });
-    }
-  }
 
 
   String _getTypeDisplayName(NotificationType type) {
@@ -571,11 +530,13 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
                             children: [
                               const Icon(Icons.schedule, size: 20),
                               const SizedBox(width: 8),
-                              Text(
-                                LocalizationService.translate('received_time'),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey[700],
+                              Expanded(
+                                child: Text(
+                                  LocalizationService.translate('received_time'),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey[700],
+                                  ),
                                 ),
                               ),
                             ],
@@ -643,21 +604,24 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
         'subtitle': loc.getString('add_new_medication'),
         'icon': Icons.medical_services_outlined,
         'color': scheme.primary,
-        'onTap': () => _scheduleQuickReminder('medication'),
+        // Route to add reminder form to let users set details
+        'onTap': () => Navigator.pushNamed(context, '/add_reminder'),
       },
       {
         'title': loc.getString('appointment'),
         'subtitle': loc.getString('doctor_appointment'),
         'icon': Icons.event_available,
         'color': scheme.tertiary,
-        'onTap': () => _scheduleQuickReminder('appointment'),
+        // Route to add reminder form to let users set details
+        'onTap': () => Navigator.pushNamed(context, '/add_reminder'),
       },
       {
         'title': loc.getString('test_reminder'),
         'subtitle': loc.getString('analysis_time'),
         'icon': Icons.science_outlined,
         'color': scheme.secondary,
-        'onTap': () => _scheduleQuickReminder('test'),
+        // Route to add reminder form to let users set details
+        'onTap': () => Navigator.pushNamed(context, '/add_reminder'),
       },
       {
         'title': loc.getString('general'),
@@ -1029,6 +993,8 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
               color: Colors.white.withValues(alpha: 0.9),
               fontWeight: FontWeight.w600,
             ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 6),
           Text(
@@ -1037,6 +1003,8 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
               color: Colors.white.withValues(alpha: 0.88),
               fontSize: 12,
             ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -1709,42 +1677,6 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
     );
   }
 
-  void _scheduleQuickReminder(String type) {
-    final now = DateTime.now();
-    // Pre-capture without async gap inside this sync method
-    final pushService =
-        Provider.of<PushNotificationService>(context, listen: false);
-    final messenger = ScaffoldMessenger.of(context);
-
-    switch (type) {
-      case 'medication':
-        pushService.scheduleMedicationReminder(
-          medicationName: LocalizationService.translate('medication_reminder'),
-          scheduleTime: now.add(const Duration(minutes: 1)),
-        );
-        break;
-      case 'appointment':
-        pushService.scheduleAppointmentReminder(
-          doctorName: LocalizationService.translate('your_doctor'),
-          appointmentTime: now.add(const Duration(minutes: 2)),
-        );
-        break;
-      case 'test':
-        pushService.scheduleTestReminder(
-          testName: LocalizationService.translate('hemogram_test'),
-          testTime: now.add(const Duration(minutes: 3)),
-        );
-        break;
-    }
-
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(LocalizationService.translate('reminder_scheduled')
-            .replaceFirst('{type}', type)),
-        backgroundColor: const Color(0xFFE53E3E),
-      ),
-    );
-  }
 
   Widget _buildNotificationFeed({
     required List<NotificationMessage> items,
@@ -2001,77 +1933,145 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
 
   Widget _buildMotivationCard(LocalizationService loc, bool isDark) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            theme.colorScheme.primary,
-            theme.colorScheme.primaryContainer,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.favorite, color: Colors.white, size: 24),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  loc.getString('daily_motivation'),
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
+    final capture = RepaintBoundary(
+      key: _shareKey,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              theme.colorScheme.primary,
+              theme.colorScheme.primaryContainer,
             ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          const SizedBox(height: 16),
-          Text(
-            _currentQuote.isNotEmpty ? _currentQuote : loc.getString('motivational_message_long'),
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.white,
-              height: 1.5,
-            ),
-          ),
-          if (_dailyMotivationTime != null) ...[
-            const SizedBox(height: 12),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Row(
               children: [
-                const Icon(Icons.schedule, color: Colors.white70, size: 16),
-                const SizedBox(width: 6),
-                Text(
-                  '${loc.getString('daily_motivation_time')}: ${_dailyMotivationTime!.format(context)}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.white70,
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.favorite, color: Colors.white, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    loc.getString('daily_motivation'),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _currentQuote.isNotEmpty ? _currentQuote : loc.getString('motivational_message_long'),
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.white,
+                height: 1.5,
+              ),
+            ),
+            if (_dailyMotivationTime != null) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Icon(Icons.schedule, color: Colors.white70, size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${loc.getString('daily_motivation_time')}: ${_dailyMotivationTime!.format(context)}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Container
+                (
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.28),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    loc.getString('app_name'),
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.92),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.6,
+                    ),
                   ),
                 ),
               ],
             ),
           ],
-        ],
+        ),
       ),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        capture,
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _sharing ? null : _shareMotivationImage,
+                icon: const Icon(Icons.share),
+                label: Text(loc.getString('share_quote')),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: theme.colorScheme.primary,
+                  disabledBackgroundColor: Colors.white.withValues(alpha: 0.4),
+                  disabledForegroundColor: theme.colorScheme.primary.withValues(alpha: 0.4),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _copyQuote,
+                icon: const Icon(Icons.copy, size: 18),
+                label: Text(loc.getString('copy')),
+              ),
+            ),
+            if (kIsWeb) ...[
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _downloadMotivationPngWeb,
+                  icon: const Icon(Icons.download, size: 18),
+                  label: Text(loc.getString('save')),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
     );
   }
 
   Widget _buildWaterTrackingCard(LocalizationService loc, bool isDark) {
-    final theme = Theme.of(context);
     final progress = _waterGoal > 0 ? (_waterCount / _waterGoal).clamp(0.0, 1.0) : 0.0;
     
     return Container(
@@ -2144,11 +2144,13 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
               ElevatedButton.icon(
                 onPressed: _waterCount > 0
                     ? () async {
+                        final waterRepo = Provider.of<WaterRepository>(context, listen: false);
                         final prefs = await PreferencesService.getInstance();
                         final userId = await prefs.getUserId();
+                        if (!mounted) return;
                         if (userId != null) {
-                          final waterRepo = Provider.of<WaterRepository>(context, listen: false);
                           await waterRepo.decrementWaterIntake(userId);
+                          if (!mounted) return;
                           _loadLifestyleData();
                         }
                       }
@@ -2164,11 +2166,13 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
               ElevatedButton.icon(
                 onPressed: _waterCount < 12
                     ? () async {
+                        final waterRepo = Provider.of<WaterRepository>(context, listen: false);
                         final prefs = await PreferencesService.getInstance();
                         final userId = await prefs.getUserId();
+                        if (!mounted) return;
                         if (userId != null) {
-                          final waterRepo = Provider.of<WaterRepository>(context, listen: false);
                           await waterRepo.incrementWaterIntake(userId);
+                          if (!mounted) return;
                           _loadLifestyleData();
                         }
                       }
@@ -2362,8 +2366,8 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
     final color = _getTypeColor(scheduled.type, context);
     final loc = LocalizationService();
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      padding: const EdgeInsets.all(18),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
         color: Theme.of(context).brightness == Brightness.dark
             ? const Color(0xFF161B22)
@@ -2403,14 +2407,18 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
                           fontSize: 15,
                           color: Theme.of(context).textTheme.bodyLarge?.color,
                         ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    const SizedBox(width: 8),
                     Text(
                       LocalizationService()
                           .formatTime(scheduled.scheduledTime),
                       style: TextStyle(
                         color: color,
                         fontWeight: FontWeight.w700,
+                        fontSize: 14,
                       ),
                     ),
                   ],
@@ -2425,6 +2433,8 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
                         ?.color
                         ?.withValues(alpha: 0.8),
                   ),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -2437,9 +2447,13 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
                         ?.color
                         ?.withValues(alpha: 0.6),
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 12),
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
                     _scheduledActionButton(
                       icon: Icons.snooze,
@@ -2457,7 +2471,6 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
                         );
                       },
                     ),
-                    const SizedBox(width: 8),
                     _scheduledActionButton(
                       icon: Icons.snooze_outlined,
                       label: loc.getString('snooze_30m'),
@@ -2474,7 +2487,6 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
                         );
                       },
                     ),
-                    const SizedBox(width: 8),
                     _scheduledActionButton(
                       icon: Icons.close,
                       label: loc.getString('snooze_dismiss_today'),
@@ -2490,7 +2502,6 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
                         );
                       },
                     ),
-                    const SizedBox(width: 8),
                     _scheduledActionButton(
                       icon: Icons.cancel_outlined,
                       label: loc.getString('cancel'),
@@ -2520,13 +2531,97 @@ class _EnhancedNotificationScreenState extends State<EnhancedNotificationScreen>
     required String label,
     required VoidCallback onTap,
   }) {
-    return Expanded(
+    return Flexible(
       child: OutlinedButton.icon(
         onPressed: onTap,
-        icon: Icon(icon, size: 18),
-        label: Text(label, overflow: TextOverflow.ellipsis),
+        icon: Icon(icon, size: 16),
+        label: Text(
+          label,
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+          style: const TextStyle(fontSize: 12),
+        ),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        ),
       ),
     );
+  }
+
+  Future<void> _shareMotivationImage() async {
+    if (_sharing) return;
+    setState(() => _sharing = true);
+    final loc = LocalizationService();
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final quote = _currentQuote.isNotEmpty
+          ? _currentQuote
+          : loc.getString('motivational_message_long');
+      if (kIsWeb) {
+        // Web share: fallback to plain text share
+        Share.share('"$quote"');
+      } else {
+        final bytes = await _captureMotivationPng();
+        if (bytes == null) {
+          messenger.showSnackBar(
+            SnackBar(content: Text(loc.getString('share_quote'))),
+          );
+        } else {
+          final dir = await getTemporaryDirectory();
+          final file = File('${dir.path}/hemoai_motivation.png');
+          await file.writeAsBytes(bytes, flush: true);
+          await Share.shareXFiles(
+            [XFile(file.path)],
+            text: loc.getString('share_quote'),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Share motivation error: $e');
+      messenger.showSnackBar(
+        SnackBar(content: Text(loc.getString('share_quote'))),
+      );
+    } finally {
+      if (mounted) setState(() => _sharing = false);
+    }
+  }
+
+  Future<Uint8List?> _captureMotivationPng() async {
+    try {
+      final boundary = _shareKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) return null;
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      return byteData?.buffer.asUint8List();
+    } catch (e) {
+      debugPrint('capture error: $e');
+      return null;
+    }
+  }
+
+  Future<void> _copyQuote() async {
+    final loc = LocalizationService();
+    final quote = _currentQuote.isNotEmpty
+        ? _currentQuote
+        : loc.getString('motivational_message_long');
+    await Clipboard.setData(ClipboardData(text: '"$quote"'));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(loc.getString('copied'))));
+  }
+
+  Future<void> _downloadMotivationPngWeb() async {
+    try {
+      final bytes = await _captureMotivationPng();
+      if (bytes == null) return;
+      await FileSaver.instance.saveFile(
+        name: 'hemoai_motivation.png',
+        bytes: bytes,
+        mimeType: MimeType.png,
+      );
+    } catch (e) {
+      debugPrint('download error: $e');
+    }
   }
 }
 

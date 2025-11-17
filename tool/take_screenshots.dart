@@ -1,9 +1,10 @@
-/// Basit screenshot alma scripti
-/// Kullanım: dart run tool/take_screenshots.dart
-/// 
-/// Bu script, emulator/simulator'den manuel screenshot almanızı kolaylaştırır.
-/// Flutter Screenshots paketi null safety desteklemediği için bu alternatif kullanılıyor.
+// Basit screenshot alma scripti
+// Kullanım: dart run tool/take_screenshots.dart
+// 
+// Bu script, emulator/simulator'den manuel screenshot almanızı kolaylaştırır.
+// Flutter Screenshots paketi null safety desteklemediği için bu alternatif kullanılıyor.
 
+// ignore_for_file: avoid_print
 import 'dart:io';
 
 void main() {

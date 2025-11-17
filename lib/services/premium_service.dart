@@ -52,6 +52,13 @@ enum PremiumFeature {
   ingredientAnalysis,       // Natural ingredient database
   herbalLibrary,            // Comprehensive herb library
   
+  // Challenges & Motivation
+  unlimitedChallenges,      // Unlimited group challenges (free: 1 active)
+  createGroupChallenges,    // Create group challenges (free: can only join)
+  advancedChallengeTypes,   // Combined, hemogram challenges (free: basic types only)
+  challengeLeaderboards,    // Detailed leaderboards and stats
+  challengeRewards,         // Badges and rewards system
+  
   // Medical Consultation (Future feature - when doctors are integrated)
   expertDoctorConsultation, // Consult with expert doctors about test results
   doctorSecondOpinion,      // Get second opinion from specialists

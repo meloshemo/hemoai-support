@@ -142,7 +142,7 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
         if (_tests.isNotEmpty) ...[
           Row(
             children: [
-              Text(Provider.of<LocalizationService>(context, listen: false).getString('trend_label') + ' '),
+              Text('${Provider.of<LocalizationService>(context, listen: false).getString('trend_label')} '),
               const SizedBox(width: 8),
               ChoiceChip(
                 label: Text(Provider.of<LocalizationService>(context, listen: false).getString('metric_hb')),
@@ -281,12 +281,223 @@ class _FamilyMemberDetailScreenState extends State<FamilyMemberDetailScreen> wit
   }
 
   Widget _buildTests(ThemeData theme) {
-    if (_tests.isEmpty) return Center(child: Text(Provider.of<LocalizationService>(context, listen: false).getString('no_tests')));
-    return ListView.builder(
+    final loc = Provider.of<LocalizationService>(context, listen: false);
+    final cs = theme.colorScheme;
+    final isManualMember = widget.member['is_real_user'] == false || widget.member['is_real_user'] == 0;
+    final premiumService = Provider.of<PremiumService>(context, listen: false);
+    final isPremium = premiumService.isPremium;
+    
+    return ListView(
       padding: const EdgeInsets.all(16),
-      itemCount: _tests.length,
-      itemBuilder: (_, i) => _testCard(_tests[i]),
+      children: [
+        // Add test button for manual members
+        if (isManualMember) ...[
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  cs.primaryContainer.withValues(alpha: 0.3),
+                  cs.surfaceContainerHighest,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: cs.primary.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: cs.primary.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.bloodtype,
+                        color: cs.primary,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            loc.getString('family_add_hemogram_manual'),
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: cs.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            loc.getString('family_add_hemogram_manual_desc'),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: cs.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  onPressed: () => _addHemogramForFamilyMember(),
+                  icon: const Icon(Icons.add),
+                  label: Text(loc.getString('family_add_hemogram_button')),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: cs.primary,
+                    foregroundColor: cs.onPrimary,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        
+        // Premium limit info for family members
+        if (!isPremium && isManualMember) ...[
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: cs.tertiaryContainer.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: cs.tertiaryContainer.withValues(alpha: 0.5),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  color: cs.onTertiaryContainer,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    loc.getString('family_premium_limit_info'),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: cs.onTertiaryContainer,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pushNamed(context, '/premium'),
+                  child: Text(loc.getString('upgrade')),
+                ),
+              ],
+            ),
+          ),
+        ],
+        
+        // Tests list
+        if (_tests.isEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.assignment_outlined,
+                    size: 64,
+                    color: cs.onSurfaceVariant.withValues(alpha: 0.3),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    loc.getString('no_tests'),
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          ..._tests.map((test) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _testCard(test),
+              )),
+      ],
     );
+  }
+
+  Future<void> _addHemogramForFamilyMember() async {
+    final loc = Provider.of<LocalizationService>(context, listen: false);
+    final premiumService = Provider.of<PremiumService>(context, listen: false);
+    final navigator = Navigator.of(context);
+    final isPremium = premiumService.isPremium;
+    final isManualMember = widget.member['is_real_user'] == false || widget.member['is_real_user'] == 0;
+    
+    // Check premium limits for family members
+    if (!isPremium && isManualMember) {
+      // Check if user has reached family member limit
+      final db = DatabaseHelper.instance;
+      final memberId = widget.member['id'] as int?;
+      if (memberId != null) {
+        final memberTests = await db.getHemogramTests(memberId);
+        // Free tier: max 3 tests per family member
+        if (memberTests.length >= 3) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(loc.getString('family_premium_limit_reached')),
+                backgroundColor: Colors.orange,
+                action: SnackBarAction(
+                  label: loc.getString('upgrade'),
+                  textColor: Colors.white,
+                  onPressed: () => navigator.pushNamed('/premium'),
+                ),
+              ),
+            );
+          }
+          return;
+        }
+      }
+    }
+    
+    // Navigate to hemogram entry screen with family member context
+    final result = await navigator.pushNamed(
+      '/hemogram_entry',
+      arguments: {
+        'family_member_id': widget.member['id'],
+        'family_member_name': widget.member['name'],
+      },
+    );
+    
+    if (result == true && mounted) {
+      // Refresh tests
+      await _init();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(loc.getString('family_hemogram_added_success')),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+          ),
+        );
+      }
+    }
   }
 
   Widget _testCard(Map<String, dynamic> t) {

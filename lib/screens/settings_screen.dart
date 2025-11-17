@@ -22,6 +22,7 @@ import 'restore_preview_screen.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'emergency_contact_screen.dart';
 import 'medical_disclaimer_screen.dart';
+import 'data_protection_screen.dart';
 import '../utils/app_constants.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -452,12 +453,11 @@ class SettingsScreen extends StatelessWidget {
                           title: loc.getString('kvkk_gdpr_data_protection'),
                           subtitle: loc.getString('encryption_consent_purpose'),
                           isDark: isDark,
-                          onTap: () => _openDocument(
+                          onTap: () => Navigator.push(
                             context,
-                            url: AppConstants.dataProtectionUrl,
-                            title: loc.getString('kvkk_gdpr_data_protection'),
-                            fallbackBody:
-                                loc.getString('data_protection_details'),
+                            MaterialPageRoute(
+                              builder: (context) => const DataProtectionScreen(),
+                            ),
                           ),
                         ),
                         FutureBuilder<PackageInfo>(
@@ -1993,23 +1993,6 @@ class SettingsScreen extends StatelessWidget {
     }
   }
 
-  Future<void> _openDocument(
-    BuildContext context, {
-    required String url,
-    required String title,
-    required String fallbackBody,
-  }) async {
-    try {
-      final uri = Uri.parse(url);
-      final success =
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (success) return;
-    } catch (_) {
-      // Ignore and fallback
-    }
-    if (!context.mounted) return;
-    _showInfo(context, title, fallbackBody);
-  }
 
   void _showErrorDetails(BuildContext context, String title, String details) {
     showDialog(

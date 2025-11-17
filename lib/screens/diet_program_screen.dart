@@ -26,6 +26,7 @@ class DietProgramScreen extends StatefulWidget {
 class _DietProgramScreenState extends State<DietProgramScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  late ScrollController _scrollController;
   int? _userId;
   Map<String, bool> _todayMeals = {
     'breakfast': false,
@@ -111,6 +112,7 @@ class _DietProgramScreenState extends State<DietProgramScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _scrollController = ScrollController();
     // Set Sunday as index 0 for Turkish week starting from Sunday
     _selectedWeekday =
         (DateTime.now().weekday == 7) ? 0 : DateTime.now().weekday;
@@ -118,6 +120,13 @@ class _DietProgramScreenState extends State<DietProgramScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadTracking();
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadTracking() async {
@@ -181,9 +190,19 @@ class _DietProgramScreenState extends State<DietProgramScreen>
   }
 
   Future<void> _toggleMeal(String key, bool value) async {
-    setState(() {
-      _todayMeals[key] = value;
-    });
+    // Save scroll position
+    final scrollPosition = _scrollController.hasClients ? _scrollController.offset : 0.0;
+    
+    // Haptic feedback
+    HapticFeedback.lightImpact();
+    
+    // Update state without full rebuild
+    if (mounted) {
+      setState(() {
+        _todayMeals[key] = value;
+      });
+    }
+    
     final prefs = await PreferencesService.getInstance();
     final userId = prefs.getCurrentUserId();
     if (userId == null) return;
@@ -197,8 +216,22 @@ class _DietProgramScreenState extends State<DietProgramScreen>
       dinner: _todayMeals['dinner'] ?? false,
       snack: _todayMeals['snack'] ?? false,
     );
-    // refresh weekly
-    await db.getDietTrackingForLast7Days(userId); // fetched but not used yet
+    
+    // Refresh weekly progress
+    final weekly = await db.getDietTrackingForLast7Days(userId);
+    if (mounted) {
+      setState(() {
+        _weeklyProgress = weekly;
+      });
+      // Restore scroll position after a brief delay
+      if (_scrollController.hasClients && scrollPosition > 0) {
+        Future.delayed(const Duration(milliseconds: 50), () {
+          if (_scrollController.hasClients) {
+            _scrollController.jumpTo(scrollPosition);
+          }
+        });
+      }
+    }
   }
 
   @override
@@ -305,6 +338,7 @@ class _DietProgramScreenState extends State<DietProgramScreen>
                 );
 
             Widget todayTab = ListView(
+              controller: _scrollController,
               padding: ResponsiveHelper.getScreenPadding(context)
                   .copyWith(bottom: 8),
               children: [
@@ -359,33 +393,80 @@ class _DietProgramScreenState extends State<DietProgramScreen>
                                 color: cs.onSurface.withValues(alpha: 0.85))),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
+                    // Modern meal tracking section
                     Container(
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: cs.outlineVariant),
+                        borderRadius: BorderRadius.circular(20),
                         gradient: LinearGradient(
-                            colors: [cs.surface, cs.surfaceContainerHighest],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight),
+                          colors: [
+                            cs.primaryContainer.withValues(alpha: 0.3),
+                            cs.surfaceContainerHighest,
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        border: Border.all(
+                          color: cs.outlineVariant.withValues(alpha: 0.3),
+                        ),
                         boxShadow: [
                           BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.04),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4))
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
                         ],
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(children: [
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: cs.primary.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  Icons.restaurant_menu,
+                                  color: cs.primary,
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      localization.getString('track_meals'),
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                        color: cs.onSurface,
+                                      ),
+                                    ),
+                                    Text(
+                                      localization.getString('track_meals_subtitle'),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: cs.onSurface.withValues(alpha: 0.6),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          // Meal cards
                           _mealRow(context, 'meal_breakfast', 'breakfast'),
-                          const Divider(height: 20),
                           _mealRow(context, 'meal_lunch', 'lunch'),
-                          const Divider(height: 20),
                           _mealRow(context, 'meal_dinner', 'dinner'),
-                          const Divider(height: 20),
                           _mealRow(context, 'meal_snack', 'snack'),
-                        ]),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -468,6 +549,7 @@ class _DietProgramScreenState extends State<DietProgramScreen>
             );
 
             Widget weekTab = ListView(
+              controller: _scrollController,
               padding: ResponsiveHelper.getScreenPadding(context),
               children: [
                 const MedicalDisclaimerBanner(),
@@ -1072,29 +1154,129 @@ class _DietProgramScreenState extends State<DietProgramScreen>
   Widget _mealRow(BuildContext context, String labelKey, String stateKey) {
     final loc = Provider.of<LocalizationService>(context, listen: false);
     final checked = _todayMeals[stateKey] ?? false;
-    return Row(
-      children: [
-        Expanded(
-            child: Text(loc.getString(labelKey),
-                style: TextStyle(
-                    fontSize: 16,
-                    color: Theme.of(context).colorScheme.onSurface))),
-        Builder(builder: (context) {
-          final cs = Theme.of(context).colorScheme;
-          return Switch(
-            value: checked,
-            thumbColor: WidgetStateProperty.resolveWith((states) {
-              if (states.contains(WidgetState.selected)) return cs.onPrimary;
-              return cs.outlineVariant;
-            }),
-            trackColor: WidgetStateProperty.resolveWith((states) {
-              if (states.contains(WidgetState.selected)) return cs.primary;
-              return cs.outlineVariant;
-            }),
-            onChanged: (v) => _toggleMeal(stateKey, v),
-          );
-        }),
-      ],
+    final cs = Theme.of(context).colorScheme;
+    
+    // Meal icons
+    final mealIcons = {
+      'breakfast': Icons.wb_sunny,
+      'lunch': Icons.restaurant,
+      'dinner': Icons.dinner_dining,
+      'snack': Icons.coffee,
+    };
+    final icon = mealIcons[stateKey] ?? Icons.restaurant;
+    
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: checked 
+            ? cs.primary.withValues(alpha: 0.1)
+            : cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: checked 
+              ? cs.primary
+              : cs.outlineVariant,
+          width: checked ? 2 : 1,
+        ),
+        boxShadow: checked ? [
+          BoxShadow(
+            color: cs.primary.withValues(alpha: 0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ] : null,
+      ),
+      child: InkWell(
+        onTap: () => _toggleMeal(stateKey, !checked),
+        borderRadius: BorderRadius.circular(16),
+        child: Row(
+          children: [
+            // Icon with animated background
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: checked 
+                    ? cs.primary
+                    : cs.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: checked 
+                    ? cs.onPrimary
+                    : cs.onSurface.withValues(alpha: 0.6),
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            // Label
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    loc.getString(labelKey),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: checked 
+                          ? cs.primary
+                          : cs.onSurface,
+                    ),
+                  ),
+                  if (checked) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      loc.getString('completed'),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: cs.primary.withValues(alpha: 0.7),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            // Checkmark or empty circle
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: checked
+                  ? Container(
+                      key: const ValueKey('checked'),
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: cs.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.check,
+                        color: cs.onPrimary,
+                        size: 20,
+                      ),
+                    )
+                  : Container(
+                      key: const ValueKey('unchecked'),
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: Colors.transparent,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: cs.outlineVariant,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1503,11 +1685,13 @@ class _DietProgramScreenState extends State<DietProgramScreen>
     // If we have measured values, generate dynamic, tag-aware menus per day
     if (data.hasMeasuredValues) {
       final tag = _tagForDay(data.values, dayName);
+      if (data.programs.isEmpty) {
+        // Fallback gracefully when no programs are available
+        return _baseMenuForDay(localization, mealType, dayName);
+      }
       final program = data.programs.firstWhere(
         (p) => p.riskTag == tag,
-        orElse: () => data.programs.isNotEmpty
-            ? data.programs.first
-            : (throw StateError('No diet programs')),
+        orElse: () => data.programs.first,
       );
       return _getMealMenuFromProgram(
           localization, program, mealType, dayName, data.values);
@@ -2251,6 +2435,7 @@ class _DietProgramScreenState extends State<DietProgramScreen>
     }
 
     final cs = Theme.of(context).colorScheme;
+    final hemoaiPrimary = const Color(0xFFE53E3E);
 
     // Calculate streak and completion stats
     int streak = 0;
@@ -2275,6 +2460,8 @@ class _DietProgramScreenState extends State<DietProgramScreen>
 
     final completionPercent =
         totalMeals > 0 ? (completedMeals / totalMeals * 100).round() : 0;
+    
+    // Modern streak emoji and message
     final streakEmoji = streak >= 7
         ? '🔥'
         : streak >= 4
@@ -2305,41 +2492,49 @@ class _DietProgramScreenState extends State<DietProgramScreen>
         (todaySnack ? 1 : 0);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         gradient: LinearGradient(
           colors: [
-            Colors.deepPurple.withValues(alpha: 0.15),
-            Colors.deepPurple.withValues(alpha: 0.05),
+            hemoaiPrimary.withValues(alpha: 0.1),
+            hemoaiPrimary.withValues(alpha: 0.05),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        border: Border.all(color: Colors.deepPurple.withValues(alpha: 0.2)),
+        border: Border.all(
+          color: hemoaiPrimary.withValues(alpha: 0.2),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.deepPurple.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+            color: hemoaiPrimary.withValues(alpha: 0.15),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Streak header
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.deepPurple.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
+                  color: hemoaiPrimary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.trending_up,
-                    color: Colors.deepPurple, size: 24),
+                child: Icon(
+                  Icons.local_fire_department,
+                  color: hemoaiPrimary,
+                  size: 28,
+                ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -2348,24 +2543,27 @@ class _DietProgramScreenState extends State<DietProgramScreen>
                       children: [
                         Text(
                           streakEmoji,
-                          style: const TextStyle(fontSize: 24),
+                          style: const TextStyle(fontSize: 28),
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 8),
                         Text(
                           '$streak ${loc.getString("days_streak")}',
                           style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
                             color: cs.onSurface,
+                            letterSpacing: 0.5,
                           ),
                         ),
                       ],
                     ),
+                    const SizedBox(height: 4),
                     Text(
                       streakMessage,
                       style: TextStyle(
                         fontSize: 13,
-                        color: cs.onSurface.withValues(alpha: 0.85),
+                        color: cs.onSurface.withValues(alpha: 0.7),
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -2373,88 +2571,119 @@ class _DietProgramScreenState extends State<DietProgramScreen>
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
-          // Today's progress
-          Text(
-            loc.getString('today_progress'),
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: cs.onSurface,
-            ),
-          ),
-          const SizedBox(height: 8),
-          LinearProgressIndicator(
-            value: todayCompleted / 4,
-            backgroundColor: cs.surfaceContainerHighest,
-            valueColor: const AlwaysStoppedAnimation<Color>(Colors.deepPurple),
-            borderRadius: BorderRadius.circular(8),
-            minHeight: 12,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '$todayCompleted / 4 ${loc.getString("meals_completed_today")}',
-            style: TextStyle(
-              fontSize: 12,
-              color: cs.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Weekly overview
+          // Today's progress with modern design
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      loc.getString('weekly_completion'),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: cs.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$completionPercent%',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.deepPurple,
-                      ),
-                    ),
-                  ],
+              Text(
+                loc.getString('today_progress'),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: cs.onSurface,
                 ),
               ),
               Container(
-                width: 1,
-                height: 40,
-                color: cs.outlineVariant,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: hemoaiPrimary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '$todayCompleted / 4',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: hemoaiPrimary,
+                  ),
+                ),
               ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: LinearProgressIndicator(
+              value: todayCompleted / 4,
+              backgroundColor: cs.surfaceContainerHighest,
+              valueColor: AlwaysStoppedAnimation<Color>(hemoaiPrimary),
+              minHeight: 14,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Weekly stats in modern cards
+          Row(
+            children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      loc.getString('total_meals'),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: cs.onSurface.withValues(alpha: 0.6),
-                      ),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: cs.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: cs.outlineVariant.withValues(alpha: 0.3),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$completedMeals / $totalMeals',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: cs.onSurface,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        loc.getString('weekly_completion'),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: cs.onSurface.withValues(alpha: 0.6),
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '$completionPercent%',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          color: hemoaiPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: cs.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: cs.outlineVariant.withValues(alpha: 0.3),
                     ),
-                  ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        loc.getString('total_meals'),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: cs.onSurface.withValues(alpha: 0.6),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$completedMeals / $totalMeals',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: cs.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -2464,11 +2693,6 @@ class _DietProgramScreenState extends State<DietProgramScreen>
     );
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
 }
 
 class _DietCard extends StatelessWidget {

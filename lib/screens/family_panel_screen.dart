@@ -221,11 +221,53 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
       // Force refresh
       await _loadFamilyMembers();
       
-      
+      // Show modern success animation
+      if (mounted) {
+        await _showSuccessAnimation(context, result['name'], result['relation']);
+      }
+    }
+  }
+
+  Future<void> _showSuccessAnimation(BuildContext context, String name, String relationCode) async {
+    final loc = Provider.of<LocalizationService>(context, listen: false);
+    // Removed unused ColorScheme reference
+    final hemoaiPrimary = const Color(0xFFE53E3E);
+    final relationLabel = _relationLabelFromStored(loc, relationCode);
+    
+    // Show modern success overlay
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      builder: (context) => _SuccessAnimationDialog(
+        name: name,
+        relationLabel: relationLabel,
+      ),
+    );
+    
+    // Show subtle snackbar after dialog closes
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(loc.getStringWithParams('family_member_added', {'name': result['name']})),
-          backgroundColor: Theme.of(context).colorScheme.primary,
+          content: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  loc.getStringWithParams('family_member_added', {'name': name}),
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: hemoaiPrimary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(seconds: 2),
         ),
       );
     }
@@ -314,7 +356,7 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
 
   Widget _buildLoginPrompt() {
     final loc = Provider.of<LocalizationService>(context, listen: false);
-    final cs = Theme.of(context).colorScheme;
+    final cs = Theme.of(context).colorScheme; // used below
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Center(
@@ -727,75 +769,182 @@ class _FamilyPanelScreenState extends State<FamilyPanelScreen> {
           const SizedBox(height: 16),
           
           ...pendingInvitations.map((invitation) => Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange[300]!),
+                  gradient: LinearGradient(
+                    colors: [
+                      cs.primaryContainer.withValues(alpha: 0.3),
+                      cs.surfaceContainerHighest,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: cs.primary.withValues(alpha: 0.3),
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: cs.primary.withValues(alpha: 0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Header with user info
                     Row(
                       children: [
-                        CircleAvatar(
-                          backgroundColor: Colors.orange[100],
-                          child: Icon(Icons.person, color: Colors.orange[700]),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: cs.primary.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.person_add,
+                            color: cs.primary,
+                            size: 28,
+                          ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 invitation['from_user_name'] ?? localizationService.getString('family_unknown_user'),
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: cs.onSurface,
                                 ),
                               ),
+                              const SizedBox(height: 4),
                               Text(
                                 localizationService.getStringWithParams('family_invited_as_relation', {'relation': _relationLabelFromStored(localizationService, invitation['relation'])}),
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.grey[600],
+                                  color: cs.onSurfaceVariant,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
-                              if (invitation['message'] != null)
-                                Text(
-                                  invitation['message'],
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[500],
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                                ),
                             ],
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 20),
+                    
+                    // Permission request message
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: cs.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: cs.outlineVariant.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: cs.primary,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                localizationService.getString('family_permission_request_title'),
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: cs.onSurface,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            localizationService.getString('family_permission_request_message'),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: cs.onSurfaceVariant,
+                              height: 1.5,
+                            ),
+                          ),
+                          if (invitation['message'] != null) ...[
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: cs.surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Icon(
+                                    Icons.message,
+                                    size: 16,
+                                    color: cs.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      invitation['message'],
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: cs.onSurfaceVariant,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    // Action buttons
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        TextButton.icon(
+                        OutlinedButton.icon(
                           onPressed: () => _respondToInvitation(invitation['id'], 'rejected'),
-                          icon: const Icon(Icons.close, size: 16),
+                          icon: const Icon(Icons.close, size: 18),
                           label: Text(localizationService.getString('family_decline')),
-                          style: TextButton.styleFrom(
+                          style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.red,
+                            side: BorderSide(color: Colors.red.withValues(alpha: 0.5)),
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        ElevatedButton.icon(
+                        const SizedBox(width: 12),
+                        FilledButton.icon(
                           onPressed: () => _respondToInvitation(invitation['id'], 'accepted'),
-                          icon: const Icon(Icons.check, size: 16),
+                          icon: const Icon(Icons.check, size: 18),
                           label: Text(localizationService.getString('family_accept')),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context).colorScheme.primary,
-                            foregroundColor: Colors.white,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: cs.primary,
+                            foregroundColor: cs.onPrimary,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
                       ],
@@ -1166,9 +1315,10 @@ class _InviteUserDialogState extends State<_InviteUserDialog> {
       final permission = await Permission.contacts.request();
       if (!permission.isGranted) {
         if (context.mounted) {
+          final loc = Provider.of<LocalizationService>(context, listen: false);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Contacts permission is required to select a contact'),
+            SnackBar(
+              content: Text(loc.getString('family_contacts_permission_required')),
               backgroundColor: Colors.orange,
             ),
           );
@@ -1179,9 +1329,10 @@ class _InviteUserDialogState extends State<_InviteUserDialog> {
       final flutterContactsGranted = await FlutterContacts.requestPermission(readonly: true);
       if (!flutterContactsGranted) {
         if (context.mounted) {
+          final loc = Provider.of<LocalizationService>(context, listen: false);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Contacts permission denied'),
+            SnackBar(
+              content: Text(loc.getString('family_contacts_permission_denied')),
               backgroundColor: Colors.orange,
             ),
           );
@@ -1197,7 +1348,10 @@ class _InviteUserDialogState extends State<_InviteUserDialog> {
       final selectedContact = await showDialog<Contact>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Select Contact'),
+          title: Builder(builder: (context){
+            final loc = Provider.of<LocalizationService>(context, listen: false);
+            return Text(loc.getString('family_select_contact'));
+          }),
           content: SizedBox(
             width: double.maxFinite,
             child: ListView.builder(
@@ -1207,7 +1361,7 @@ class _InviteUserDialogState extends State<_InviteUserDialog> {
                 final contact = contacts[index];
                 final phoneNumber = contact.phones.isNotEmpty
                     ? contact.phones.first.number
-                    : 'No phone';
+                    : Provider.of<LocalizationService>(context, listen: false).getString('family_no_phone');
                 return ListTile(
                   leading: const Icon(Icons.person),
                   title: Text(contact.displayName),
@@ -1220,7 +1374,10 @@ class _InviteUserDialogState extends State<_InviteUserDialog> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Builder(builder: (context){
+                final loc = Provider.of<LocalizationService>(context, listen: false);
+                return Text(loc.getString('cancel'));
+              }),
             ),
           ],
         ),
@@ -1237,9 +1394,10 @@ class _InviteUserDialogState extends State<_InviteUserDialog> {
       }
     } catch (e) {
       if (context.mounted) {
+        final loc = Provider.of<LocalizationService>(context, listen: false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error selecting contact: $e'),
+            content: Text(loc.getStringWithParams('family_error_selecting_contact', {'error': e.toString()})),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -1318,7 +1476,7 @@ class _InviteUserDialogState extends State<_InviteUserDialog> {
                   const SizedBox(width: 8),
                   IconButton(
                     icon: const Icon(Icons.contacts),
-                    tooltip: 'Select from contacts',
+                    tooltip: Provider.of<LocalizationService>(context, listen: false).getString('family_select_from_contacts'),
                     onPressed: () => _selectFromContacts(context),
                     style: IconButton.styleFrom(
                       backgroundColor: cs.primaryContainer,
@@ -1660,6 +1818,224 @@ class _FamilyMemberCard extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
         ),
       ],
+    );
+  }
+}
+
+class _SuccessAnimationDialog extends StatefulWidget {
+  final String name;
+  final String relationLabel;
+
+  const _SuccessAnimationDialog({
+    required this.name,
+    required this.relationLabel,
+  });
+
+  @override
+  State<_SuccessAnimationDialog> createState() => _SuccessAnimationDialogState();
+}
+
+class _SuccessAnimationDialogState extends State<_SuccessAnimationDialog>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
+  final hemoaiPrimary = const Color(0xFFE53E3E);
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.elasticOut,
+      ),
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeIn,
+      ),
+    );
+
+    _controller.forward();
+
+    // Auto close after 2 seconds
+    Future.delayed(const Duration(milliseconds: 2000), () {
+      if (mounted) {
+        _controller.reverse().then((_) {
+          if (mounted) {
+            Navigator.of(context).pop();
+          }
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = Provider.of<LocalizationService>(context, listen: false);
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: FadeTransition(
+        opacity: _fadeAnimation,
+        child: ScaleTransition(
+          scale: _scaleAnimation,
+          child: Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  hemoaiPrimary.withValues(alpha: 0.95),
+                  hemoaiPrimary.withValues(alpha: 0.85),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: hemoaiPrimary.withValues(alpha: 0.4),
+                  blurRadius: 24,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Success icon with animation
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check_circle,
+                    color: Colors.white,
+                    size: 60,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                // Success message
+                Text(
+                  loc.getString('family_member_added_success'),
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                
+                // Member info card
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.3),
+                      width: 2,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.person,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                          const SizedBox(width: 12),
+                          Flexible(
+                            child: Text(
+                              widget.name,
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.family_restroom,
+                            color: Colors.white.withValues(alpha: 0.9),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            widget.relationLabel,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.white.withValues(alpha: 0.9),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                // Close button
+                FilledButton.icon(
+                  onPressed: () {
+                    _controller.reverse().then((_) {
+                      if (mounted) {
+                        Navigator.of(context).pop();
+                      }
+                    });
+                  },
+                  icon: const Icon(Icons.check),
+                  label: Text(loc.getString('got_it')),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: hemoaiPrimary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 16,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

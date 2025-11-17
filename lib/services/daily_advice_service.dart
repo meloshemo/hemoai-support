@@ -12,9 +12,16 @@ class DailyAdviceService extends ChangeNotifier {
 
   // All quotes for current locale
   List<String> getAllQuotes(LocalizationService loc) {
-    final listRaw = loc.getString('daily_quotes_list');
-    return listRaw
-        .split('\n')
+    final baseRaw = loc.getString('daily_quotes_list');
+    final enrichedRaw = loc.getString('daily_quotes_list_enriched');
+    final combined = <String>[];
+    if (baseRaw.isNotEmpty) {
+      combined.addAll(baseRaw.split('\n'));
+    }
+    if (enrichedRaw.isNotEmpty) {
+      combined.addAll(enrichedRaw.split('\n'));
+    }
+    return combined
         .map((l) => l.trim())
         .where((l) => l.isNotEmpty)
         .toList(growable: false);

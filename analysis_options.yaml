@@ -31,3 +31,4 @@ analyzer:
   exclude:
     - lib/ui/**
     - lib/core/**
+    

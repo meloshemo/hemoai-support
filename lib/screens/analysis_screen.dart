@@ -16,10 +16,10 @@ class AnalysisScreen extends StatefulWidget {
   final DateTime? testDate;
 
   const AnalysisScreen({
-    Key? key,
+    super.key,
     required this.hemogramValues,
     this.testDate,
-  }) : super(key: key);
+  });
 
   @override
   State<AnalysisScreen> createState() => _AnalysisScreenState();
@@ -133,7 +133,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
       if (mounted) {
         final loc = Provider.of<LocalizationService>(context, listen: false);
         setState(() {
-          _errorMessage = loc.getString('error_prefix') + ' ' + e.toString();
+          _errorMessage = '${loc.getString('error_prefix')} ${e.toString()}';
         });
       }
     }
@@ -876,9 +876,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
             ),
             const SizedBox(height: 16),
             ..._orderedMarkerKeys(localizationService)
-                .where((k) => currentValues.containsKey(k))
-                .map((k) => _buildParameterRow(k, currentValues[k]!))
-                .toList(),
+              .where((k) => currentValues.containsKey(k))
+              .map((k) => _buildParameterRow(k, currentValues[k]!)),
           ],
         ),
       ),
@@ -1039,8 +1038,8 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
               const SizedBox(height: 8),
               ...abnormalValues.map((param) => Padding(
                 padding: const EdgeInsets.only(left: 16, bottom: 4),
-                child: Text('• ' + _localizedParamName(param), style: TextStyle(color: Colors.grey[700])),
-              )).toList(),
+                child: Text('• ${_localizedParamName(param)}', style: TextStyle(color: Colors.grey[700])),
+              )),
             ] else ...[
               Text(
                 localizationService.getString('all_values_normal_message'),
@@ -1100,7 +1099,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
                       ),
                     ],
                   ),
-                )).toList(),
+                )),
           ],
         ),
       ),
@@ -1205,7 +1204,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
                   ],
                 ),
               );
-            }).toList(),
+            }),
           ],
         ),
       ),
@@ -1292,7 +1291,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
                 ),
               ),
               const SizedBox(height: 12),
-              ...testHistory.map((test) => _buildHistoryItem(test)).toList(),
+              ...testHistory.map((test) => _buildHistoryItem(test)),
             ] else ...[
               Text(
                 localizationService.getString('first_test_message'),
@@ -1530,19 +1529,19 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('tip_water_intake')),
-                Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('tip_exercise')),
-                Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('tip_balanced_diet')),
-                Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('tip_sleep')),
-                Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('tip_stress_management')),
+                Text('• ${Provider.of<LocalizationService>(context, listen: false).getString('tip_water_intake')}'),
+                Text('• ${Provider.of<LocalizationService>(context, listen: false).getString('tip_exercise')}'),
+                Text('• ${Provider.of<LocalizationService>(context, listen: false).getString('tip_balanced_diet')}'),
+                Text('• ${Provider.of<LocalizationService>(context, listen: false).getString('tip_sleep')}'),
+                Text('• ${Provider.of<LocalizationService>(context, listen: false).getString('tip_stress_management')}'),
                 const SizedBox(height: 12),
                 Text(
                   Provider.of<LocalizationService>(context, listen: false).getString('checks_heading'),
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('check_semiannual_hemogram')),
-                Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('check_annual_general')),
-                Text('• ' + Provider.of<LocalizationService>(context, listen: false).getString('check_follow_abnormal')),
+                Text('• ${Provider.of<LocalizationService>(context, listen: false).getString('check_semiannual_hemogram')}'),
+                Text('• ${Provider.of<LocalizationService>(context, listen: false).getString('check_annual_general')}'),
+                Text('• ${Provider.of<LocalizationService>(context, listen: false).getString('check_follow_abnormal')}'),
               ],
             ),
           ),
@@ -1641,6 +1640,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
 
     setState(() => _isExporting = true);
     final loc = Provider.of<LocalizationService>(context, listen: false);
+    final messenger = ScaffoldMessenger.of(context);
 
     try {
         final exportDate = widget.testDate ?? DateTime.now();
@@ -1654,7 +1654,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
 
       if (!mounted) return;
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Row(
               children: [
@@ -1672,9 +1672,9 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
-          content: Text(loc.getString('pdf_export_error_prefix') + e.toString()),
+          content: Text('${loc.getString('pdf_export_error_prefix')}${e.toString()}'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -1690,6 +1690,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
 
     setState(() => _isExporting = true);
     final loc = Provider.of<LocalizationService>(context, listen: false);
+    final messenger = ScaffoldMessenger.of(context);
 
     try {
       final exportDate = widget.testDate ?? DateTime.now();
@@ -1703,7 +1704,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
 
       if (!mounted) return;
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Row(
               children: [
@@ -1721,9 +1722,9 @@ class _AnalysisScreenState extends State<AnalysisScreen> with TickerProviderStat
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
-          content: Text(loc.getString('excel_export_error_prefix') + e.toString()),
+          content: Text('${loc.getString('excel_export_error_prefix')}${e.toString()}'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),

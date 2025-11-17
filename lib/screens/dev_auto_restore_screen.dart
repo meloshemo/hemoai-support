@@ -87,8 +87,8 @@ class _DevAutoRestoreScreenState extends State<DevAutoRestoreScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      setState(() => _status =
-          Provider.of<LocalizationService>(context, listen: false).getString('error_prefix') + e.toString());
+        setState(() => _status =
+          '${Provider.of<LocalizationService>(context, listen: false).getString('error_prefix')}${e.toString()}');
     }
   }
 

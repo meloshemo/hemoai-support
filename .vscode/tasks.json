@@ -107,6 +107,21 @@
 				"-Command",
 				"$paths = @('C:\\Users\\omeli\\Desktop\\hemoai\\docs\\performance\\2025-11-12-timeline-web.json','C:\\Users\\omeli\\Desktop\\hemoai\\docs\\performance\\2025-11-12-timeline-web-offline.json'); foreach($p in $paths){ $fi = Get-Item -LiteralPath $p; $bytes = Get-Content -LiteralPath $p -Encoding Byte -TotalCount 2; $sig = if($bytes){ '{0:X2}{1:X2}' -f $bytes[0],$bytes[1] } else { 'NA' }; Write-Output (\"`nFile: $($fi.Name)\" ); Write-Output (\"Path: $p\"); Write-Output (\"Size: $($fi.Length) bytes\"); Write-Output (\"FirstBytes: $sig\"); }"
 			]
+		},
+		{
+			"label": "Collect screenshots (docs/screenshots)",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"tool/collect_screenshots.ps1"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
 		}
 	]
 }
