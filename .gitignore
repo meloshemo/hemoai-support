@@ -57,6 +57,13 @@ env.secrets.json
 env.secrets.enc.json
 env.vault.tmp
 
+# Firebase configuration files (contain API keys)
+lib/firebase_options.dart
+lib/firebase/firebase_options.dart
+ios/Runner/GoogleService-Info.plist
+android/app/google-services.json
+*.plist
+
 # User data dumps / exports (PII) - do not commit
 data/backups/
 *.export.json
